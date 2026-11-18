@@ -477,13 +477,13 @@ public class SoundDetector extends Module {
             if (NametagUtils.to2D(this.labelPos, 1.3)) {
                String head = spot.kind.title;
                String second = (spot.count > 1 ? "x" + spot.count + " - " : "") + ago(now - spot.last);
-               NametagUtils.begin(this.labelPos);
-               text.begin();
+               NametagUtils.begin(this.labelPos, event.graphics);
+               text.begin(event.graphics);
                double h = text.getHeight(true);
                text.render(head, -text.getWidth(head, true) / 2.0, -h * 2.0, this.line, true);
                text.render(second, -text.getWidth(second, true) / 2.0, -h, LABEL_TEXT, true);
                text.end();
-               NametagUtils.end();
+               NametagUtils.end(event.graphics);
             }
          }
       }

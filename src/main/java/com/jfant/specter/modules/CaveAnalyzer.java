@@ -180,11 +180,11 @@ public class CaveAnalyzer extends Module {
                this.labelPos.set(cave.x() + 0.5, cave.y() + 1.2, cave.z() + 0.5);
                if (NametagUtils.to2D(this.labelPos, 1.3)) {
                   String name = CaveAnalysis.SIZES[cave.size()] + " Cave";
-                  NametagUtils.begin(this.labelPos);
-                  text.begin();
+                  NametagUtils.begin(this.labelPos, event.graphics);
+                  text.begin(event.graphics);
                   text.render(name, -text.getWidth(name, true) / 2.0, -text.getHeight(true), this.line, true);
                   text.end();
-                  NametagUtils.end();
+                  NametagUtils.end(event.graphics);
                }
             }
          }

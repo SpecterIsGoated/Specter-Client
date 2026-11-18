@@ -21,6 +21,7 @@ import com.jfant.specter.render.PurpleCard;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;

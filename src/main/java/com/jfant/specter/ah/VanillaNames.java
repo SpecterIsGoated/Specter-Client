@@ -82,6 +82,7 @@ public final class VanillaNames {
          Minecraft mc = Minecraft.getInstance();
          if (mc != null) {
             IoSupplier<InputStream> supplier = mc.getVanillaPackResources()
+               .fullResources()
                .getResource(PackType.CLIENT_RESOURCES, Identifier.withDefaultNamespace("lang/en_us.json"));
             if (supplier != null) {
                return supplier.get();

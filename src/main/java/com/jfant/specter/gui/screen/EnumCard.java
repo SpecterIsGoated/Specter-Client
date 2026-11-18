@@ -80,7 +80,7 @@ final class EnumCard extends Card {
       Animator.fire(this, "cycle", Spec.EXPAND);
       Object[] all = this.values();
       int next = Math.floorMod(this.setting.get().ordinal() + by, all.length);
-      ((EnumSetting<Object>)this.setting).set(all[next]);
+      ((EnumSetting)this.setting).set(all[next]);
    }
 
    @Override

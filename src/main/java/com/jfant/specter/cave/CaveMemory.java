@@ -232,7 +232,7 @@ public final class CaveMemory {
          double pz = mc.player.getZ();
 
          try {
-            this.job = this.worker.submit(() -> CaveAnalysis.run(input, px, py, pz, settings, own));
+            this.job = this.worker.submit(() -> CaveAnalysis.run(input, px, py, pz, settings, ownx));
          } catch (Exception var25) {
             return done;
          }

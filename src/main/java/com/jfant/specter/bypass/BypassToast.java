@@ -113,7 +113,7 @@ public class BypassToast implements Toast {
    }
 
    @Override
-   public void render(GuiGraphicsExtractor graphics, Font font, long visibleFor) {
+   public void extractRenderState(GuiGraphicsExtractor graphics, Font font, long visibleFor) {
       int right = this.width - 3;
       int bottom = 31;
       PurpleCard.card(graphics, 0, 1, right, bottom);

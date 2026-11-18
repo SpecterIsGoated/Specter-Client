@@ -99,23 +99,23 @@ public final class HudElementPanel extends Screen {
             .build()
       );
       sg.add(
-         ((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)new EnumSetting.Builder()
-                              .name("x-anchor"))
-                           .description("Horizontal anchor."))
-                        .defaultValue(XAnchor.Left))
-                     .visible(() -> !element.autoAnchors))
-                  .onModuleActivated(xAnchorSetting -> xAnchorSetting.set(element.box.xAnchor)))
-               .onChanged(element.box::setXAnchor))
+         new EnumSetting.Builder<XAnchor>()
+                              .name("x-anchor")
+                           .description("Horizontal anchor.")
+                        .defaultValue(XAnchor.Left)
+                     .visible(() -> !element.autoAnchors)
+                  .onModuleActivated(xAnchorSetting -> xAnchorSetting.set(element.box.xAnchor))
+               .onChanged(element.box::setXAnchor)
             .build()
       );
       sg.add(
-         ((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)new EnumSetting.Builder()
-                              .name("y-anchor"))
-                           .description("Vertical anchor."))
-                        .defaultValue(YAnchor.Top))
-                     .visible(() -> !element.autoAnchors))
-                  .onModuleActivated(yAnchorSetting -> yAnchorSetting.set(element.box.yAnchor)))
-               .onChanged(element.box::setYAnchor))
+         new EnumSetting.Builder<YAnchor>()
+                              .name("y-anchor")
+                           .description("Vertical anchor.")
+                        .defaultValue(YAnchor.Top)
+                     .visible(() -> !element.autoAnchors)
+                  .onModuleActivated(yAnchorSetting -> yAnchorSetting.set(element.box.yAnchor))
+               .onChanged(element.box::setYAnchor)
             .build()
       );
       return sg;

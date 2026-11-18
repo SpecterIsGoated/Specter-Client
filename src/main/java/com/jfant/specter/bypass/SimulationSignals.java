@@ -1,5 +1,6 @@
 package com.jfant.specter.bypass;
 
+import net.minecraft.network.protocol.game.VecDelta;
 import com.jfant.specter.scan.AntiXray;
 import com.jfant.specter.scan.ChangeBursts;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
@@ -338,7 +339,7 @@ public final class SimulationSignals {
          if (level != null) {
             Entity entity = packet.getEntity(level);
             if (entity != null) {
-               boolean moved = packet.hasPosition() && (packet.getXa() != 0 || packet.getYa() != 0 || packet.getZa() != 0);
+               boolean moved = packet.hasPosition() && !VecDelta.ZERO.equals(packet.getPositionDelta());
                if (moved || packet.hasRotation()) {
                   LAST_ACTIVE.put(entity.getId(), now());
                }
@@ -359,8 +360,7 @@ public final class SimulationSignals {
          if (level != null) {
             Entity entity = level.getEntity(packet.id());
             if (entity != null) {
-               PositionMoveRotation values = packet.values();
-               if (!(entity.position().distanceToSqr(values.position()) < 1.0E-4)) {
+               if (!(entity.position().distanceToSqr(packet.position().endPosition()) < 1.0E-4)) {
                   LAST_ACTIVE.put(entity.getId(), now());
                   entitySignal(entity, SimulationSignals.Kind.MOVE, 0);
                }

@@ -77,7 +77,7 @@ public final class Wanted {
 
    private static int levelOf(ItemEnchantments present, String key) {
       for (Entry<Holder<Enchantment>> entry : present.entrySet()) {
-         String path = ((Holder)entry.getKey()).unwrapKey().map(k -> k.identifier().getPath()).orElse("");
+         String path = ((Holder<?>)entry.getKey()).unwrapKey().map(k -> k.identifier().getPath()).orElse("");
          if (Menus.key(path).equals(key)) {
             return entry.getIntValue();
          }

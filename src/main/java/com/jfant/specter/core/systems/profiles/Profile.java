@@ -83,6 +83,18 @@ public class Profile implements ISerializable<Profile> {
         }
     }
 
+    /** Specter: the profile folder, or null when the name would escape the profiles folder. */
+    public File getSafeFile() {
+        try {
+            File folder = getFile().getCanonicalFile();
+            File profilesFolder = Profiles.FOLDER.getCanonicalFile();
+            return !name.get().isEmpty() && profilesFolder.equals(folder.getParentFile()) ? folder : null;
+        } catch (IOException e) {
+            SpecterCore.LOG.error("Error resolving profile {}", name.get(), e);
+            return null;
+        }
+    }
+
     public File getFile() {
         return new File(Profiles.FOLDER, name.get());
     }

@@ -755,8 +755,8 @@ public class BaseEsp extends Module {
                this.labelPos.set(x, y, z);
                if (NametagUtils.to2D(this.labelPos, 1.0)) {
                   BaseEsp.FrameInfo info = e.getValue();
-                  NametagUtils.begin(this.labelPos);
-                  text.begin();
+                  NametagUtils.begin(this.labelPos, event.graphics);
+                  text.begin(event.graphics);
                   double h = text.getHeight(true);
                   text.render(info.item(), -text.getWidth(info.item(), true) / 2.0, info.owner() == null ? -h : -h * 2.0, LABEL_TITLE, true);
                   if (info.owner() != null) {
@@ -765,7 +765,7 @@ public class BaseEsp extends Module {
                   }
 
                   text.end();
-                  NametagUtils.end();
+                  NametagUtils.end(event.graphics);
                }
             }
          }

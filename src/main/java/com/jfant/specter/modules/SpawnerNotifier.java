@@ -1,5 +1,7 @@
 package com.jfant.specter.modules;
 
+import net.minecraft.resources.Identifier;
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.jfant.specter.Scope;
 import com.jfant.specter.SpecterClientAddon;
 import com.jfant.specter.core.SpecterCore;
@@ -574,7 +576,7 @@ public class SpawnerNotifier extends Module {
          CompoundTag nbt = entity.saveWithoutMetadata(this.mc.level.registryAccess());
          int range = nbt.getIntOr("RequiredPlayerRange", 16);
          String id = nbt.getCompoundOrEmpty("SpawnData").getCompoundOrEmpty("entity").getStringOr("id", "");
-         String mob = id.isEmpty() ? null : EntityType.byString(id).map(type -> type.getDescription().getString()).orElse(null);
+         String mob = id.isEmpty() ? null : BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.tryParse(id)).map(type -> type.getDescription().getString()).orElse(null);
          return new SpawnerNotifier.Info(mob, range, now);
       }
    }
@@ -624,13 +626,13 @@ public class SpawnerNotifier extends Module {
                boolean inside = info.range() > 0 && tag.distance() < info.range();
                LABEL_TITLE.a = alpha;
                LABEL_TEXT.set(inside ? 0 : 200, inside ? 255 : 200, inside ? 255 : 200, alpha);
-               NametagUtils.begin(this.labelPos);
-               text.begin();
+               NametagUtils.begin(this.labelPos, event.graphics);
+               text.begin(event.graphics);
                double h = text.getHeight(true);
                text.render(title, -text.getWidth(title, true) / 2.0, -h * 2.0, LABEL_TITLE, true);
                text.render(detail, -text.getWidth(detail, true) / 2.0, -h, LABEL_TEXT, true);
                text.end();
-               NametagUtils.end();
+               NametagUtils.end(event.graphics);
             }
          }
       }

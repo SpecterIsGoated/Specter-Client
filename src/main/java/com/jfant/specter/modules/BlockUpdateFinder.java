@@ -638,8 +638,8 @@ public class BlockUpdateFinder extends Module {
                      seen(a.counts()),
                      (int)Math.sqrt(dx * dx + dz * dz) + " blocks - " + ago(now - a.newest())
                   };
-                  NametagUtils.begin(this.labelPos);
-                  text.begin();
+                  NametagUtils.begin(this.labelPos, event.graphics);
+                  text.begin(event.graphics);
                   double h = text.getHeight(true);
 
                   for (int i = 0; i < lines.length; i++) {
@@ -647,7 +647,7 @@ public class BlockUpdateFinder extends Module {
                   }
 
                   text.end();
-                  NametagUtils.end();
+                  NametagUtils.end(event.graphics);
                }
             }
          }

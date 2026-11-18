@@ -1,5 +1,7 @@
 package com.jfant.specter.gui.screen;
 
+import java.net.URI;
+import com.mojang.blaze3d.Blaze3D;
 import com.jfant.specter.core.utils.misc.input.Input;
 import com.jfant.specter.anim.Animator;
 import com.jfant.specter.anim.Channel;
@@ -749,7 +751,7 @@ public class SpecterScreen extends Screen {
       if ("https://discord.gg/UVjHt4QJwN".isEmpty()) {
          this.notice("Specter+ is coming soon - ask in the Specter Discord.");
       } else {
-         Util.getPlatform().openUri("https://discord.gg/UVjHt4QJwN");
+         Blaze3D.openUri(URI.create("https://discord.gg/UVjHt4QJwN"));
          this.notice("Opened the Specter Discord in your browser.");
       }
    }

@@ -261,7 +261,6 @@ final class SmoothShapes {
       int s = shelf;
       if (x + size > atlasSize) {
          y += s + 1;
-         int var4 = false;
       }
 
       return y + size <= atlasSize && size <= atlasSize;

@@ -1165,8 +1165,8 @@ public class PrimeChunkFinder extends Module {
                if (NametagUtils.to2D(this.labelPos, 2.2)) {
                   String title = sum[3] > 0 ? "Lamps" : (sum[2] > 0 ? "Redstone" : (total(sum) > 0 ? "Light" : "Found before"));
                   String[] lines = new String[]{title, seenText(sum), newest > 0L ? ago(now - newest) : ""};
-                  NametagUtils.begin(this.labelPos);
-                  text.begin();
+                  NametagUtils.begin(this.labelPos, event.graphics);
+                  text.begin(event.graphics);
                   double h = text.getHeight(true);
 
                   for (int l = 0; l < lines.length; l++) {
@@ -1176,7 +1176,7 @@ public class PrimeChunkFinder extends Module {
                   }
 
                   text.end();
-                  NametagUtils.end();
+                  NametagUtils.end(event.graphics);
                }
             }
          }

@@ -16,17 +16,17 @@ public class VisualPresets extends Module {
    private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
    private final Setting<VisualPresets.Preset> preset = this.sgGeneral
       .add(
-         ((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)new EnumSetting.Builder().name("preset"))
+         new EnumSetting.Builder<VisualPresets.Preset>().name("preset")
                      .description(
                         "The look this module switches on. Christmas: snow, a cold grade, the GUI's Christmas dress. Tropical Night: glowing water and haze. Coastal Morning: sea fog and faded film. Cinematic: a film grade."
-                     ))
-                  .defaultValue(VisualPresets.Preset.Christmas))
+                     )
+                  .defaultValue(VisualPresets.Preset.Christmas)
                .onChanged(value -> {
                   if (this.isActive() && this.applied != null && this.applied != value) {
                      this.undo();
                      this.apply(value);
                   }
-               }))
+               })
             .build()
       );
    private final List<Runnable> restore = new ArrayList<>();
@@ -121,7 +121,7 @@ public class VisualPresets extends Module {
       if (module != null) {
          Setting<?> setting = module.settings.get(name);
          if (setting != null) {
-            this.change(setting, value);
+            this.change((Setting<T>)setting, value);
          }
       }
    }
