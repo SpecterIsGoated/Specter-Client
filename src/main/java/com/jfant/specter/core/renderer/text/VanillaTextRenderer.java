@@ -1,119 +1,94 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.renderer.text;
 
-import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.utils.render.color.Color;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.gui.Font.DisplayMode;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
-import org.joml.Matrix4f;
-import org.joml.Matrix4fStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import org.joml.Matrix3x2fStack;
+
+import static com.jfant.specter.core.SpecterCore.mc;
 
 public class VanillaTextRenderer implements TextRenderer {
-   public static final VanillaTextRenderer INSTANCE = new VanillaTextRenderer();
-   private final ByteBufferBuilder buffer = new ByteBufferBuilder(2048);
-   private final BufferSource immediate = MultiBufferSource.immediate(this.buffer);
-   private final PoseStack matrices = new PoseStack();
-   private final Matrix4f emptyMatrix = new Matrix4f();
-   public double scale = 2.0;
-   public boolean scaleIndividually;
-   private boolean building;
-   private double alpha = 1.0;
+    public static final VanillaTextRenderer INSTANCE = new VanillaTextRenderer();
 
-   private VanillaTextRenderer() {
-   }
+    public double scale = 2;
+    //todo remove in 26.3 update
+    public boolean scaleIndividually;
 
-   @Override
-   public void setAlpha(double a) {
-      this.alpha = a;
-   }
+    private GuiGraphicsExtractor graphics;
+    private boolean building;
+    private double alpha = 1;
 
-   @Override
-   public double getWidth(String text, int length, boolean shadow) {
-      if (text.isEmpty()) {
-         return 0.0;
-      } else {
-         if (length != text.length()) {
-            text = text.substring(0, length);
-         }
+    private VanillaTextRenderer() {
+        // Use INSTANCE
+    }
 
-         return (SpecterCore.mc.font.width(text) + (shadow ? 1 : 0)) * this.scale;
-      }
-   }
+    @Override
+    public void setAlpha(double a) {
+        alpha = a;
+    }
 
-   @Override
-   public double getHeight(boolean shadow) {
-      return (9 + (shadow ? 1 : 0)) * this.scale;
-   }
+    @Override
+    public double getWidth(String text, int length, boolean shadow) {
+        if (text.isEmpty()) return 0;
 
-   @Override
-   public void begin(double scale, boolean scaleOnly, boolean big) {
-      if (this.building) {
-         throw new RuntimeException("VanillaTextRenderer.begin() called twice");
-      } else {
-         this.scale = scale * 2.0;
-         this.building = true;
-      }
-   }
+        if (length != text.length()) text = text.substring(0, length);
+        return (mc.font.width(text) + (shadow ? 1 : 0)) * scale;
+    }
 
-   @Override
-   public double render(String text, double x, double y, Color color, boolean shadow) {
-      boolean wasBuilding = this.building;
-      if (!wasBuilding) {
-         this.begin();
-      }
+    @Override
+    public double getHeight(boolean shadow) {
+        return (mc.font.lineHeight + (shadow ? 1 : 0)) * scale;
+    }
 
-      x += 0.5 * this.scale;
-      y += 0.5 * this.scale;
-      int preA = color.a;
-      color.a = (int)(color.a / 255.0 * this.alpha * 255.0);
-      Matrix4f matrix = this.emptyMatrix;
-      if (this.scaleIndividually) {
-         this.matrices.pushPose();
-         this.matrices.scale((float)this.scale, (float)this.scale, 1.0F);
-         matrix = this.matrices.last().pose();
-      }
+    @Override
+    public void begin(GuiGraphicsExtractor graphics, double scale, boolean scaleOnly, boolean big) {
+        if (building) throw new RuntimeException("VanillaTextRenderer.begin() called twice");
 
-      SpecterCore.mc
-         .font
-         .drawInBatch(
-            text, (float)(x / this.scale), (float)(y / this.scale), color.getPacked(), shadow, matrix, this.immediate, DisplayMode.NORMAL, 0, 15728880
-         );
-      double x2 = x / this.scale + SpecterCore.mc.font.width(text);
-      if (this.scaleIndividually) {
-         this.matrices.popPose();
-      }
+        this.graphics = graphics;
+        this.scale = scale * 2;
+        this.building = true;
+    }
 
-      color.a = preA;
-      if (!wasBuilding) {
-         this.end();
-      }
+    @Override
+    public double render(String text, double x, double y, Color color, boolean shadow) {
+        if (!building) throw new RuntimeException("VanillaTextRenderer.render() called without calling begin()");
 
-      return (x2 - 1.0) * this.scale;
-   }
+        x += 0.5 * scale;
+        y += 0.5 * scale;
 
-   @Override
-   public boolean isBuilding() {
-      return this.building;
-   }
+        int preA = color.a;
+        color.a = (int) (((double) color.a / 255 * alpha) * 255);
 
-   @Override
-   public void end() {
-      if (!this.building) {
-         throw new RuntimeException("VanillaTextRenderer.end() called without calling begin()");
-      } else {
-         Matrix4fStack matrixStack = RenderSystem.getModelViewStack();
-         matrixStack.pushMatrix();
-         if (!this.scaleIndividually) {
-            matrixStack.scale((float)this.scale, (float)this.scale, 1.0F);
-         }
+        Matrix3x2fStack matrices = graphics.pose();
+        matrices.pushMatrix();
 
-         this.immediate.endBatch();
-         matrixStack.popMatrix();
-         this.scale = 2.0;
-         this.building = false;
-      }
-   }
+        matrices.scale((float) scale, (float) scale);
+
+        graphics.text(mc.font, text, (int) (x / scale), (int) (y / scale), color.getPacked());
+        double x2 = (x / scale) + mc.font.width(text);
+
+        matrices.popMatrix();
+
+        color.a = preA;
+
+        return (x2 - 1) * scale;
+    }
+
+    @Override
+    public boolean isBuilding() {
+        return building;
+    }
+
+    @Override
+    public void end() {
+        if (!building) throw new RuntimeException("VanillaTextRenderer.end() called without calling begin()");
+
+        this.graphics = null;
+        this.scale = 2;
+        this.building = false;
+    }
 }

@@ -1,6 +1,10 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.commands.arguments;
 
-import com.jfant.specter.core.SpecterCore;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -8,56 +12,56 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import static com.jfant.specter.core.SpecterCore.mc;
+
 public class PlayerArgumentType implements ArgumentType<Player> {
-   private static final PlayerArgumentType INSTANCE = new PlayerArgumentType();
-   private static final DynamicCommandExceptionType NO_SUCH_PLAYER = new DynamicCommandExceptionType(
-      name -> Component.literal("Player with name " + name + " doesn't exist.")
-   );
-   private static final Collection<String> EXAMPLES = List.of("seasnail8169", "MineGame159");
+    private static final PlayerArgumentType INSTANCE = new PlayerArgumentType();
+    private static final DynamicCommandExceptionType NO_SUCH_PLAYER = new DynamicCommandExceptionType(name -> Component.literal("Player with name " + name + " doesn't exist."));
 
-   public static PlayerArgumentType create() {
-      return INSTANCE;
-   }
+    private static final Collection<String> EXAMPLES = List.of("seasnail8169", "MineGame159");
 
-   public static Player get(CommandContext<?> context) {
-      return (Player)context.getArgument("player", Player.class);
-   }
+    public static PlayerArgumentType create() {
+        return INSTANCE;
+    }
 
-   private PlayerArgumentType() {
-   }
+    public static Player get(CommandContext<?> context) {
+        return context.getArgument("player", Player.class);
+    }
 
-   public Player parse(StringReader reader) throws CommandSyntaxException {
-      String argument = reader.readString();
-      Player playerEntity = null;
+    private PlayerArgumentType() {
+    }
 
-      for (Player p : SpecterCore.mc.level.players()) {
-         if (p.getName().getString().equalsIgnoreCase(argument)) {
-            playerEntity = p;
-            break;
-         }
-      }
+    @Override
+    public Player parse(StringReader reader) throws CommandSyntaxException {
+        String argument = reader.readString();
+        Player playerEntity = null;
 
-      if (playerEntity == null) {
-         throw NO_SUCH_PLAYER.create(argument);
-      } else {
-         return playerEntity;
-      }
-   }
+        for (Player p : mc.level.players()) {
+            if (p.getName().getString().equalsIgnoreCase(argument)) {
+                playerEntity = p;
+                break;
+            }
+        }
+        if (playerEntity == null) throw NO_SUCH_PLAYER.create(argument);
 
-   public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-      return SharedSuggestionProvider.suggest(
-         SpecterCore.mc.level.players().stream().map(abstractClientPlayerEntity -> abstractClientPlayerEntity.getName().getString()), builder
-      );
-   }
+        return playerEntity;
+    }
 
-   public Collection<String> getExamples() {
-      return EXAMPLES;
-   }
+    @Override
+    public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
+        return SharedSuggestionProvider.suggest(mc.level.players().stream().map(abstractClientPlayerEntity -> abstractClientPlayerEntity.getName().getString()), builder);
+    }
+
+    @Override
+    public Collection<String> getExamples() {
+        return EXAMPLES;
+    }
 }

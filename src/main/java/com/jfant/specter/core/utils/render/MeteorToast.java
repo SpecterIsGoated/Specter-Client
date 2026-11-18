@@ -1,15 +1,17 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.render;
 
-import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.utils.render.color.Color;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.toasts.Toast;
 import net.minecraft.client.gui.components.toasts.ToastManager;
-import net.minecraft.client.gui.components.toasts.Toast.Visibility;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
@@ -17,109 +19,107 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+import static com.jfant.specter.core.SpecterCore.mc;
 
 public class MeteorToast implements Toast {
-   private static final int TITLE_COLOR = Color.fromRGBA(145, 61, 226, 255);
-   private static final int TEXT_COLOR = Color.fromRGBA(220, 220, 220, 255);
-   private static final Identifier TEXTURE = Identifier.parse("toast/advancement");
-   private static final long DEFAULT_DURATION = 6000L;
-   private static final SoundInstance DEFAULT_SOUND = SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_CHIME.value(), 1.2F, 1.0F);
-   @NotNull
-   private final Component title;
-   @Nullable
-   private final Component text;
-   @Nullable
-   private final ItemStack icon;
-   @Nullable
-   private final SoundInstance customSound;
-   private final long duration;
-   private boolean playedSound;
-   private long start = -1L;
-   private Visibility visibility = Visibility.HIDE;
+    private static final int TITLE_COLOR = Color.fromRGBA(145, 61, 226, 255);
+    private static final int TEXT_COLOR = Color.fromRGBA(220, 220, 220, 255);
+    private static final Identifier TEXTURE = Identifier.parse("toast/advancement");
+    private static final long DEFAULT_DURATION = 6000;
+    private static final SimpleSoundInstance DEFAULT_SOUND = SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_CHIME.value(), 1.2f, 1);
 
-   private MeteorToast(MeteorToast.Builder builder) {
-      this.title = builder.title;
-      this.text = builder.text;
-      this.icon = builder.icon;
-      this.customSound = builder.customSound;
-      this.duration = builder.duration;
-   }
+    // Toast fields
+    private final @NonNull Component title;
+    private final @Nullable Component text;
+    private final @Nullable ItemStack icon;
+    private final @Nullable SimpleSoundInstance customSound;
+    private final long duration;
 
-   @Override
-   public Visibility getWantedVisibility() {
-      return this.visibility;
-   }
+    // State variables
+    private boolean playedSound;
+    private long start = -1;
+    private Visibility visibility = Visibility.HIDE;
 
-   @Override
-   public void update(ToastManager manager, long time) {
-      if (this.start == -1L) {
-         this.start = time;
-      }
+    private MeteorToast(Builder builder) {
+        this.title = builder.title;
+        this.text = builder.text;
+        this.icon = builder.icon;
+        this.customSound = builder.customSound;
+        this.duration = builder.duration;
+    }
 
-      this.visibility = time - this.start >= this.duration ? Visibility.HIDE : Visibility.SHOW;
-      if (!this.playedSound) {
-         SpecterCore.mc.getSoundManager().play(this.customSound);
-         this.playedSound = true;
-      }
-   }
+    public static class Builder {
+        private final @NonNull Component title;
+        private @Nullable Component text;
+        private @Nullable ItemStack icon;
+        private @Nullable SimpleSoundInstance customSound = DEFAULT_SOUND;
+        private long duration = DEFAULT_DURATION;
 
-   @Override
-   public void render(GuiGraphics context, Font textRenderer, long startTime) {
-      context.blitSprite(RenderPipelines.GUI_TEXTURED, TEXTURE, 0, 0, this.width(), this.height());
-      int textX = this.icon != null ? 28 : 12;
-      int titleY = 12;
-      if (this.text != null) {
-         context.drawString(textRenderer, this.text, textX, 18, TEXT_COLOR, false);
-         titleY = 7;
-      }
+        public Builder(@NonNull String title) {
+            this.title = Component.literal(title).setStyle(Style.EMPTY.withColor(TextColor.fromRgb(TITLE_COLOR)));
+        }
 
-      context.drawString(textRenderer, this.title, textX, titleY, TITLE_COLOR, false);
-      if (this.icon != null) {
-         context.renderItem(this.icon, 8, 8);
-      }
-   }
+        public Builder text(@Nullable String text) {
+            this.text = text != null && !text.trim().isEmpty() ?
+                Component.literal(text).setStyle(Style.EMPTY.withColor(TextColor.fromRgb(TEXT_COLOR))) :
+                null;
+            return this;
+        }
 
-   public static class Builder {
-      @NotNull
-      private final Component title;
-      @Nullable
-      private Component text;
-      @Nullable
-      private ItemStack icon;
-      @Nullable
-      private SoundInstance customSound = MeteorToast.DEFAULT_SOUND;
-      private long duration = 6000L;
+        public Builder icon(@Nullable Item item) {
+            this.icon = item != null ? DisplayItemUtils.toStack(item) : null;
+            return this;
+        }
 
-      public Builder(@NotNull String title) {
-         this.title = Component.literal(title).setStyle(Style.EMPTY.withColor(TextColor.fromRgb(MeteorToast.TITLE_COLOR)));
-      }
+        public Builder sound(@Nullable SimpleSoundInstance sound) {
+            this.customSound = sound;
+            return this;
+        }
 
-      public MeteorToast.Builder text(@Nullable String text) {
-         this.text = text != null && !text.trim().isEmpty()
-            ? Component.literal(text).setStyle(Style.EMPTY.withColor(TextColor.fromRgb(MeteorToast.TEXT_COLOR)))
-            : null;
-         return this;
-      }
+        public Builder duration(long duration) {
+            this.duration = Math.max(0, duration);
+            return this;
+        }
 
-      public MeteorToast.Builder icon(@Nullable Item item) {
-         this.icon = item != null ? item.getDefaultInstance() : null;
-         return this;
-      }
+        public MeteorToast build() {
+            return new MeteorToast(this);
+        }
+    }
 
-      public MeteorToast.Builder sound(@Nullable SoundInstance sound) {
-         this.customSound = sound;
-         return this;
-      }
+    @Override
+    public @NonNull Visibility getWantedVisibility() {
+        return this.visibility;
+    }
 
-      public MeteorToast.Builder duration(long duration) {
-         this.duration = Math.max(0L, duration);
-         return this;
-      }
+    @Override
+    public void update(@NonNull ToastManager manager, long time) {
+        if (start == -1) start = time;
 
-      public MeteorToast build() {
-         return new MeteorToast(this);
-      }
-   }
+        visibility = time - start >= duration ? Visibility.HIDE : Visibility.SHOW;
+
+        if (!playedSound) {
+            mc.getSoundManager().play(customSound);
+            playedSound = true;
+        }
+    }
+
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, @NonNull Font font, long fullyVisibleForMs) {
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, TEXTURE, 0, 0, width(), height());
+
+        int textX = icon != null ? 28 : 12;
+        int titleY = 12;
+
+        if (text != null) {
+            graphics.text(font, text, textX, 18, TEXT_COLOR, false);
+            titleY = 7;
+        }
+
+        graphics.text(font, title, textX, titleY, TITLE_COLOR, false);
+
+        if (icon != null) graphics.item(icon, 8, 8);
+    }
 }

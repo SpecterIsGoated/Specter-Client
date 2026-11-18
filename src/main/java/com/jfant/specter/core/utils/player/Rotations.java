@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.player;
 
 import com.jfant.specter.core.SpecterCore;
@@ -7,256 +12,237 @@ import com.jfant.specter.core.systems.config.Config;
 import com.jfant.specter.core.utils.PreInit;
 import com.jfant.specter.core.utils.entity.Target;
 import com.jfant.specter.core.utils.misc.Pool;
-import java.util.ArrayList;
-import java.util.List;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Rot;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.jfant.specter.core.SpecterCore.mc;
+
 public class Rotations {
-   private static final Pool<Rotations.Rotation> rotationPool = new Pool<>(Rotations.Rotation::new);
-   private static final List<Rotations.Rotation> rotations = new ArrayList<>();
-   public static float serverYaw;
-   public static float serverPitch;
-   public static int rotationTimer;
-   private static float preYaw;
-   private static float prePitch;
-   private static int i = 0;
-   private static Rotations.Rotation lastRotation;
-   private static int lastRotationTimer;
-   private static boolean sentLastRotation;
-   public static boolean rotating = false;
+    private static final Pool<Rotation> rotationPool = new Pool<>(Rotation::new);
+    private static final List<Rotation> rotations = new ArrayList<>();
+    public static float serverYaw;
+    public static float serverPitch;
+    public static int rotationTimer;
+    private static float preYaw, prePitch;
+    private static int i = 0;
 
-   private Rotations() {
-   }
+    private static Rotation lastRotation;
+    private static int lastRotationTimer;
+    private static boolean sentLastRotation;
+    public static boolean rotating = false;
 
-   @PreInit
-   public static void init() {
-      SpecterCore.EVENT_BUS.subscribe(Rotations.class);
-   }
+    private Rotations() {
+    }
 
-   public static void rotate(double yaw, double pitch, int priority, boolean clientSide, Runnable callback) {
-      Rotations.Rotation rotation = rotationPool.get();
-      rotation.set(yaw, pitch, priority, clientSide, callback);
-      int i = 0;
+    @PreInit
+    public static void init() {
+        SpecterCore.EVENT_BUS.subscribe(Rotations.class);
+    }
 
-      while (i < rotations.size() && priority <= rotations.get(i).priority) {
-         i++;
-      }
+    public static void rotate(double yaw, double pitch, int priority, boolean clientSide, Runnable callback) {
+        Rotation rotation = rotationPool.get();
+        rotation.set(yaw, pitch, priority, clientSide, callback);
 
-      rotations.add(i, rotation);
-   }
+        int i = 0;
+        for (; i < rotations.size(); i++) {
+            if (priority > rotations.get(i).priority) break;
+        }
 
-   public static void rotate(double yaw, double pitch, int priority, Runnable callback) {
-      rotate(yaw, pitch, priority, false, callback);
-   }
+        rotations.add(i, rotation);
+    }
 
-   public static void rotate(double yaw, double pitch, Runnable callback) {
-      rotate(yaw, pitch, 0, callback);
-   }
+    public static void rotate(double yaw, double pitch, int priority, Runnable callback) {
+        rotate(yaw, pitch, priority, false, callback);
+    }
 
-   public static void rotate(double yaw, double pitch, int priority) {
-      rotate(yaw, pitch, priority, null);
-   }
+    public static void rotate(double yaw, double pitch, Runnable callback) {
+        rotate(yaw, pitch, 0, callback);
+    }
 
-   public static void rotate(double yaw, double pitch) {
-      rotate(yaw, pitch, 0, null);
-   }
+    public static void rotate(double yaw, double pitch, int priority) {
+        rotate(yaw, pitch, priority, null);
+    }
 
-   private static void resetLastRotation() {
-      if (lastRotation != null) {
-         rotationPool.free(lastRotation);
-         lastRotation = null;
-         lastRotationTimer = 0;
-      }
-   }
+    public static void rotate(double yaw, double pitch) {
+        rotate(yaw, pitch, 0, null);
+    }
 
-   @EventHandler
-   private static void onSendMovementPacketsPre(SendMovementPacketsEvent.Pre event) {
-      if (SpecterCore.mc.getCameraEntity() == SpecterCore.mc.player) {
-         sentLastRotation = false;
-         if (!rotations.isEmpty()) {
+    private static void resetLastRotation() {
+        if (lastRotation != null) {
+            rotationPool.free(lastRotation);
+
+            lastRotation = null;
+            lastRotationTimer = 0;
+        }
+    }
+
+    @EventHandler
+    private static void onSendMovementPacketsPre(SendMovementPacketsEvent.Pre event) {
+        if (mc.getCameraEntity() != mc.player) return;
+        sentLastRotation = false;
+
+        if (!rotations.isEmpty()) {
             rotating = true;
             resetLastRotation();
-            Rotations.Rotation rotation = rotations.get(i);
+
+            Rotation rotation = rotations.get(i);
             setupMovementPacketRotation(rotation);
-            if (rotations.size() > 1) {
-               rotationPool.free(rotation);
-            }
+
+            if (rotations.size() > 1) rotationPool.free(rotation);
 
             i++;
-         } else if (lastRotation != null) {
+        } else if (lastRotation != null) {
             if (lastRotationTimer >= Config.get().rotationHoldTicks.get()) {
-               resetLastRotation();
-               rotating = false;
+                resetLastRotation();
+                rotating = false;
             } else {
-               setupMovementPacketRotation(lastRotation);
-               sentLastRotation = true;
-               lastRotationTimer++;
+                setupMovementPacketRotation(lastRotation);
+                sentLastRotation = true;
+
+                lastRotationTimer++;
             }
-         }
-      }
-   }
+        }
+    }
 
-   private static void setupMovementPacketRotation(Rotations.Rotation rotation) {
-      setClientRotation(rotation);
-      setCamRotation(rotation.yaw, rotation.pitch);
-   }
+    private static void setupMovementPacketRotation(Rotation rotation) {
+        setClientRotation(rotation);
+        setCamRotation(rotation.yaw, rotation.pitch);
+    }
 
-   private static void setClientRotation(Rotations.Rotation rotation) {
-      preYaw = SpecterCore.mc.player.getYRot();
-      prePitch = SpecterCore.mc.player.getXRot();
-      SpecterCore.mc.player.setYRot((float)rotation.yaw);
-      SpecterCore.mc.player.setXRot((float)rotation.pitch);
-   }
+    private static void setClientRotation(Rotation rotation) {
+        preYaw = mc.player.getYRot();
+        prePitch = mc.player.getXRot();
 
-   @EventHandler
-   private static void onSendMovementPacketsPost(SendMovementPacketsEvent.Post event) {
-      if (!rotations.isEmpty()) {
-         if (SpecterCore.mc.getCameraEntity() == SpecterCore.mc.player) {
-            rotations.get(i - 1).runCallback();
-            if (rotations.size() == 1) {
-               lastRotation = rotations.get(i - 1);
+        mc.player.setYRot((float) rotation.yaw);
+        mc.player.setXRot((float) rotation.pitch);
+    }
+
+    @EventHandler
+    private static void onSendMovementPacketsPost(SendMovementPacketsEvent.Post event) {
+        if (!rotations.isEmpty()) {
+            if (mc.getCameraEntity() == mc.player) {
+                rotations.get(i - 1).runCallback();
+
+                if (rotations.size() == 1) lastRotation = rotations.get(i - 1);
+
+                resetPreRotation();
             }
 
+            for (; i < rotations.size(); i++) {
+                Rotation rotation = rotations.get(i);
+
+                setCamRotation(rotation.yaw, rotation.pitch);
+                if (rotation.clientSide) setClientRotation(rotation);
+                rotation.sendPacket();
+                if (rotation.clientSide) resetPreRotation();
+
+                if (i == rotations.size() - 1) lastRotation = rotation;
+                else rotationPool.free(rotation);
+            }
+
+            rotations.clear();
+            i = 0;
+        } else if (sentLastRotation) {
             resetPreRotation();
-         }
+        }
+    }
 
-         for (; i < rotations.size(); i++) {
-            Rotations.Rotation rotation = rotations.get(i);
-            setCamRotation(rotation.yaw, rotation.pitch);
-            if (rotation.clientSide) {
-               setClientRotation(rotation);
-            }
+    private static void resetPreRotation() {
+        mc.player.setYRot(preYaw);
+        mc.player.setXRot(prePitch);
+    }
 
-            rotation.sendPacket();
-            if (rotation.clientSide) {
-               resetPreRotation();
-            }
+    @EventHandler
+    private static void onTick(TickEvent.Pre event) {
+        rotationTimer++;
+    }
 
-            if (i == rotations.size() - 1) {
-               lastRotation = rotation;
-            } else {
-               rotationPool.free(rotation);
-            }
-         }
+    public static double getYaw(Entity entity) {
+        return mc.player.getYRot() + Mth.wrapDegrees((float) Math.toDegrees(Math.atan2(entity.getZ() - mc.player.getZ(), entity.getX() - mc.player.getX())) - 90f - mc.player.getYRot());
+    }
 
-         rotations.clear();
-         i = 0;
-      } else if (sentLastRotation) {
-         resetPreRotation();
-      }
-   }
+    public static double getYaw(Vec3 pos) {
+        return mc.player.getYRot() + Mth.wrapDegrees((float) Math.toDegrees(Math.atan2(pos.z() - mc.player.getZ(), pos.x() - mc.player.getX())) - 90f - mc.player.getYRot());
+    }
 
-   private static void resetPreRotation() {
-      SpecterCore.mc.player.setYRot(preYaw);
-      SpecterCore.mc.player.setXRot(prePitch);
-   }
+    public static double getPitch(Vec3 pos) {
+        double diffX = pos.x() - mc.player.getX();
+        double diffY = pos.y() - (mc.player.getY() + mc.player.getEyeHeight(mc.player.getPose()));
+        double diffZ = pos.z() - mc.player.getZ();
 
-   @EventHandler
-   private static void onTick(TickEvent.Pre event) {
-      rotationTimer++;
-   }
+        double diffXZ = Math.sqrt(diffX * diffX + diffZ * diffZ);
 
-   public static double getYaw(Entity entity) {
-      return SpecterCore.mc.player.getYRot()
-         + Mth.wrapDegrees(
-            (float)Math.toDegrees(Math.atan2(entity.getZ() - SpecterCore.mc.player.getZ(), entity.getX() - SpecterCore.mc.player.getX()))
-               - 90.0F
-               - SpecterCore.mc.player.getYRot()
-         );
-   }
+        return mc.player.getXRot() + Mth.wrapDegrees((float) -Math.toDegrees(Math.atan2(diffY, diffXZ)) - mc.player.getXRot());
+    }
 
-   public static double getYaw(Vec3 pos) {
-      return SpecterCore.mc.player.getYRot()
-         + Mth.wrapDegrees(
-            (float)Math.toDegrees(Math.atan2(pos.z() - SpecterCore.mc.player.getZ(), pos.x() - SpecterCore.mc.player.getX()))
-               - 90.0F
-               - SpecterCore.mc.player.getYRot()
-         );
-   }
+    public static double getPitch(Entity entity, Target target) {
+        double y = switch (target) {
+            case Head -> entity.getEyeY();
+            case Body -> entity.getY() + entity.getBbHeight() / 2;
+            case Feet -> entity.getY();
+        };
 
-   public static double getPitch(Vec3 pos) {
-      double diffX = pos.x() - SpecterCore.mc.player.getX();
-      double diffY = pos.y() - (SpecterCore.mc.player.getY() + SpecterCore.mc.player.getEyeHeight(SpecterCore.mc.player.getPose()));
-      double diffZ = pos.z() - SpecterCore.mc.player.getZ();
-      double diffXZ = Math.sqrt(diffX * diffX + diffZ * diffZ);
-      return SpecterCore.mc.player.getXRot() + Mth.wrapDegrees((float)(-Math.toDegrees(Math.atan2(diffY, diffXZ))) - SpecterCore.mc.player.getXRot());
-   }
+        double diffX = entity.getX() - mc.player.getX();
+        double diffY = y - (mc.player.getY() + mc.player.getEyeHeight(mc.player.getPose()));
+        double diffZ = entity.getZ() - mc.player.getZ();
 
-   public static double getPitch(Entity entity, Target target) {
-      double y;
-      if (target == Target.Head) {
-         y = entity.getEyeY();
-      } else if (target == Target.Body) {
-         y = entity.getY() + entity.getBbHeight() / 2.0F;
-      } else {
-         y = entity.getY();
-      }
+        double diffXZ = Math.sqrt(diffX * diffX + diffZ * diffZ);
 
-      double diffX = entity.getX() - SpecterCore.mc.player.getX();
-      double diffY = y - (SpecterCore.mc.player.getY() + SpecterCore.mc.player.getEyeHeight(SpecterCore.mc.player.getPose()));
-      double diffZ = entity.getZ() - SpecterCore.mc.player.getZ();
-      double diffXZ = Math.sqrt(diffX * diffX + diffZ * diffZ);
-      return SpecterCore.mc.player.getXRot() + Mth.wrapDegrees((float)(-Math.toDegrees(Math.atan2(diffY, diffXZ))) - SpecterCore.mc.player.getXRot());
-   }
+        return mc.player.getXRot() + Mth.wrapDegrees((float) -Math.toDegrees(Math.atan2(diffY, diffXZ)) - mc.player.getXRot());
+    }
 
-   public static double getPitch(Entity entity) {
-      return getPitch(entity, Target.Body);
-   }
+    public static double getPitch(Entity entity) {
+        return getPitch(entity, Target.Body);
+    }
 
-   public static double getYaw(BlockPos pos) {
-      return SpecterCore.mc.player.getYRot()
-         + Mth.wrapDegrees(
-            (float)Math.toDegrees(Math.atan2(pos.getZ() + 0.5 - SpecterCore.mc.player.getZ(), pos.getX() + 0.5 - SpecterCore.mc.player.getX()))
-               - 90.0F
-               - SpecterCore.mc.player.getYRot()
-         );
-   }
+    public static double getYaw(BlockPos pos) {
+        return mc.player.getYRot() + Mth.wrapDegrees((float) Math.toDegrees(Math.atan2(pos.getZ() + 0.5 - mc.player.getZ(), pos.getX() + 0.5 - mc.player.getX())) - 90f - mc.player.getYRot());
+    }
 
-   public static double getPitch(BlockPos pos) {
-      double diffX = pos.getX() + 0.5 - SpecterCore.mc.player.getX();
-      double diffY = pos.getY() + 0.5 - (SpecterCore.mc.player.getY() + SpecterCore.mc.player.getEyeHeight(SpecterCore.mc.player.getPose()));
-      double diffZ = pos.getZ() + 0.5 - SpecterCore.mc.player.getZ();
-      double diffXZ = Math.sqrt(diffX * diffX + diffZ * diffZ);
-      return SpecterCore.mc.player.getXRot() + Mth.wrapDegrees((float)(-Math.toDegrees(Math.atan2(diffY, diffXZ))) - SpecterCore.mc.player.getXRot());
-   }
+    public static double getPitch(BlockPos pos) {
+        double diffX = pos.getX() + 0.5 - mc.player.getX();
+        double diffY = pos.getY() + 0.5 - (mc.player.getY() + mc.player.getEyeHeight(mc.player.getPose()));
+        double diffZ = pos.getZ() + 0.5 - mc.player.getZ();
 
-   public static void setCamRotation(double yaw, double pitch) {
-      serverYaw = (float)yaw;
-      serverPitch = (float)pitch;
-      rotationTimer = 0;
-   }
+        double diffXZ = Math.sqrt(diffX * diffX + diffZ * diffZ);
 
-   private static class Rotation {
-      public double yaw;
-      public double pitch;
-      public int priority;
-      public boolean clientSide;
-      public Runnable callback;
+        return mc.player.getXRot() + Mth.wrapDegrees((float) -Math.toDegrees(Math.atan2(diffY, diffXZ)) - mc.player.getXRot());
+    }
 
-      public void set(double yaw, double pitch, int priority, boolean clientSide, Runnable callback) {
-         this.yaw = yaw;
-         this.pitch = pitch;
-         this.priority = priority;
-         this.clientSide = clientSide;
-         this.callback = callback;
-      }
+    public static void setCamRotation(double yaw, double pitch) {
+        serverYaw = (float) yaw;
+        serverPitch = (float) pitch;
+        rotationTimer = 0;
+    }
 
-      public void sendPacket() {
-         SpecterCore.mc
-            .getConnection()
-            .send(new Rot((float)this.yaw, (float)this.pitch, SpecterCore.mc.player.onGround(), SpecterCore.mc.player.horizontalCollision));
-         this.runCallback();
-      }
+    private static class Rotation {
+        public double yaw, pitch;
+        public int priority;
+        public boolean clientSide;
+        public Runnable callback;
 
-      public void runCallback() {
-         if (this.callback != null) {
-            this.callback.run();
-         }
-      }
-   }
+        public void set(double yaw, double pitch, int priority, boolean clientSide, Runnable callback) {
+            this.yaw = yaw;
+            this.pitch = pitch;
+            this.priority = priority;
+            this.clientSide = clientSide;
+            this.callback = callback;
+        }
+
+        public void sendPacket() {
+            mc.getConnection().send(new ServerboundMovePlayerPacket.Rot((float) yaw, (float) pitch, mc.player.onGround(), mc.player.horizontalCollision));
+            runCallback();
+        }
+
+        public void runCallback() {
+            if (callback != null) callback.run();
+        }
+    }
 }

@@ -1,10 +1,14 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.player;
 
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.events.entity.player.PlayerMoveEvent;
-import java.util.ArrayList;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.commands.arguments.EntityAnchorArgument.Anchor;
+import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
@@ -12,210 +16,179 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+
+import static com.jfant.specter.core.SpecterCore.mc;
+
 public class PathFinder {
-   private static final int PATH_AHEAD = 3;
-   private static final int QUAD_1 = 1;
-   private static final int QUAD_2 = 2;
-   private static final int SOUTH = 0;
-   private static final int NORTH = 180;
-   private final ArrayList<PathFinder.PathBlock> path = new ArrayList<>(3);
-   private Entity target;
-   private PathFinder.PathBlock currentPathBlock;
+    private static final int PATH_AHEAD = 3;
+    private static final int QUAD_1 = 1, QUAD_2 = 2, SOUTH = 0, NORTH = 180;
+    private final ArrayList<PathBlock> path = new ArrayList<>(PATH_AHEAD);
+    private Entity target;
+    private PathBlock currentPathBlock;
 
-   public PathFinder.PathBlock getNextPathBlock() {
-      PathFinder.PathBlock nextBlock = new PathFinder.PathBlock(BlockPos.containing(this.getNextStraightPos()));
-      if (this.isSolidFloor(nextBlock.blockPos) && this.isAirAbove(nextBlock.blockPos)) {
-         return nextBlock;
-      } else {
-         if (!this.isSolidFloor(nextBlock.blockPos) && this.isAirAbove(nextBlock.blockPos)) {
-            int drop = this.getDrop(nextBlock.blockPos);
-            if (this.getDrop(nextBlock.blockPos) < 3) {
-               nextBlock = new PathFinder.PathBlock(new BlockPos(nextBlock.blockPos.getX(), nextBlock.blockPos.getY() - drop, nextBlock.blockPos.getZ()));
+    public PathBlock getNextPathBlock() {
+        PathBlock nextBlock = new PathBlock(BlockPos.containing(getNextStraightPos()));
+        if (isSolidFloor(nextBlock.blockPos) && isAirAbove(nextBlock.blockPos)) {
+            return nextBlock;
+        } else if (!isSolidFloor(nextBlock.blockPos) && isAirAbove(nextBlock.blockPos)) {
+            int drop = getDrop(nextBlock.blockPos);
+            if (getDrop(nextBlock.blockPos) < 3) {
+                nextBlock = new PathBlock(new BlockPos(nextBlock.blockPos.getX(), nextBlock.blockPos.getY() - drop, nextBlock.blockPos.getZ()));
             }
-         }
+        }
 
-         return nextBlock;
-      }
-   }
+        return nextBlock;
+    }
 
-   public int getDrop(BlockPos pos) {
-      int drop = 0;
+    public int getDrop(BlockPos pos) {
+        int drop = 0;
+        while (!isSolidFloor(pos) && drop < 3) {
+            drop++;
+            pos = new BlockPos(pos.getX(), pos.getY() - 1, pos.getZ());
+        }
+        return drop;
+    }
 
-      while (!this.isSolidFloor(pos) && drop < 3) {
-         drop++;
-         pos = new BlockPos(pos.getX(), pos.getY() - 1, pos.getZ());
-      }
+    public boolean isAirAbove(BlockPos blockPos) {
+        if (!getBlockStateAtPos(blockPos.getX(), blockPos.getY(), blockPos.getZ()).isAir())
+            return false;
+        return getBlockStateAtPos(blockPos.getX(), blockPos.getY() + 1, blockPos.getZ()).isAir();
+    }
 
-      return drop;
-   }
+    public Vec3 getNextStraightPos() {
+        Vec3 nextPos = new Vec3(mc.player.getX(), mc.player.getY(), mc.player.getZ());
+        double multiplier = 1.0;
+        while (nextPos == mc.player.position()) {
+            nextPos = new Vec3((int) (mc.player.getX() + multiplier * Math.cos(Math.toRadians(mc.player.getYRot()))), (int) (mc.player.getY()), (int) (mc.player.getZ() + multiplier * Math.sin(Math.toRadians(mc.player.getYRot()))));
+            multiplier += .1;
+        }
+        return nextPos;
+    }
 
-   public boolean isAirAbove(BlockPos blockPos) {
-      return !this.getBlockStateAtPos(blockPos.getX(), blockPos.getY(), blockPos.getZ()).isAir()
-         ? false
-         : this.getBlockStateAtPos(blockPos.getX(), blockPos.getY() + 1, blockPos.getZ()).isAir();
-   }
-
-   public Vec3 getNextStraightPos() {
-      Vec3 nextPos = new Vec3(SpecterCore.mc.player.getX(), SpecterCore.mc.player.getY(), SpecterCore.mc.player.getZ());
-
-      for (double multiplier = 1.0; nextPos == SpecterCore.mc.player.position(); multiplier += 0.1) {
-         nextPos = new Vec3(
-            (int)(SpecterCore.mc.player.getX() + multiplier * Math.cos(Math.toRadians(SpecterCore.mc.player.getYRot()))),
-            (int)SpecterCore.mc.player.getY(),
-            (int)(SpecterCore.mc.player.getZ() + multiplier * Math.sin(Math.toRadians(SpecterCore.mc.player.getYRot())))
-         );
-      }
-
-      return nextPos;
-   }
-
-   public int getYawToTarget() {
-      if (this.target != null && SpecterCore.mc.player != null) {
-         Vec3 tPos = this.target.position();
-         Vec3 pPos = SpecterCore.mc.player.position();
-         int direction = this.getDirection();
-         double tan = (tPos.z - pPos.z) / (tPos.x - pPos.x);
-         int yaw;
-         if (direction == 1) {
-            yaw = (int)(1.5707963267948966 - Math.atan(tan));
-         } else {
-            if (direction != 2) {
-               return direction;
+    public int getYawToTarget() {
+        if (target == null || mc.player == null) return Integer.MAX_VALUE;
+        Vec3 tPos = target.position();
+        Vec3 pPos = mc.player.position();
+        int yaw;
+        int direction = getDirection();
+        double tan = (tPos.z - pPos.z) / (tPos.x - pPos.x);
+        switch (direction) {
+            case QUAD_1 -> yaw = (int) (Math.PI / 2 - Math.atan(tan));
+            case QUAD_2 -> yaw = (int) (-1 * Math.PI / 2 - Math.atan(tan));
+            default -> {
+                return direction;
             }
+        }
+        return yaw;
+    }
 
-            yaw = (int)(-1.5707963267948966 - Math.atan(tan));
-         }
+    public int getDirection() {
+        if (target == null || mc.player == null) return 0;
+        Vec3 targetPos = target.position();
+        Vec3 playerPos = mc.player.position();
+        if (targetPos.x == playerPos.x && targetPos.z > playerPos.z)
+            return SOUTH;
+        if (targetPos.x == playerPos.x && targetPos.z < playerPos.z)
+            return NORTH;
+        if (targetPos.x < playerPos.x)
+            return QUAD_1;
+        if (targetPos.x > playerPos.x)
+            return QUAD_2;
+        return 0;
+    }
 
-         return yaw;
-      } else {
-         return 2147483647;
-      }
-   }
+    public BlockState getBlockStateAtPos(BlockPos pos) {
+        if (mc.level != null)
+            return mc.level.getBlockState(pos);
+        return null;
+    }
 
-   public int getDirection() {
-      if (this.target != null && SpecterCore.mc.player != null) {
-         Vec3 targetPos = this.target.position();
-         Vec3 playerPos = SpecterCore.mc.player.position();
-         if (targetPos.x == playerPos.x && targetPos.z > playerPos.z) {
-            return 0;
-         } else if (targetPos.x == playerPos.x && targetPos.z < playerPos.z) {
-            return 180;
-         } else if (targetPos.x < playerPos.x) {
-            return 1;
-         } else {
-            return targetPos.x > playerPos.x ? 2 : 0;
-         }
-      } else {
-         return 0;
-      }
-   }
+    public BlockState getBlockStateAtPos(int x, int y, int z) {
+        if (mc.level != null)
+            return mc.level.getBlockState(new BlockPos(x, y, z));
+        return null;
+    }
 
-   public BlockState getBlockStateAtPos(BlockPos pos) {
-      return SpecterCore.mc.level != null ? SpecterCore.mc.level.getBlockState(pos) : null;
-   }
+    public Block getBlockAtPos(BlockPos pos) {
+        if (mc.level != null)
+            return mc.level.getBlockState(pos).getBlock();
+        return null;
+    }
 
-   public BlockState getBlockStateAtPos(int x, int y, int z) {
-      return SpecterCore.mc.level != null ? SpecterCore.mc.level.getBlockState(new BlockPos(x, y, z)) : null;
-   }
+    public boolean isSolidFloor(BlockPos blockPos) {
+        return isAir(getBlockAtPos(blockPos));
+    }
 
-   public Block getBlockAtPos(BlockPos pos) {
-      return SpecterCore.mc.level != null ? SpecterCore.mc.level.getBlockState(pos).getBlock() : null;
-   }
+    public boolean isAir(Block block) {
+        return block == Blocks.AIR;
+    }
 
-   public boolean isSolidFloor(BlockPos blockPos) {
-      return this.isAir(this.getBlockAtPos(blockPos));
-   }
+    public boolean isWater(Block block) {
+        return block == Blocks.WATER;
+    }
 
-   public boolean isAir(Block block) {
-      return block == Blocks.AIR;
-   }
+    public void lookAtDestination(PathBlock pathBlock) {
+        if (mc.player != null) {
+            mc.player.lookAt(EntityAnchorArgument.Anchor.EYES, new Vec3(pathBlock.blockPos.getX(), pathBlock.blockPos.getY() + mc.player.getEyeHeight(), pathBlock.blockPos.getZ()));
+        }
+    }
 
-   public boolean isWater(Block block) {
-      return block == Blocks.WATER;
-   }
-
-   public void lookAtDestination(PathFinder.PathBlock pathBlock) {
-      if (SpecterCore.mc.player != null) {
-         SpecterCore.mc
-            .player
-            .lookAt(
-               Anchor.EYES, new Vec3(pathBlock.blockPos.getX(), pathBlock.blockPos.getY() + SpecterCore.mc.player.getEyeHeight(), pathBlock.blockPos.getZ())
-            );
-      }
-   }
-
-   @EventHandler
-   private void moveEventListener(PlayerMoveEvent event) {
-      if (this.target != null && SpecterCore.mc.player != null) {
-         if (!PlayerUtils.isWithin(this.target, 3.0)) {
-            if (this.currentPathBlock == null) {
-               this.currentPathBlock = this.getNextPathBlock();
+    @EventHandler
+    private void moveEventListener(PlayerMoveEvent event) {
+        if (target != null && mc.player != null) {
+            if (!PlayerUtils.isWithin(target, 3)) {
+                if (currentPathBlock == null) currentPathBlock = getNextPathBlock();
+                if (mc.player.position().distanceToSqr(new Vec3(currentPathBlock.blockPos.getX(), currentPathBlock.blockPos.getY(), currentPathBlock.blockPos.getZ())) < .01)
+                    currentPathBlock = getNextPathBlock();
+                lookAtDestination(currentPathBlock);
+                if (!mc.options.keyUp.isDown())
+                    mc.options.keyUp.setDown(true);
+            } else {
+                if (mc.options.keyUp.isDown())
+                    mc.options.keyUp.setDown(false);
+                path.clear();
+                currentPathBlock = null;
             }
+        }
+    }
 
-            if (SpecterCore.mc
-                  .player
-                  .position()
-                  .distanceToSqr(new Vec3(this.currentPathBlock.blockPos.getX(), this.currentPathBlock.blockPos.getY(), this.currentPathBlock.blockPos.getZ()))
-               < 0.01) {
-               this.currentPathBlock = this.getNextPathBlock();
-            }
+    public void initiate(Entity entity) {
+        target = entity;
+        if (target != null) currentPathBlock = getNextPathBlock();
+        SpecterCore.EVENT_BUS.subscribe(this);
+    }
 
-            this.lookAtDestination(this.currentPathBlock);
-            if (!SpecterCore.mc.options.keyUp.isDown()) {
-               SpecterCore.mc.options.keyUp.setDown(true);
-            }
-         } else {
-            if (SpecterCore.mc.options.keyUp.isDown()) {
-               SpecterCore.mc.options.keyUp.setDown(false);
-            }
+    public void disable() {
+        target = null;
+        path.clear();
+        if (mc.options.keyUp.isDown()) mc.options.keyUp.setDown(false);
+        SpecterCore.EVENT_BUS.unsubscribe(this);
+    }
 
-            this.path.clear();
-            this.currentPathBlock = null;
-         }
-      }
-   }
+    public class PathBlock {
+        public final Block block;
+        public final BlockPos blockPos;
+        public final BlockState blockState;
+        public double yaw;
 
-   public void initiate(Entity entity) {
-      this.target = entity;
-      if (this.target != null) {
-         this.currentPathBlock = this.getNextPathBlock();
-      }
+        public PathBlock(Block b, BlockPos pos, BlockState state) {
+            block = b;
+            blockPos = pos;
+            blockState = state;
+        }
 
-      SpecterCore.EVENT_BUS.subscribe(this);
-   }
+        public PathBlock(Block b, BlockPos pos) {
+            block = b;
+            blockPos = pos;
+            blockState = getBlockStateAtPos(blockPos);
+        }
 
-   public void disable() {
-      this.target = null;
-      this.path.clear();
-      if (SpecterCore.mc.options.keyUp.isDown()) {
-         SpecterCore.mc.options.keyUp.setDown(false);
-      }
+        public PathBlock(BlockPos pos) {
+            blockPos = pos;
+            block = getBlockAtPos(pos);
+            blockState = getBlockStateAtPos(blockPos);
+        }
 
-      SpecterCore.EVENT_BUS.unsubscribe(this);
-   }
-
-   public class PathBlock {
-      public final Block block;
-      public final BlockPos blockPos;
-      public final BlockState blockState;
-      public double yaw;
-
-      public PathBlock(Block b, BlockPos pos, BlockState state) {
-         this.block = b;
-         this.blockPos = pos;
-         this.blockState = state;
-      }
-
-      public PathBlock(Block b, BlockPos pos) {
-         this.block = b;
-         this.blockPos = pos;
-         this.blockState = PathFinder.this.getBlockStateAtPos(this.blockPos);
-      }
-
-      public PathBlock(BlockPos pos) {
-         this.blockPos = pos;
-         this.block = PathFinder.this.getBlockAtPos(pos);
-         this.blockState = PathFinder.this.getBlockStateAtPos(this.blockPos);
-      }
-   }
+    }
 }

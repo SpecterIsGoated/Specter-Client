@@ -1,65 +1,71 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets;
 
-import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.gui.widgets.containers.WHorizontalList;
 import com.jfant.specter.core.utils.misc.Names;
-import java.util.Iterator;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffectUtil;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.PotionContents;
+
+import java.util.Iterator;
+
+import static com.jfant.specter.core.SpecterCore.mc;
 
 public class WItemWithLabel extends WHorizontalList {
-   private ItemStack itemStack;
-   private String name;
-   private WItem item;
-   private WLabel label;
+    private ItemStack itemStack;
+    private String name;
 
-   public WItemWithLabel(ItemStack itemStack, String name) {
-      this.itemStack = itemStack;
-      this.name = name;
-   }
+    private WItem item;
+    private WLabel label;
 
-   @Override
-   public void init() {
-      this.item = this.add(this.theme.item(this.itemStack)).widget();
-      this.label = this.add(this.theme.label(this.name + this.getStringToAppend())).widget();
-   }
+    public WItemWithLabel(ItemStack itemStack, String name) {
+        this.itemStack = itemStack;
+        this.name = name;
+    }
 
-   private String getStringToAppend() {
-      String str = "";
-      if (this.itemStack.getItem() == Items.POTION) {
-         Iterator<MobEffectInstance> effects = this.itemStack.getItem().components().get(DataComponents.POTION_CONTENTS).getAllEffects().iterator();
-         if (!effects.hasNext()) {
-            return str;
-         }
+    @Override
+    public void init() {
+        item = add(theme.item(itemStack)).widget();
+        label = add(theme.label(name + getStringToAppend())).widget();
+    }
 
-         str = str + " ";
-         MobEffectInstance effect = effects.next();
-         if (effect.getAmplifier() > 0) {
-            str = str + "%d ".formatted(effect.getAmplifier() + 1);
-         }
+    private String getStringToAppend() {
+        String str = "";
 
-         str = str
-            + "(%s)"
-               .formatted(
-                  MobEffectUtil.formatDuration(effect, 1.0F, SpecterCore.mc.level != null ? SpecterCore.mc.level.tickRateManager().tickrate() : 20.0F)
-                     .getString()
-               );
-      }
+        if (itemStack.getItem() == Items.POTION) {
+            PotionContents potionContents = itemStack.get(DataComponents.POTION_CONTENTS);
+            if (potionContents == null) return str;
+            
+            Iterator<MobEffectInstance> effects = potionContents.getAllEffects().iterator();
+            if (!effects.hasNext()) return str;
 
-      return str;
-   }
+            str += " ";
 
-   public void set(ItemStack itemStack) {
-      this.itemStack = itemStack;
-      this.item.itemStack = itemStack;
-      this.name = Names.get(itemStack);
-      this.label.set(this.name + this.getStringToAppend());
-   }
+            MobEffectInstance effect = effects.next();
+            if (effect.getAmplifier() > 0) str += "%d ".formatted(effect.getAmplifier() + 1);
 
-   public String getLabelText() {
-      return this.label == null ? this.name : this.label.get();
-   }
+            str += "(%s)".formatted(MobEffectUtil.formatDuration(effect, 1, mc.level != null ? mc.level.tickRateManager().tickrate() : 20.0F).getString());
+        }
+
+        return str;
+    }
+
+    public void set(ItemStack itemStack) {
+        this.itemStack = itemStack;
+        item.itemStack = itemStack;
+
+        name = Names.get(itemStack);
+        label.set(name + getStringToAppend());
+    }
+
+    public String getLabelText() {
+        return label == null ? name : label.get();
+    }
 }

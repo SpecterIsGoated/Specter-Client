@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets;
 
 import com.jfant.specter.core.gui.widgets.pressable.WPressable;
@@ -5,45 +10,46 @@ import com.jfant.specter.core.utils.render.color.Color;
 import net.minecraft.client.input.MouseButtonEvent;
 
 public abstract class WLabel extends WPressable {
-   public Color color;
-   protected String text;
-   protected boolean title;
+    public Color color;
 
-   public WLabel(String text, boolean title) {
-      this.text = text;
-      this.title = title;
-   }
+    protected String text;
+    protected boolean title;
 
-   @Override
-   protected void onCalculateSize() {
-      this.width = this.theme.textWidth(this.text, this.text.length(), this.title);
-      this.height = this.theme.textHeight(this.title);
-   }
+    public WLabel(String text, boolean title) {
+        this.text = text;
+        this.title = title;
+    }
 
-   @Override
-   public boolean onMouseClicked(MouseButtonEvent click, boolean doubled) {
-      return this.action != null ? super.onMouseClicked(click, doubled) : false;
-   }
+    @Override
+    protected void onCalculateSize() {
+        width = theme.textWidth(text, text.length(), title);
+        height = theme.textHeight(title);
+    }
 
-   @Override
-   public boolean onMouseReleased(MouseButtonEvent click) {
-      return this.action != null ? super.onMouseReleased(click) : false;
-   }
+    @Override
+    public boolean onMouseClicked(MouseButtonEvent click, boolean doubled) {
+        if (action != null) return super.onMouseClicked(click, doubled);
+        return false;
+    }
 
-   public void set(String text) {
-      if (Math.round(this.theme.textWidth(text, text.length(), this.title)) != this.width) {
-         this.invalidate();
-      }
+    @Override
+    public boolean onMouseReleased(MouseButtonEvent click) {
+        if (action != null) return super.onMouseReleased(click);
+        return false;
+    }
 
-      this.text = text;
-   }
+    public void set(String text) {
+        if (Math.round(theme.textWidth(text, text.length(), title)) != width) invalidate();
 
-   public String get() {
-      return this.text;
-   }
+        this.text = text;
+    }
 
-   public WLabel color(Color color) {
-      this.color = color;
-      return this;
-   }
+    public String get() {
+        return text;
+    }
+
+    public WLabel color(Color color) {
+        this.color = color;
+        return this;
+    }
 }

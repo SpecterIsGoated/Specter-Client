@@ -1,86 +1,91 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.misc;
 
+import com.mojang.authlib.GameProfile;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.utils.PreInit;
-import com.mojang.authlib.GameProfile;
-import java.util.UUID;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.CommonListenerCookie;
 import net.minecraft.client.multiplayer.PlayerInfo;
-import net.minecraft.client.multiplayer.ClientLevel.ClientLevelData;
 import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.entity.player.Player;
+
+import java.util.UUID;
+
+import static com.jfant.specter.core.SpecterCore.mc;
 
 public class FakeClientPlayer {
-   private static ClientLevel world;
-   private static Player player;
-   private static PlayerInfo playerListEntry;
-   private static UUID lastId;
-   private static boolean needsNewEntry;
+    private static ClientLevel world;
+    private static RemotePlayer player;
+    private static PlayerInfo playerListEntry;
 
-   private FakeClientPlayer() {
-   }
+    private static UUID lastId;
+    private static boolean needsNewEntry;
 
-   @PreInit
-   public static void init() {
-      SpecterCore.EVENT_BUS.subscribe(FakeClientPlayer.class);
-   }
+    private FakeClientPlayer() {
+    }
 
-   public static Player getPlayer() {
-      UUID id = SpecterCore.mc.getUser().getProfileId();
-      if (player == null || !id.equals(lastId)) {
-         if (world == null) {
-            world = new ClientLevel(
-               new ClientPacketListener(
-                  SpecterCore.mc,
-                  new Connection(PacketFlow.CLIENTBOUND),
-                  new CommonListenerCookie(
-                     null,
-                     new GameProfile(SpecterCore.mc.getUser().getProfileId(), SpecterCore.mc.getUser().getName()),
-                     null,
-                     null,
-                     null,
-                     null,
-                     SpecterCore.mc.getCurrentServer(),
-                     null,
-                     null,
-                     null,
-                     null,
-                     null,
-                     null,
-                     false
-                  )
-               ),
-               new ClientLevelData(Difficulty.NORMAL, false, false),
-               world.dimension(),
-               world.dimensionTypeRegistration(),
-               1,
-               1,
-               null,
-               false,
-               0L,
-               world.getSeaLevel()
-            );
-         }
+    @PreInit
+    public static void init() {
+        SpecterCore.EVENT_BUS.subscribe(FakeClientPlayer.class);
+    }
 
-         player = new RemotePlayer(world, new GameProfile(id, SpecterCore.mc.getUser().getName()));
-         lastId = id;
-         needsNewEntry = true;
-      }
+    public static RemotePlayer getPlayer() {
+        UUID id = mc.getUser().getProfileId();
 
-      return player;
-   }
+        if (player == null || (!id.equals(lastId))) {
+            if (world == null) {
+                world = new ClientLevel(
+                    new ClientPacketListener(mc, new Connection(PacketFlow.CLIENTBOUND), new CommonListenerCookie(
+                        null,
+                        new GameProfile(mc.getUser().getProfileId(), mc.getUser().getName()),
+                        null,
+                        null,
+                        null,
+                        null,
+                        mc.getCurrentServer(),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        false)
+                    ),
+                    new ClientLevel.ClientLevelData(Difficulty.NORMAL, false, false),
+                    world.dimension(),
+                    world.dimensionTypeRegistration(),
+                    1,
+                    1,
+                    null,
+                    false,
+                    0,
+                    world.getSeaLevel()
+                );
+            }
 
-   public static PlayerInfo getPlayerListEntry() {
-      if (playerListEntry == null || needsNewEntry) {
-         playerListEntry = new PlayerInfo(new GameProfile(lastId, SpecterCore.mc.getUser().getName()), false);
-         needsNewEntry = false;
-      }
+            player = new RemotePlayer(world, new GameProfile(id, mc.getUser().getName()));
 
-      return playerListEntry;
-   }
+            lastId = id;
+            needsNewEntry = true;
+        }
+
+        return player;
+    }
+
+    public static PlayerInfo getPlayerListEntry() {
+        if (playerListEntry == null || needsNewEntry) {
+            playerListEntry = new PlayerInfo(new GameProfile(lastId, mc.getUser().getName()), false);
+            needsNewEntry = false;
+        }
+
+        return playerListEntry;
+    }
 }

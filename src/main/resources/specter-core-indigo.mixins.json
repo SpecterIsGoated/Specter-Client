@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_21",
   "plugin": "com.jfant.specter.core.MixinPlugin",
   "client": [
+    "AltModelBlockRendererImplMixin"
   ],
   "injectors": {
     "defaultRequire": 1

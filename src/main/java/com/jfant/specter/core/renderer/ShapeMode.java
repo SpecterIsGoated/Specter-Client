@@ -1,15 +1,20 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.renderer;
 
 public enum ShapeMode {
-   Lines,
-   Sides,
-   Both;
+    Lines,
+    Sides,
+    Both;
 
-   public boolean lines() {
-      return this == Lines || this == Both;
-   }
+    public boolean lines() {
+        return this == Lines || this == Both;
+    }
 
-   public boolean sides() {
-      return this == Sides || this == Both;
-   }
+    public boolean sides() {
+        return this == Sides ||this == Both;
+    }
 }

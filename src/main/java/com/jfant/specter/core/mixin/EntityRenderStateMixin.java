@@ -1,25 +1,30 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.mixin;
 
 import com.jfant.specter.core.mixininterface.IEntityRenderState;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.world.entity.Entity;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 
-@Mixin({EntityRenderState.class})
+@Mixin(EntityRenderState.class)
 public abstract class EntityRenderStateMixin implements IEntityRenderState {
-   @Unique
-   private Entity entity;
+    @Unique
+    private Entity entity;
 
-   @Nullable("EntityCulling mod can prevent the code that sets the entity from running")
-   @Override
-   public Entity meteor$getEntity() {
-      return this.entity;
-   }
+    @Override
+    @Nullable // "EntityCulling mod can prevent the code that sets the entity from running"
+    public Entity meteor$getEntity() {
+        return entity;
+    }
 
-   @Override
-   public void meteor$setEntity(Entity entity) {
-      this.entity = entity;
-   }
+    @Override
+    public void meteor$setEntity(Entity entity) {
+        this.entity = entity;
+    }
 }

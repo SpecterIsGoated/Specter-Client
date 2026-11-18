@@ -1,27 +1,35 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.events.world;
 
-import com.jfant.specter.core.events.Cancellable;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.core.BlockPos;
+import com.jfant.specter.core.events.Cancellable;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class CollisionShapeEvent extends Cancellable {
-   private static final CollisionShapeEvent INSTANCE = new CollisionShapeEvent();
-   public BlockState state;
-   public BlockPos pos;
-   public VoxelShape shape;
+    private static final CollisionShapeEvent INSTANCE = new CollisionShapeEvent();
 
-   public static CollisionShapeEvent get(BlockState state, BlockPos pos, VoxelShape shape) {
-      CollisionShapeEvent event = INSTANCE;
-      if (!RenderSystem.isOnRenderThread()) {
-         event = new CollisionShapeEvent();
-      }
+    public BlockState state;
+    public BlockPos pos;
+    public VoxelShape shape;
 
-      event.setCancelled(false);
-      event.state = state;
-      event.pos = pos;
-      event.shape = shape;
-      return event;
-   }
+    public static CollisionShapeEvent get(BlockState state, BlockPos pos, VoxelShape shape) {
+        CollisionShapeEvent event = INSTANCE;
+
+        if (!RenderSystem.isOnRenderThread()) {
+            event = new CollisionShapeEvent();
+        }
+
+        event.setCancelled(false);
+        event.state = state;
+        event.pos = pos;
+        event.shape = shape;
+
+        return event;
+    }
 }

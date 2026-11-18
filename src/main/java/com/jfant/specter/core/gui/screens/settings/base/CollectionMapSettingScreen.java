@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.screens.settings.base;
 
 import com.jfant.specter.core.gui.GuiTheme;
@@ -9,72 +14,83 @@ import com.jfant.specter.core.gui.widgets.input.WTextBox;
 import com.jfant.specter.core.gui.widgets.pressable.WButton;
 import com.jfant.specter.core.settings.Setting;
 import com.jfant.specter.core.utils.misc.IChangeable;
+import org.jspecify.annotations.Nullable;
+
 import java.util.Comparator;
 import java.util.Map;
-import org.jetbrains.annotations.Nullable;
 
 public abstract class CollectionMapSettingScreen<K, V> extends WindowScreen {
-   private final Setting<?> setting;
-   protected final Map<K, V> map;
-   private final Iterable<K> registry;
-   private WTable table;
-   private String filterText = "";
+    private final Setting<?> setting;
+    protected final Map<K, V> map;
+    private final Iterable<K> registry;
 
-   public CollectionMapSettingScreen(GuiTheme theme, String title, Setting<?> setting, Map<K, V> map, Iterable<K> registry) {
-      super(theme, title);
-      this.setting = setting;
-      this.map = map;
-      this.registry = registry;
-   }
+    private WTable table;
+    private String filterText = "";
 
-   @Override
-   public void initWidgets() {
-      WTextBox filter = this.add(this.theme.textBox("")).minWidth(400.0).expandX().widget();
-      filter.setFocused(true);
-      filter.action = () -> {
-         this.filterText = filter.get().trim();
-         this.table.clear();
-         this.initTable();
-      };
-      this.table = this.add(this.theme.table()).expandX().widget();
-      this.initTable();
-   }
+    public CollectionMapSettingScreen(GuiTheme theme, String title, Setting<?> setting, Map<K, V> map, Iterable<K> registry) {
+        super(theme, title);
 
-   private void initTable() {
-      Comparator<K> prioritizeChanged = Comparator.comparing(key -> !(this.map.get(key) instanceof IChangeable changeable && changeable.isChanged()));
-      Iterable<K> sorted = SortingHelper.sortWithPriority(this.registry, this::includeValue, this::getValueNames, this.filterText, prioritizeChanged);
-      sorted.forEach(t -> {
-         V data = this.map.get(t);
-         boolean isChanged = data instanceof IChangeable changeable && changeable.isChanged();
-         this.table.add(this.getValueWidget((K)t)).expandCellX();
-         this.table.add(this.theme.label(isChanged ? "*" : " "));
-         this.table.add(this.getDataWidget((K)t, data));
-         WButton reset = this.table.add(this.theme.button(GuiRenderer.RESET)).widget();
-         reset.action = () -> this.removeValue((K)t);
-         reset.tooltip = "Reset";
-         this.table.row();
-      });
-   }
+        this.setting = setting;
+        this.map = map;
+        this.registry = registry;
+    }
 
-   protected void invalidateTable() {
-      this.table.clear();
-      this.initTable();
-   }
+    @Override
+    public void initWidgets() {
+        // Filter
+        WTextBox filter = add(theme.textBox("")).minWidth(400).expandX().widget();
+        filter.setFocused(true);
+        filter.action = () -> {
+            filterText = filter.get().trim();
 
-   protected void removeValue(K value) {
-      if (this.map.remove(value) != null) {
-         this.setting.onChanged();
-         this.invalidateTable();
-      }
-   }
+            table.clear();
+            initTable();
+        };
 
-   protected boolean includeValue(K value) {
-      return true;
-   }
+        table = add(theme.table()).expandX().widget();
 
-   protected abstract WWidget getValueWidget(K var1);
+        initTable();
+    }
 
-   protected abstract WWidget getDataWidget(K var1, @Nullable V var2);
+    private void initTable() {
+        Comparator<K> prioritizeChanged = Comparator.comparing(key -> !(map.get(key) instanceof IChangeable changeable && changeable.isChanged()));
+        Iterable<K> sorted = SortingHelper.sortWithPriority(registry, this::includeValue, this::getValueNames, filterText, prioritizeChanged);
 
-   protected abstract String[] getValueNames(K var1);
+        sorted.forEach(t -> {
+            V data = map.get(t);
+            boolean isChanged = data instanceof IChangeable changeable && changeable.isChanged();
+
+            table.add(getValueWidget(t)).expandCellX();
+            table.add(theme.label(isChanged ? "*" : " "));
+            table.add(getDataWidget(t, data));
+
+            WButton reset = table.add(theme.button(GuiRenderer.RESET)).widget();
+            reset.action = () -> removeValue(t);
+            reset.tooltip = "Reset";
+
+            table.row();
+        });
+    }
+
+    protected void invalidateTable() {
+        table.clear();
+        initTable();
+    }
+
+    protected void removeValue(K value) {
+        if (map.remove(value) != null) {
+            setting.onChanged();
+            invalidateTable();
+        }
+    }
+
+    protected boolean includeValue(K value) {
+        return true;
+    }
+
+    protected abstract WWidget getValueWidget(K value);
+
+    protected abstract WWidget getDataWidget(K value, @Nullable V data);
+
+    protected abstract String[] getValueNames(K value);
 }

@@ -1,177 +1,169 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.render;
 
-import com.jfant.specter.core.SpecterCore;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.jfant.specter.core.events.render.Render3DEvent;
-import com.jfant.specter.core.mixin.RenderLayerAccessor;
 import com.jfant.specter.core.renderer.Renderer3D;
 import com.jfant.specter.core.renderer.ShapeMode;
 import com.jfant.specter.core.utils.render.color.Color;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraft.client.model.Model;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.SubmitNodeStorage;
-import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
-import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
-import net.minecraft.client.renderer.rendertype.OutputTarget;
 import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.texture.UvMapping;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+import static com.jfant.specter.core.SpecterCore.mc;
 
 public class WireframeEntityRenderer {
-   private static final PoseStack matrices = new PoseStack();
-   private static Renderer3D renderer;
-   private static final SubmitNodeStorage renderCommandQueue = new SubmitNodeStorage();
-   private static final FeatureRenderDispatcher renderDispatcher = new FeatureRenderDispatcher(
-      renderCommandQueue,
-      SpecterCore.mc.getBlockRenderer(),
-      WireframeEntityRenderer.MyVertexConsumerProvider.INSTANCE,
-      SpecterCore.mc.getAtlasManager(),
-      NoopOutlineVertexConsumerProvider.INSTANCE,
-      NoopImmediateVertexConsumerProvider.INSTANCE,
-      SpecterCore.mc.font
-   );
-   private static Color sideColor;
-   private static Color lineColor;
-   private static ShapeMode shapeMode;
-   private static double offsetX;
-   private static double offsetY;
-   private static double offsetZ;
+    private static final PoseStack matrices = new PoseStack();
+    private static final InterceptingStorage interceptStorage = new InterceptingStorage();
 
-   private WireframeEntityRenderer() {
-   }
+    private static Renderer3D renderer;
+    private static Color sideColor;
+    private static Color lineColor;
+    private static ShapeMode shapeMode;
+    private static double offsetX, offsetY, offsetZ;
 
-   public static void render(Render3DEvent event, Entity entity, double scale, Color sideColor, Color lineColor, ShapeMode shapeMode) {
-      WireframeEntityRenderer.renderer = event.renderer;
-      WireframeEntityRenderer.sideColor = sideColor;
-      WireframeEntityRenderer.lineColor = lineColor;
-      WireframeEntityRenderer.shapeMode = shapeMode;
-      float tickDelta = SpecterCore.mc.level.tickRateManager().isFrozen() ? 1.0F : event.tickDelta;
-      offsetX = Mth.lerp((double)tickDelta, entity.xOld, entity.getX());
-      offsetY = Mth.lerp((double)tickDelta, entity.yOld, entity.getY());
-      offsetZ = Mth.lerp((double)tickDelta, entity.zOld, entity.getZ());
-      EntityRenderer<Entity, EntityRenderState> renderer = (EntityRenderer<Entity, EntityRenderState>)SpecterCore.mc
-         .getEntityRenderDispatcher()
-         .getRenderer(entity);
-      EntityRenderState state = renderer.createRenderState(entity, tickDelta);
-      Vec3 entityOffset = renderer.getRenderOffset(state);
-      offsetX = offsetX + entityOffset.x;
-      offsetY = offsetY + entityOffset.y;
-      offsetZ = offsetZ + entityOffset.z;
-      matrices.pushPose();
-      matrices.scale((float)scale, (float)scale, (float)scale);
-      renderer.submit(state, matrices, renderCommandQueue, SpecterCore.mc.gameRenderer.getLevelRenderState().cameraRenderState);
-      matrices.popPose();
-      renderDispatcher.renderAllFeatures();
-      renderCommandQueue.endFrame();
-   }
+    private WireframeEntityRenderer() {
+    }
 
-   private static class MyVertexConsumer implements VertexConsumer {
-      private final float[] xs = new float[4];
-      private final float[] ys = new float[4];
-      private final float[] zs = new float[4];
-      private int i = 0;
+    @SuppressWarnings("unchecked")
+    public static void render(Render3DEvent event, Entity entity, double scale, Color sideColor, Color lineColor, ShapeMode shapeMode) {
+        WireframeEntityRenderer.renderer = event.renderer;
+        WireframeEntityRenderer.sideColor = sideColor;
+        WireframeEntityRenderer.lineColor = lineColor;
+        WireframeEntityRenderer.shapeMode = shapeMode;
 
-      @Override
-      public VertexConsumer addVertex(float x, float y, float z) {
-         this.xs[this.i] = x;
-         this.ys[this.i] = y;
-         this.zs[this.i] = z;
-         this.i++;
-         if (this.i == 4) {
-            WireframeEntityRenderer.renderer
-               .side(
-                  WireframeEntityRenderer.offsetX + this.xs[0],
-                  WireframeEntityRenderer.offsetY + this.ys[0],
-                  WireframeEntityRenderer.offsetZ + this.zs[0],
-                  WireframeEntityRenderer.offsetX + this.xs[1],
-                  WireframeEntityRenderer.offsetY + this.ys[1],
-                  WireframeEntityRenderer.offsetZ + this.zs[1],
-                  WireframeEntityRenderer.offsetX + this.xs[2],
-                  WireframeEntityRenderer.offsetY + this.ys[2],
-                  WireframeEntityRenderer.offsetZ + this.zs[2],
-                  WireframeEntityRenderer.offsetX + this.xs[3],
-                  WireframeEntityRenderer.offsetY + this.ys[3],
-                  WireframeEntityRenderer.offsetZ + this.zs[3],
-                  WireframeEntityRenderer.sideColor,
-                  WireframeEntityRenderer.lineColor,
-                  WireframeEntityRenderer.shapeMode
-               );
-            this.i = 0;
-         }
+        float tickDelta = mc.level.tickRateManager().isFrozen() ? 1 : event.tickDelta;
 
-         return this;
-      }
+        offsetX = Mth.lerp(tickDelta, entity.xOld, entity.getX());
+        offsetY = Mth.lerp(tickDelta, entity.yOld, entity.getY());
+        offsetZ = Mth.lerp(tickDelta, entity.zOld, entity.getZ());
 
-      @Override
-      public VertexConsumer setColor(int red, int green, int blue, int alpha) {
-         return this;
-      }
+        var entityRenderer = (EntityRenderer<Entity, EntityRenderState>) mc.getEntityRenderDispatcher().getRenderer(entity);
+        var state = entityRenderer.createRenderState(entity, tickDelta);
 
-      @Override
-      public VertexConsumer setColor(int argb) {
-         return this;
-      }
+        Vec3 entityOffset = entityRenderer.getRenderOffset(state);
+        offsetX += entityOffset.x;
+        offsetY += entityOffset.y;
+        offsetZ += entityOffset.z;
 
-      @Override
-      public VertexConsumer setUv(float u, float v) {
-         return this;
-      }
+        matrices.pushPose();
+        matrices.scale((float) scale, (float) scale, (float) scale);
+        entityRenderer.submit(state, matrices, interceptStorage, mc.gameRenderer.gameRenderState().levelRenderState.cameraRenderState);
+        matrices.popPose();
 
-      @Override
-      public VertexConsumer setUv1(int u, int v) {
-         return this;
-      }
+        interceptStorage.clear();
+    }
 
-      @Override
-      public VertexConsumer setUv2(int u, int v) {
-         return this;
-      }
+    private static class InterceptingStorage extends SubmitNodeStorage {
+        private final MyVertexConsumer vertexConsumer = new MyVertexConsumer();
 
-      @Override
-      public VertexConsumer setNormal(float x, float y, float z) {
-         return this;
-      }
+        @Override
+        public <S> void submitModel(
+            @NonNull Model<? super S> model,
+            @NonNull S state,
+            @NonNull PoseStack poseStack,
+            RenderType renderType,
+            int lightCoords,
+            int overlayCoords,
+            int tintedColor,
+            final @Nullable UvMapping uvMapping,
+            int outlineColor
+        ) {
+            if (renderType.isOutline()) return;
 
-      @Override
-      public VertexConsumer setLineWidth(float width) {
-         return this;
-      }
-   }
+            model.setupAnim(state);
+            model.renderToBuffer(poseStack, vertexConsumer, lightCoords, overlayCoords, tintedColor);
+        }
 
-   private static class MyVertexConsumerProvider extends BufferSource {
-      public static final WireframeEntityRenderer.MyVertexConsumerProvider INSTANCE = new WireframeEntityRenderer.MyVertexConsumerProvider();
-      private final Object2ObjectOpenHashMap<RenderType, WireframeEntityRenderer.MyVertexConsumer> buffers = new Object2ObjectOpenHashMap();
+        @Override
+        public void submitCustomGeometry(@NonNull PoseStack poseStack, RenderType renderType, SubmitNodeCollector.@NonNull CustomGeometryRenderer customGeometryRenderer) {
+            if (renderType.isOutline()) return;
+            customGeometryRenderer.render(poseStack.last(), vertexConsumer);
+        }
 
-      protected MyVertexConsumerProvider() {
-         super(null, null);
-      }
+        public void clear() {
+            submitsPerOrder.clear();
+        }
+    }
 
-      @Override
-      public VertexConsumer getBuffer(RenderType layer) {
-         if (((RenderLayerAccessor)layer).getRenderSetup().outputTarget == OutputTarget.ITEM_ENTITY_TARGET) {
-            return NoopVertexConsumer.INSTANCE;
-         } else {
-            WireframeEntityRenderer.MyVertexConsumer vertexConsumer = (WireframeEntityRenderer.MyVertexConsumer)this.buffers.get(layer);
-            if (vertexConsumer == null) {
-               vertexConsumer = new WireframeEntityRenderer.MyVertexConsumer();
-               this.buffers.put(layer, vertexConsumer);
+    private static class MyVertexConsumer implements VertexConsumer {
+        private final float[] xs = new float[4];
+        private final float[] ys = new float[4];
+        private final float[] zs = new float[4];
+        private int i = 0;
+
+        @Override
+        public @NonNull VertexConsumer addVertex(float x, float y, float z) {
+            xs[i] = x;
+            ys[i] = y;
+            zs[i] = z;
+            if (++i == 4) {
+                renderer.side(
+                    offsetX + xs[0], offsetY + ys[0], offsetZ + zs[0],
+                    offsetX + xs[1], offsetY + ys[1], offsetZ + zs[1],
+                    offsetX + xs[2], offsetY + ys[2], offsetZ + zs[2],
+                    offsetX + xs[3], offsetY + ys[3], offsetZ + zs[3],
+                    sideColor,
+                    lineColor,
+                    shapeMode
+                );
+                i = 0;
             }
+            return this;
+        }
 
-            return vertexConsumer;
-         }
-      }
+        @Override
+        public @NonNull VertexConsumer setColor(int r, int g, int b, int a) {
+            return this;
+        }
 
-      @Override
-      public void endBatch() {
-         throw new RuntimeException();
-      }
+        @Override
+        public @NonNull VertexConsumer setColor(int argb) {
+            return this;
+        }
 
-      @Override
-      public void endBatch(RenderType layer) {
-         throw new RuntimeException();
-      }
-   }
+        @Override
+        public @NonNull VertexConsumer setUv(float u, float v) {
+            return this;
+        }
+
+        @Override
+        public @NonNull VertexConsumer setUv1(int u, int v) {
+            return this;
+        }
+
+        @Override
+        public @NonNull VertexConsumer setUv2(int u, int v) {
+            return this;
+        }
+
+        @Override
+        public @NonNull VertexConsumer setUv3(float u, float v) {
+            return this;
+        }
+
+        @Override
+        public @NonNull VertexConsumer setNormal(float x, float y, float z) {
+            return this;
+        }
+
+        @Override
+        public @NonNull VertexConsumer setLineWidth(float w) {
+            return this;
+        }
+    }
 }

@@ -1,113 +1,106 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.settings;
 
 import com.jfant.specter.core.systems.modules.Module;
 import com.jfant.specter.core.systems.modules.Modules;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
 public class ModuleListSetting extends Setting<List<Module>> {
-   private static List<String> suggestions;
+    private static List<String> suggestions;
 
-   public ModuleListSetting(
-      String name,
-      String description,
-      List<Module> defaultValue,
-      Consumer<List<Module>> onChanged,
-      Consumer<Setting<List<Module>>> onModuleActivated,
-      IVisible visible
-   ) {
-      super(name, description, defaultValue, onChanged, onModuleActivated, visible);
-   }
+    public ModuleListSetting(String name, String description, List<Module> defaultValue, Consumer<List<Module>> onChanged, Consumer<Setting<List<Module>>> onModuleActivated, IVisible visible) {
+        super(name, description, defaultValue, onChanged, onModuleActivated, visible);
+    }
 
-   @Override
-   public void resetImpl() {
-      this.value = new ArrayList<>(this.defaultValue);
-   }
+    @Override
+    public void resetImpl() {
+        value = new ArrayList<>(defaultValue);
+    }
 
-   protected List<Module> parseImpl(String str) {
-      String[] values = str.split(",");
-      List<Module> modules = new ArrayList<>(values.length);
+    @Override
+    protected List<Module> parseImpl(String str) {
+        String[] values = str.split(",");
+        List<Module> modules = new ArrayList<>(values.length);
 
-      try {
-         for (String value : values) {
-            Module module = Modules.get().get(value.trim());
-            if (module != null) {
-               modules.add(module);
+        try {
+            for (String value : values) {
+                Module module = Modules.get().get(value.trim());
+                if (module != null) modules.add(module);
             }
-         }
-      } catch (Exception var9) {
-      }
+        } catch (Exception _) {
+        }
 
-      return modules;
-   }
+        return modules;
+    }
 
-   protected boolean isValueValid(List<Module> value) {
-      return true;
-   }
+    @Override
+    protected boolean isValueValid(List<Module> value) {
+        return true;
+    }
 
-   @Override
-   public List<String> getSuggestions() {
-      if (suggestions == null) {
-         suggestions = new ArrayList<>(Modules.get().getAll().size());
+    @Override
+    public Iterable<String> getSuggestions() {
+        if (suggestions == null) {
+            var modules = Modules.get().getAll();
+            suggestions = new ArrayList<>(modules.size());
+            for (Module module : modules) suggestions.add(module.name);
+        }
 
-         for (Module module : Modules.get().getAll()) {
-            suggestions.add(module.name);
-         }
-      }
+        return suggestions;
+    }
 
-      return suggestions;
-   }
+    @Override
+    public CompoundTag save(CompoundTag tag) {
+        ListTag modulesTag = new ListTag();
+        for (Module module : get()) modulesTag.add(StringTag.valueOf(module.name));
+        tag.put("modules", modulesTag);
 
-   @Override
-   public CompoundTag save(CompoundTag tag) {
-      ListTag modulesTag = new ListTag();
+        return tag;
+    }
 
-      for (Module module : this.get()) {
-         modulesTag.add(StringTag.valueOf(module.name));
-      }
+    @Override
+    public List<Module> load(CompoundTag tag) {
+        get().clear();
 
-      tag.put("modules", modulesTag);
-      return tag;
-   }
+        ListTag valueTag = tag.getListOrEmpty("modules");
+        for (Tag tagI : valueTag) {
+            Module module = Modules.get().get(tagI.asString().orElse(""));
+            if (module != null) get().add(module);
+        }
 
-   public List<Module> load(CompoundTag tag) {
-      this.get().clear();
+        return get();
+    }
 
-      for (Tag tagI : tag.getListOrEmpty("modules")) {
-         Module module = Modules.get().get(tagI.asString().orElse(""));
-         if (module != null) {
-            this.get().add(module);
-         }
-      }
+    public static class Builder extends SettingBuilder<Builder, List<Module>, ModuleListSetting> {
+        public Builder() {
+            super(new ArrayList<>(0));
+        }
 
-      return this.get();
-   }
+        @SafeVarargs
+        public final Builder defaultValue(Class<? extends Module>... defaults) {
+            List<Module> modules = new ArrayList<>();
 
-   public static class Builder extends Setting.SettingBuilder<ModuleListSetting.Builder, List<Module>, ModuleListSetting> {
-      public Builder() {
-         super(new ArrayList<>(0));
-      }
-
-      @SafeVarargs
-      public final ModuleListSetting.Builder defaultValue(Class<? extends Module>... defaults) {
-         List<Module> modules = new ArrayList<>();
-
-         for (Class<? extends Module> klass : defaults) {
-            if (Modules.get().get(klass) != null) {
-               modules.add(Modules.get().get(klass));
+            for (Class<? extends Module> klass : defaults) {
+                if (Modules.get().get(klass) != null) modules.add(Modules.get().get(klass));
             }
-         }
 
-         return this.defaultValue(modules);
-      }
+            return defaultValue(modules);
+        }
 
-      public ModuleListSetting build() {
-         return new ModuleListSetting(this.name, this.description, this.defaultValue, this.onChanged, this.onModuleActivated, this.visible);
-      }
-   }
+        @Override
+        public ModuleListSetting build() {
+            return new ModuleListSetting(name, description, defaultValue, onChanged, onModuleActivated, visible);
+        }
+    }
 }

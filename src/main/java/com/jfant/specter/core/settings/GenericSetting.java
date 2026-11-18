@@ -1,54 +1,63 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.settings;
 
 import com.jfant.specter.core.gui.GuiTheme;
 import com.jfant.specter.core.gui.WidgetScreen;
-import java.util.function.Consumer;
 import net.minecraft.nbt.CompoundTag;
 
+import java.util.function.Consumer;
+
 public class GenericSetting<T extends IGeneric<T>> extends Setting<T> {
-   public GenericSetting(String name, String description, T defaultValue, Consumer<T> onChanged, Consumer<Setting<T>> onModuleActivated, IVisible visible) {
-      super(name, description, defaultValue, onChanged, onModuleActivated, visible);
-   }
+    public GenericSetting(String name, String description, T defaultValue, Consumer<T> onChanged, Consumer<Setting<T>> onModuleActivated, IVisible visible) {
+        super(name, description, defaultValue, onChanged, onModuleActivated, visible);
+    }
 
-   public WidgetScreen createScreen(GuiTheme theme) {
-      return this.get().createScreen(theme, this);
-   }
+    public WidgetScreen createScreen(GuiTheme theme) {
+        return this.get().createScreen(theme, this);
+    }
 
-   @Override
-   public void resetImpl() {
-      if (this.value == null) {
-         this.value = this.defaultValue.copy();
-      }
+    @Override
+    public void resetImpl() {
+        if (value == null) value = defaultValue.copy();
+        value.set(defaultValue);
+    }
 
-      this.value.set(this.defaultValue);
-   }
+    @Override
+    protected T parseImpl(String str) {
+        return defaultValue.copy();
+    }
 
-   protected T parseImpl(String str) {
-      return this.defaultValue.copy();
-   }
+    @Override
+    protected boolean isValueValid(T value) {
+        return true;
+    }
 
-   protected boolean isValueValid(T value) {
-      return true;
-   }
+    @Override
+    public CompoundTag save(CompoundTag tag) {
+        tag.put("value", get().toTag());
 
-   @Override
-   public CompoundTag save(CompoundTag tag) {
-      tag.put("value", this.get().toTag());
-      return tag;
-   }
+        return tag;
+    }
 
-   public T load(CompoundTag tag) {
-      this.get().fromTag(tag.getCompoundOrEmpty("value"));
-      return this.get();
-   }
+    @Override
+    public T load(CompoundTag tag) {
+        get().fromTag(tag.getCompoundOrEmpty("value"));
 
-   public static class Builder<T extends IGeneric<T>> extends Setting.SettingBuilder<GenericSetting.Builder<T>, T, GenericSetting<T>> {
-      public Builder() {
-         super(null);
-      }
+        return get();
+    }
 
-      public GenericSetting<T> build() {
-         return new GenericSetting<>(this.name, this.description, this.defaultValue, this.onChanged, this.onModuleActivated, this.visible);
-      }
-   }
+    public static class Builder<T extends IGeneric<T>> extends SettingBuilder<Builder<T>, T, GenericSetting<T>> {
+        public Builder() {
+            super(null);
+        }
+
+        @Override
+        public GenericSetting<T> build() {
+            return new GenericSetting<>(name, description, defaultValue, onChanged, onModuleActivated, visible);
+        }
+    }
 }

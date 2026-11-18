@@ -1,117 +1,95 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.misc;
 
+import it.unimi.dsi.fastutil.io.FastByteArrayInputStream;
+import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
 import com.jfant.specter.core.SpecterCore;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtAccounter;
-import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.*;
+
+import java.util.*;
+import org.jspecify.annotations.Nullable;
+
+import static com.jfant.specter.core.SpecterCore.mc;
 
 public class NbtUtils {
-   public static <T extends ISerializable<?>> ListTag listToTag(Iterable<T> list) {
-      ListTag tag = new ListTag();
+    public static <T extends ISerializable<?>> ListTag listToTag(Iterable<T> list) {
+        ListTag tag = new ListTag();
+        for (T item : list) tag.add(item.toTag());
+        return tag;
+    }
 
-      for (T item : list) {
-         tag.add(item.toTag());
-      }
+    public static <T> List<T> listFromTag(ListTag tag, ToValue<T> toItem) {
+        List<T> list = new ArrayList<>(tag.size());
+        for (Tag itemTag : tag) {
+            T value = toItem.toValue(itemTag);
+            if (value != null) list.add(value);
+        }
+        return list;
+    }
 
-      return tag;
-   }
+    public static <K, V extends ISerializable<?>> CompoundTag mapToTag(Map<K, V> map) {
+        CompoundTag tag = new CompoundTag();
+        for (var entry : map.entrySet()) tag.put(entry.getKey().toString(), entry.getValue().toTag());
+        return tag;
+    }
 
-   public static <T> List<T> listFromTag(ListTag tag, NbtUtils.ToValue<T> toItem) {
-      List<T> list = new ArrayList<>(tag.size());
+    public static <K, V> Map<K, V> mapFromTag(CompoundTag tag, ToKey<K> toKey, ToValue<V> toValue) {
+        Map<K, V> map = HashMap.newHashMap(tag.size());
+        for (String key : tag.keySet()) map.put(toKey.toKey(key), toValue.toValue(tag.get(key)));
+        return map;
+    }
 
-      for (Tag itemTag : tag) {
-         T value = toItem.toValue(itemTag);
-         if (value != null) {
-            list.add(value);
-         }
-      }
+    public static boolean toClipboard(ISerializable<?> serializable) {
+        return toClipboard(serializable.toTag());
+    }
 
-      return list;
-   }
+    public static boolean toClipboard(CompoundTag tag) {
+        String preClipboard = mc.keyboardHandler.getClipboard();
+        try {
+            var byteArrayOutputStream = new FastByteArrayOutputStream();
+            NbtIo.writeCompressed(tag, byteArrayOutputStream);
+            mc.keyboardHandler.setClipboard(Base64.getEncoder().encodeToString(byteArrayOutputStream.toByteArray()));
+            return true;
+        } catch (Exception e) {
+            SpecterCore.LOG.error("Error copying NBT to clipboard!", e);
+            mc.keyboardHandler.setClipboard(preClipboard);
+            return false;
+        }
+    }
 
-   public static <K, V extends ISerializable<?>> CompoundTag mapToTag(Map<K, V> map) {
-      CompoundTag tag = new CompoundTag();
+    public static boolean fromClipboard(ISerializable<?> serializable) {
+        CompoundTag tag = fromClipboard();
+        if (tag == null) return false;
 
-      for (K key : map.keySet()) {
-         tag.put(key.toString(), map.get(key).toTag());
-      }
+        CompoundTag sourceTag = serializable.toTag();
+        for (String key : sourceTag.keySet()) {
+            if (!tag.contains(key)) return false;
+        }
 
-      return tag;
-   }
+        serializable.fromTag(tag);
+        return true;
+    }
 
-   public static <K, V> Map<K, V> mapFromTag(CompoundTag tag, NbtUtils.ToKey<K> toKey, NbtUtils.ToValue<V> toValue) {
-      Map<K, V> map = new HashMap<>(tag.size());
+    public static @Nullable CompoundTag fromClipboard() {
+        try {
+            byte[] data = Base64.getDecoder().decode(mc.keyboardHandler.getClipboard().trim());
+            var bis = new FastByteArrayInputStream(data);
+            return NbtIo.readCompressed(bis, NbtAccounter.unlimitedHeap());
+        } catch (Exception e) {
+            SpecterCore.LOG.error("Invalid NBT data pasted!", e);
+            return null;
+        }
+    }
 
-      for (String key : tag.keySet()) {
-         map.put(toKey.toKey(key), toValue.toValue(tag.get(key)));
-      }
+    public interface ToKey<T> {
+        T toKey(String string);
+    }
 
-      return map;
-   }
-
-   public static boolean toClipboard(ISerializable<?> serializable) {
-      return toClipboard(serializable.toTag());
-   }
-
-   public static boolean toClipboard(CompoundTag tag) {
-      String preClipboard = SpecterCore.mc.keyboardHandler.getClipboard();
-
-      try {
-         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-         NbtIo.writeCompressed(tag, byteArrayOutputStream);
-         SpecterCore.mc.keyboardHandler.setClipboard(Base64.getEncoder().encodeToString(byteArrayOutputStream.toByteArray()));
-         return true;
-      } catch (Exception var3) {
-         SpecterCore.LOG.error("Error copying NBT to clipboard!", var3);
-         SpecterCore.mc.keyboardHandler.setClipboard(preClipboard);
-         return false;
-      }
-   }
-
-   public static boolean fromClipboard(ISerializable<?> serializable) {
-      CompoundTag tag = fromClipboard();
-      if (tag == null) {
-         return false;
-      } else {
-         CompoundTag sourceTag = serializable.toTag();
-
-         for (String key : sourceTag.keySet()) {
-            if (!tag.contains(key)) {
-               return false;
-            }
-         }
-
-         serializable.fromTag(tag);
-         return true;
-      }
-   }
-
-   public static CompoundTag fromClipboard() {
-      try {
-         byte[] data = Base64.getDecoder().decode(SpecterCore.mc.keyboardHandler.getClipboard().trim());
-         ByteArrayInputStream bis = new ByteArrayInputStream(data);
-         return NbtIo.readCompressed(new DataInputStream(bis), NbtAccounter.unlimitedHeap());
-      } catch (Exception var2) {
-         SpecterCore.LOG.error("Invalid NBT data pasted!", var2);
-         return null;
-      }
-   }
-
-   public interface ToKey<T> {
-      T toKey(String var1);
-   }
-
-   public interface ToValue<T> {
-      T toValue(Tag var1);
-   }
+    public interface ToValue<T> {
+        T toValue(Tag tag);
+    }
 }

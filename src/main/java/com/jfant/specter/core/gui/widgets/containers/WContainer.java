@@ -1,256 +1,240 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets.containers;
 
-import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.gui.renderer.GuiRenderer;
 import com.jfant.specter.core.gui.utils.Cell;
 import com.jfant.specter.core.gui.widgets.WWidget;
-import com.jfant.specter.core.utils.Utils;
-import java.util.ArrayList;
-import java.util.ConcurrentModificationException;
-import java.util.List;
 import net.minecraft.client.MouseHandler;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 
+import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
+import java.util.List;
+
+import static com.jfant.specter.core.SpecterCore.mc;
+import static com.jfant.specter.core.utils.Utils.getWindowHeight;
+
 public abstract class WContainer extends WWidget {
-   public final List<Cell<?>> cells = new ArrayList<>();
+    public final List<Cell<?>> cells = new ArrayList<>();
 
-   public <T extends WWidget> Cell<T> add(T widget) {
-      widget.parent = this;
-      widget.theme = this.theme;
-      Cell<T> cell = new Cell<T>(widget).centerY();
-      this.cells.add(cell);
-      widget.init();
-      this.invalidate();
-      return cell;
-   }
+    public <T extends WWidget> Cell<T> add(T widget) {
+        widget.parent = this;
+        widget.theme = theme;
 
-   public void clear() {
-      if (!this.cells.isEmpty()) {
-         this.cells.clear();
-         this.invalidate();
-      }
-   }
+        Cell<T> cell = new Cell<>(widget).centerY();
+        cells.add(cell);
 
-   public void remove(Cell<?> cell) {
-      if (this.cells.remove(cell)) {
-         this.invalidate();
-      }
-   }
+        widget.init();
+        invalidate();
 
-   @Override
-   public void move(double deltaX, double deltaY) {
-      super.move(deltaX, deltaY);
+        return cell;
+    }
 
-      for (Cell<?> cell : this.cells) {
-         cell.move(deltaX, deltaY);
-      }
-   }
+    public void clear() {
+        if (!cells.isEmpty()) {
+            cells.clear();
+            invalidate();
+        }
+    }
 
-   public void moveCells(double deltaX, double deltaY) {
-      for (Cell<?> cell : this.cells) {
-         cell.move(deltaX, deltaY);
-         MouseHandler mouse = SpecterCore.mc.mouseHandler;
-         cell.widget().mouseMoved(mouse.xpos(), mouse.ypos(), mouse.xpos(), mouse.ypos());
-      }
-   }
+    public void remove(Cell<?> cell) {
+        if (cells.remove(cell)) invalidate();
+    }
 
-   @Override
-   public boolean isFocused() {
-      if (this.focused) {
-         return true;
-      } else {
-         for (Cell<?> cell : this.cells) {
-            if (cell.widget().isFocused()) {
-               return true;
-            }
-         }
+    @Override
+    public void move(double deltaX, double deltaY) {
+        super.move(deltaX, deltaY);
+        for (Cell<?> cell : cells) cell.move(deltaX, deltaY);
+    }
 
-         return false;
-      }
-   }
+    public void moveCells(double deltaX, double deltaY) {
+        for (Cell<?> cell : cells) {
+            cell.move(deltaX, deltaY);
 
-   @Override
-   public void calculateSize() {
-      for (Cell<?> cell : this.cells) {
-         cell.widget().calculateSize();
-      }
+            MouseHandler mouse = mc.mouseHandler;
+            cell.widget().mouseMoved(mouse.xpos(), mouse.ypos(), mouse.xpos(), mouse.ypos());
+        }
+    }
 
-      super.calculateSize();
-   }
+    @Override
+    public boolean isFocused() {
+        if (focused) return true;
 
-   @Override
-   protected void onCalculateSize() {
-      this.width = 0.0;
-      this.height = 0.0;
+        for (Cell<?> cell : cells) {
+            if (cell.widget().isFocused())
+                return true;
+        }
 
-      for (Cell<?> cell : this.cells) {
-         this.width = Math.max(this.width, cell.padLeft() + cell.widget().width + cell.padRight());
-         this.height = Math.max(this.height, cell.padTop() + cell.widget().height + cell.padBottom());
-      }
-   }
+        return false;
+    }
 
-   @Override
-   public void calculateWidgetPositions() {
-      super.calculateWidgetPositions();
+    // Layout
 
-      for (Cell<?> cell : this.cells) {
-         cell.widget().calculateWidgetPositions();
-      }
-   }
+    @Override
+    public void calculateSize() {
+        for (Cell<?> cell : cells) cell.widget().calculateSize();
+        super.calculateSize();
+    }
 
-   @Override
-   protected void onCalculateWidgetPositions() {
-      for (Cell<?> cell : this.cells) {
-         cell.x = this.x + cell.padLeft();
-         cell.y = this.y + cell.padTop();
-         cell.width = this.width - cell.padLeft() - cell.padRight();
-         cell.height = this.height - cell.padTop() - cell.padBottom();
-         cell.alignWidget();
-      }
-   }
+    @Override
+    protected void onCalculateSize() {
+        width = 0;
+        height = 0;
 
-   @Override
-   public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-      if (super.render(renderer, mouseX, mouseY, delta)) {
-         return true;
-      } else {
-         WView view = this.getView();
-         double windowHeight = Utils.getWindowHeight();
+        for (Cell<?> cell : cells) {
+            width = Math.max(width, cell.padLeft() + cell.widget().width + cell.padRight());
+            height = Math.max(height, cell.padTop() + cell.widget().height + cell.padBottom());
+        }
+    }
 
-         for (Cell<?> cell : this.cells) {
+    @Override
+    public void calculateWidgetPositions() {
+        super.calculateWidgetPositions();
+        for (Cell<?> cell : cells) cell.widget().calculateWidgetPositions();
+    }
+
+    @Override
+    protected void onCalculateWidgetPositions() {
+        for (Cell<?> cell : cells) {
+            cell.x = x + cell.padLeft();
+            cell.y = y + cell.padTop();
+
+            cell.width = width - cell.padLeft() - cell.padRight();
+            cell.height = height - cell.padTop() - cell.padBottom();
+
+            cell.alignWidget();
+        }
+    }
+
+    // Rendering
+
+    @Override
+    public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+        if (super.render(renderer, mouseX, mouseY, delta)) return true;
+
+        WView view = getView();
+        double windowHeight = getWindowHeight();
+
+        for (Cell<?> cell : cells) {
             WWidget widget = cell.widget();
-            if (widget.y > windowHeight) {
-               break;
-            }
 
-            if (!(widget.y + widget.height <= 0.0) && this.shouldRenderWidget(widget, view)) {
-               this.renderWidget(widget, renderer, mouseX, mouseY, delta);
-            }
-         }
+            if (widget.y > windowHeight) break;
+            if (widget.y + widget.height <= 0) continue;
 
-         return false;
-      }
-   }
+            if (shouldRenderWidget(widget, view)) renderWidget(widget, renderer, mouseX, mouseY, delta);
+        }
 
-   protected void renderWidget(WWidget widget, GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-      widget.render(renderer, mouseX, mouseY, delta);
-   }
+        return false;
+    }
 
-   private boolean shouldRenderWidget(WWidget widget, WView view) {
-      if (view == null) {
-         return true;
-      } else if (!view.isWidgetInView(widget)) {
-         return false;
-      } else {
-         if (widget.mouseOver && !view.mouseOver) {
+    protected void renderWidget(WWidget widget, GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+        widget.render(renderer, mouseX, mouseY, delta);
+    }
+
+    private boolean shouldRenderWidget(WWidget widget, WView view) {
+        if (view == null) return true;
+        if (!view.isWidgetInView(widget)) return false;
+
+        if (widget.mouseOver && !view.mouseOver) {
             widget.mouseOver = false;
-         }
+        }
 
-         return true;
-      }
-   }
+        return true;
+    }
 
-   protected boolean propagateEvents(WWidget widget) {
-      return true;
-   }
+    // Events
 
-   @Override
-   public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
-      try {
-         for (Cell<?> cell : this.cells) {
-            if (this.propagateEvents(cell.widget()) && cell.widget().mouseClicked(click, doubled)) {
-               return true;
+    protected boolean propagateEvents(WWidget widget) {
+        return true;
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
+        try {
+            for (Cell<?> cell : cells) {
+                if (propagateEvents(cell.widget()) && cell.widget().mouseClicked(click, doubled)) return true;
             }
-         }
-      } catch (ConcurrentModificationException var5) {
-      }
+        } catch (ConcurrentModificationException _) {
+        }
 
-      return super.mouseClicked(click, doubled);
-   }
+        return super.mouseClicked(click, doubled);
+    }
 
-   @Override
-   public boolean mouseReleased(MouseButtonEvent click) {
-      try {
-         for (Cell<?> cell : this.cells) {
-            if (this.propagateEvents(cell.widget()) && cell.widget().mouseReleased(click)) {
-               return true;
+    @Override
+    public boolean mouseReleased(MouseButtonEvent click) {
+        try {
+            for (Cell<?> cell : cells) {
+                if (propagateEvents(cell.widget()) && cell.widget().mouseReleased(click)) return true;
             }
-         }
-      } catch (ConcurrentModificationException var4) {
-      }
+        } catch (ConcurrentModificationException _) {
+        }
 
-      return super.mouseReleased(click);
-   }
+        return super.mouseReleased(click);
+    }
 
-   @Override
-   public void mouseMoved(double mouseX, double mouseY, double lastMouseX, double lastMouseY) {
-      try {
-         for (Cell<?> cell : this.cells) {
-            if (this.propagateEvents(cell.widget())) {
-               cell.widget().mouseMoved(mouseX, mouseY, lastMouseX, lastMouseY);
+    @Override
+    public void mouseMoved(double mouseX, double mouseY, double lastMouseX, double lastMouseY) {
+        try {
+            for (Cell<?> cell : cells) {
+                if (propagateEvents(cell.widget())) cell.widget().mouseMoved(mouseX, mouseY, lastMouseX, lastMouseY);
             }
-         }
-      } catch (ConcurrentModificationException var11) {
-      }
+        } catch (ConcurrentModificationException _) {
+        }
 
-      super.mouseMoved(mouseX, mouseY, lastMouseX, lastMouseY);
-   }
+        super.mouseMoved(mouseX, mouseY, lastMouseX, lastMouseY);
+    }
 
-   @Override
-   public boolean mouseScrolled(double amount) {
-      try {
-         for (Cell<?> cell : this.cells) {
-            if (this.propagateEvents(cell.widget()) && cell.widget().mouseScrolled(amount)) {
-               return true;
+    @Override
+    public boolean mouseScrolled(double amount) {
+        try {
+            for (Cell<?> cell : cells) {
+                if (propagateEvents(cell.widget()) && cell.widget().mouseScrolled(amount)) return true;
             }
-         }
-      } catch (ConcurrentModificationException var5) {
-      }
+        } catch (ConcurrentModificationException _) {
+        }
 
-      return super.mouseScrolled(amount);
-   }
+        return super.mouseScrolled(amount);
+    }
 
-   @Override
-   public boolean keyPressed(KeyEvent input) {
-      try {
-         for (Cell<?> cell : this.cells) {
-            if (this.propagateEvents(cell.widget()) && cell.widget().keyPressed(input)) {
-               return true;
+    @Override
+    public boolean keyPressed(KeyEvent input) {
+        try {
+            for (Cell<?> cell : cells) {
+                if (propagateEvents(cell.widget()) && cell.widget().keyPressed(input)) return true;
             }
-         }
-      } catch (ConcurrentModificationException var4) {
-      }
+        } catch (ConcurrentModificationException _) {
+        }
 
-      return this.onKeyPressed(input);
-   }
+        return onKeyPressed(input);
+    }
 
-   @Override
-   public boolean keyRepeated(KeyEvent input) {
-      try {
-         for (Cell<?> cell : this.cells) {
-            if (this.propagateEvents(cell.widget()) && cell.widget().keyRepeated(input)) {
-               return true;
+    @Override
+    public boolean keyRepeated(KeyEvent input) {
+        try {
+            for (Cell<?> cell : cells) {
+                if (propagateEvents(cell.widget()) && cell.widget().keyRepeated(input)) return true;
             }
-         }
-      } catch (ConcurrentModificationException var4) {
-      }
+        } catch (ConcurrentModificationException _) {
+        }
 
-      return this.onKeyRepeated(input);
-   }
+        return onKeyRepeated(input);
+    }
 
-   @Override
-   public boolean charTyped(CharacterEvent input) {
-      try {
-         for (Cell<?> cell : this.cells) {
-            if (this.propagateEvents(cell.widget()) && cell.widget().charTyped(input)) {
-               return true;
+    @Override
+    public boolean charTyped(CharacterEvent input) {
+        try {
+            for (Cell<?> cell : cells) {
+                if (propagateEvents(cell.widget()) && cell.widget().charTyped(input)) return true;
             }
-         }
-      } catch (ConcurrentModificationException var4) {
-      }
+        } catch (ConcurrentModificationException _) {
+        }
 
-      return super.charTyped(input);
-   }
+        return super.charTyped(input);
+    }
 }

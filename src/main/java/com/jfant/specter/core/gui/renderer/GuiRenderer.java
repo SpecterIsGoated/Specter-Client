@@ -1,5 +1,12 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.renderer;
 
+import it.unimi.dsi.fastutil.Stack;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.gui.GuiTheme;
 import com.jfant.specter.core.gui.renderer.operations.TextOperation;
@@ -9,266 +16,273 @@ import com.jfant.specter.core.gui.widgets.WWidget;
 import com.jfant.specter.core.renderer.Renderer2D;
 import com.jfant.specter.core.renderer.Texture;
 import com.jfant.specter.core.utils.PostInit;
-import com.jfant.specter.core.utils.Utils;
 import com.jfant.specter.core.utils.misc.Pool;
 import com.jfant.specter.core.utils.render.RenderUtils;
 import com.jfant.specter.core.utils.render.color.Color;
-import it.unimi.dsi.fastutil.Stack;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import java.util.List;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
-import org.joml.Matrix3x2fStack;
+
+import java.util.List;
+
+import static com.jfant.specter.core.SpecterCore.mc;
+import static com.jfant.specter.core.utils.Utils.getWindowHeight;
+import static com.jfant.specter.core.utils.Utils.getWindowWidth;
 
 public class GuiRenderer {
-   private static final Color WHITE = new Color(255, 255, 255);
-   private static final TexturePacker TEXTURE_PACKER = new TexturePacker();
-   private static Texture TEXTURE;
-   public static GuiTexture CIRCLE;
-   public static GuiTexture TRIANGLE;
-   public static GuiTexture EDIT;
-   public static GuiTexture RESET;
-   public static GuiTexture FAVORITE_NO;
-   public static GuiTexture FAVORITE_YES;
-   public static GuiTexture COPY;
-   public static GuiTexture PASTE;
-   public GuiTheme theme;
-   private final Renderer2D r = new Renderer2D(false);
-   private final Renderer2D rTex = new Renderer2D(true);
-   private final Pool<Scissor> scissorPool = new Pool<>(Scissor::new);
-   private final Stack<Scissor> scissorStack = new ObjectArrayList();
-   private final Pool<TextOperation> textPool = new Pool<>(TextOperation::new);
-   private final List<TextOperation> texts = new ObjectArrayList();
-   private final List<Runnable> postTasks = new ObjectArrayList();
-   public String tooltip;
-   public String lastTooltip;
-   public WWidget tooltipWidget;
-   private double tooltipAnimProgress;
-   private GuiGraphics drawContext;
+    private static final Color WHITE = new Color(255, 255, 255);
 
-   public static GuiTexture addTexture(Identifier id) {
-      return TEXTURE_PACKER.add(id);
-   }
+    private static final TexturePacker TEXTURE_PACKER = new TexturePacker();
+    private static Texture TEXTURE;
 
-   @PostInit
-   public static void init() {
-      CIRCLE = addTexture(SpecterCore.identifier("textures/icons/gui/circle.png"));
-      TRIANGLE = addTexture(SpecterCore.identifier("textures/icons/gui/triangle.png"));
-      EDIT = addTexture(SpecterCore.identifier("textures/icons/gui/edit.png"));
-      RESET = addTexture(SpecterCore.identifier("textures/icons/gui/reset.png"));
-      FAVORITE_NO = addTexture(SpecterCore.identifier("textures/icons/gui/favorite_no.png"));
-      FAVORITE_YES = addTexture(SpecterCore.identifier("textures/icons/gui/favorite_yes.png"));
-      COPY = addTexture(SpecterCore.identifier("textures/icons/gui/copy.png"));
-      PASTE = addTexture(SpecterCore.identifier("textures/icons/gui/paste.png"));
-      TEXTURE = TEXTURE_PACKER.pack();
-   }
+    public static GuiTexture CIRCLE;
+    public static GuiTexture TRIANGLE;
+    public static GuiTexture EDIT;
+    public static GuiTexture RESET;
+    public static GuiTexture FAVORITE_NO, FAVORITE_YES;
+    public static GuiTexture COPY, PASTE;
 
-   public void begin(GuiGraphics drawContext) {
-      this.drawContext = drawContext;
-      this.drawContext.nextStratum();
-      Matrix3x2fStack matrices = drawContext.pose();
-      matrices.pushMatrix();
-      matrices.scale(1.0F / SpecterCore.mc.getWindow().getGuiScale());
-      this.scissorStart(0.0, 0.0, Utils.getWindowWidth(), Utils.getWindowHeight());
-   }
+    public GuiTheme theme;
 
-   public void end() {
-      this.scissorEnd();
+    private final Renderer2D r = new Renderer2D(false);
+    private final Renderer2D rTex = new Renderer2D(true);
 
-      for (Runnable task : this.postTasks) {
-         task.run();
-      }
+    private final Pool<Scissor> scissorPool = new Pool<>(Scissor::new);
+    private final Stack<Scissor> scissorStack = new ObjectArrayList<>();
 
-      this.postTasks.clear();
-      this.drawContext.pose().popMatrix();
-      this.drawContext.nextStratum();
-   }
+    private final Pool<TextOperation> textPool = new Pool<>(TextOperation::new);
+    private final List<TextOperation> texts = new ObjectArrayList<>();
 
-   public void beginRender() {
-      this.r.begin();
-      this.rTex.begin();
-   }
+    private final List<Runnable> postTasks = new ObjectArrayList<>();
 
-   public void endRender() {
-      this.endRender(null);
-   }
+    public String tooltip, lastTooltip;
+    public WWidget tooltipWidget;
+    private double tooltipAnimProgress;
 
-   public void endRender(Scissor scissor) {
-      if (scissor != null) {
-         scissor.push();
-      }
+    private GuiGraphicsExtractor graphics;
 
-      this.r.end();
-      this.rTex.end();
-      this.r.render();
-      this.rTex.render("u_Texture", TEXTURE.getTextureView(), TEXTURE.getSampler());
-      this.theme.textRenderer().begin(this.theme.scale(1.0));
+    public static GuiTexture addTexture(Identifier id) {
+        return TEXTURE_PACKER.add(id);
+    }
 
-      for (TextOperation text : this.texts) {
-         if (!text.title) {
-            text.run(this.textPool);
-         }
-      }
+    @PostInit
+    public static void init() {
+        CIRCLE = addTexture(SpecterCore.identifier("textures/icons/gui/circle.png"));
+        TRIANGLE = addTexture(SpecterCore.identifier("textures/icons/gui/triangle.png"));
+        EDIT = addTexture(SpecterCore.identifier("textures/icons/gui/edit.png"));
+        RESET = addTexture(SpecterCore.identifier("textures/icons/gui/reset.png"));
+        FAVORITE_NO = addTexture(SpecterCore.identifier("textures/icons/gui/favorite_no.png"));
+        FAVORITE_YES = addTexture(SpecterCore.identifier("textures/icons/gui/favorite_yes.png"));
 
-      this.theme.textRenderer().end();
-      this.theme.textRenderer().begin(this.theme.scale(1.25));
+        COPY = addTexture(SpecterCore.identifier("textures/icons/gui/copy.png"));
+        PASTE = addTexture(SpecterCore.identifier("textures/icons/gui/paste.png"));
 
-      for (TextOperation textx : this.texts) {
-         if (textx.title) {
-            textx.run(this.textPool);
-         }
-      }
+        TEXTURE = TEXTURE_PACKER.pack();
+    }
 
-      this.theme.textRenderer().end();
-      this.texts.clear();
-      if (scissor != null) {
-         scissor.pop();
-      }
-   }
+    public void begin(GuiGraphicsExtractor graphics) {
+        this.graphics = graphics;
+        this.graphics.nextStratum();
 
-   public void scissorStart(double x, double y, double width, double height) {
-      if (!this.scissorStack.isEmpty()) {
-         Scissor parent = (Scissor)this.scissorStack.top();
-         if (x < parent.x) {
-            x = parent.x;
-         } else if (x + width > parent.x + parent.width) {
-            width -= x + width - (parent.x + parent.width);
-         }
+        var matrices = graphics.pose();
+        matrices.pushMatrix();
+        matrices.scale(1.0f / mc.getWindow().getGuiScale());
 
-         if (y < parent.y) {
-            y = parent.y;
-         } else if (y + height > parent.y + parent.height) {
-            height -= y + height - (parent.y + parent.height);
-         }
+        scissorStart(0, 0, getWindowWidth(), getWindowHeight());
+    }
 
-         this.endRender(parent);
-      }
+    public void end() {
+        scissorEnd();
 
-      this.scissorStack.push(this.scissorPool.get().set(x, y, width, height));
-      this.drawContext.enableScissor((int)x, (int)y, (int)(x + width), (int)(y + height));
-      this.beginRender();
-   }
+        for (Runnable task : postTasks) task.run();
+        postTasks.clear();
 
-   public void scissorEnd() {
-      Scissor scissor = (Scissor)this.scissorStack.pop();
-      this.endRender(scissor);
-      scissor.push();
+        graphics.pose().popMatrix();
+        graphics.nextStratum();
+    }
 
-      for (Runnable task : scissor.postTasks) {
-         task.run();
-      }
+    public void beginRender() {
+        r.begin();
+        rTex.begin();
+    }
 
-      scissor.pop();
-      this.drawContext.disableScissor();
-      if (!this.scissorStack.isEmpty()) {
-         this.beginRender();
-      }
+    public void endRender() {
+        endRender(null);
+    }
 
-      this.scissorPool.free(scissor);
-   }
+    public void endRender(Scissor scissor) {
+        if (scissor != null) scissor.push();
 
-   public boolean renderTooltip(GuiGraphics drawContext, double mouseX, double mouseY, double delta) {
-      this.tooltipAnimProgress = this.tooltipAnimProgress + (this.tooltip != null ? 1 : -1) * delta * 14.0;
-      this.tooltipAnimProgress = Mth.clamp(this.tooltipAnimProgress, 0.0, 1.0);
-      boolean toReturn = false;
-      if (this.tooltipAnimProgress > 0.0) {
-         if (this.tooltip != null && !this.tooltip.equals(this.lastTooltip)) {
-            this.tooltipWidget = this.theme.tooltip(this.tooltip);
-            this.tooltipWidget.init();
-         }
+        r.end();
+        rTex.end();
 
-         double deltaX = -this.tooltipWidget.x + mouseX + 12.0;
-         double deltaY = -this.tooltipWidget.y + mouseY + 12.0;
-         if (mouseX + 12.0 + this.tooltipWidget.width > Utils.getWindowWidth()) {
-            deltaX = -this.tooltipWidget.x + Utils.getWindowWidth() - this.tooltipWidget.width;
-         }
+        r.render();
+        rTex.render("u_Texture", TEXTURE.getTextureView(), TEXTURE.getSampler());
 
-         if (mouseY + 12.0 + this.tooltipWidget.height > Utils.getWindowHeight()) {
-            deltaY = -this.tooltipWidget.y + Utils.getWindowHeight() - this.tooltipWidget.height;
-         }
+        // Normal text
+        theme.textRenderer().begin(graphics, theme.scale(1));
+        for (TextOperation text : texts) {
+            if (!text.title) text.run(textPool);
+        }
+        theme.textRenderer().end();
 
-         this.tooltipWidget.move(deltaX, deltaY);
-         this.setAlpha(this.tooltipAnimProgress);
-         this.begin(drawContext);
-         this.tooltipWidget.render(this, mouseX, mouseY, delta);
-         this.end();
-         this.setAlpha(1.0);
-         this.lastTooltip = this.tooltip;
-         toReturn = true;
-      }
+        // Title text
+        theme.textRenderer().begin(graphics, theme.scale(1.25));
+        for (TextOperation text : texts) {
+            if (text.title) text.run(textPool);
+        }
+        theme.textRenderer().end();
 
-      this.tooltip = null;
-      return toReturn;
-   }
+        texts.clear();
 
-   public void setAlpha(double a) {
-      this.r.setAlpha(a);
-      this.rTex.setAlpha(a);
-      this.theme.textRenderer().setAlpha(a);
-   }
+        if (scissor != null) scissor.pop();
+    }
 
-   public void tooltip(String text) {
-      this.tooltip = text;
-   }
+    public void scissorStart(double x, double y, double width, double height) {
+        if (!scissorStack.isEmpty()) {
+            Scissor parent = scissorStack.top();
 
-   public void quad(double x, double y, double width, double height, Color cTopLeft, Color cTopRight, Color cBottomRight, Color cBottomLeft) {
-      this.r.quad(x, y, width, height, cTopLeft, cTopRight, cBottomRight, cBottomLeft);
-   }
+            if (x < parent.x) x = parent.x;
+            else if (x + width > parent.x + parent.width) width -= (x + width) - (parent.x + parent.width);
 
-   public void quad(double x, double y, double width, double height, Color colorLeft, Color colorRight) {
-      this.quad(x, y, width, height, colorLeft, colorRight, colorRight, colorLeft);
-   }
+            if (y < parent.y) y = parent.y;
+            else if (y + height > parent.y + parent.height) height -= (y + height) - (parent.y + parent.height);
 
-   public void quad(double x, double y, double width, double height, Color color) {
-      this.quad(x, y, width, height, color, color);
-   }
+            endRender(parent);
+        }
 
-   public void quad(WWidget widget, Color color) {
-      this.quad(widget.x, widget.y, widget.width, widget.height, color);
-   }
+        scissorStack.push(scissorPool.get().set(x, y, width, height));
+        graphics.enableScissor((int) x, (int) y, (int) (x + width), (int) (y + height));
 
-   public void quad(double x, double y, double width, double height, GuiTexture texture, Color color) {
-      this.rTex.texQuad(x, y, width, height, texture.get(width, height), color);
-   }
+        beginRender();
+    }
 
-   public void rotatedQuad(double x, double y, double width, double height, double rotation, GuiTexture texture, Color color) {
-      this.rTex.texQuad(x, y, width, height, rotation, texture.get(width, height), color);
-   }
+    public void scissorEnd() {
+        Scissor scissor = scissorStack.pop();
 
-   public void triangle(double x1, double y1, double x2, double y2, double x3, double y3, Color color) {
-      this.r.triangle(x1, y1, x2, y2, x3, y3, color);
-   }
+        endRender(scissor);
 
-   public void text(String text, double x, double y, Color color, boolean title) {
-      this.texts.add(this.getOp(this.textPool, x, y, color).set(text, this.theme.textRenderer(), title));
-   }
+        scissor.push();
+        for (Runnable task : scissor.postTasks) task.run();
+        scissor.pop();
 
-   public void texture(double x, double y, double width, double height, double rotation, Texture texture) {
-      this.post(() -> {
-         this.rTex.begin();
-         this.rTex.texQuad(x, y, width, height, rotation, 0.0, 0.0, 1.0, 1.0, WHITE);
-         this.rTex.end();
-         this.rTex.render(texture.getTextureView(), texture.getSampler());
-      });
-   }
+        graphics.disableScissor();
+        if (!scissorStack.isEmpty()) beginRender();
 
-   public void post(Runnable task) {
-      ((Scissor)this.scissorStack.top()).postTasks.add(task);
-   }
+        scissorPool.free(scissor);
+    }
 
-   public void item(ItemStack itemStack, int x, int y, float scale, boolean overlay) {
-      RenderUtils.drawItem(this.drawContext, itemStack, x, y, scale, overlay, null, false);
-   }
+    public boolean renderTooltip(GuiGraphicsExtractor graphics, double mouseX, double mouseY, double delta) {
+        tooltipAnimProgress += (tooltip != null ? 1 : -1) * delta * 14;
+        tooltipAnimProgress = Mth.clamp(tooltipAnimProgress, 0, 1);
 
-   public void absolutePost(Runnable task) {
-      this.postTasks.add(task);
-   }
+        boolean toReturn = false;
 
-   private <T extends GuiRenderOperation<T>> T getOp(Pool<T> pool, double x, double y, Color color) {
-      T op = (T)pool.get();
-      op.set(x, y, color);
-      return op;
-   }
+        if (tooltipAnimProgress > 0) {
+            if (tooltip != null && !tooltip.equals(lastTooltip)) {
+                tooltipWidget = theme.tooltip(tooltip);
+                tooltipWidget.init();
+            }
+
+            double deltaX = -tooltipWidget.x + mouseX + 12;
+            double deltaY = -tooltipWidget.y + mouseY + 12;
+
+            if (mouseX + 12 + tooltipWidget.width > getWindowWidth())
+                deltaX = -tooltipWidget.x + getWindowWidth() - tooltipWidget.width;
+            if (mouseY + 12 + tooltipWidget.height > getWindowHeight())
+                deltaY = -tooltipWidget.y + getWindowHeight() - tooltipWidget.height;
+
+            tooltipWidget.move(deltaX, deltaY);
+
+            setAlpha(tooltipAnimProgress);
+
+            begin(graphics);
+            tooltipWidget.render(this, mouseX, mouseY, delta);
+            end();
+
+            setAlpha(1);
+
+            lastTooltip = tooltip;
+            toReturn = true;
+        }
+
+        tooltip = null;
+        return toReturn;
+    }
+
+    public void setAlpha(double a) {
+        r.setAlpha(a);
+        rTex.setAlpha(a);
+
+        theme.textRenderer().setAlpha(a);
+    }
+
+    public void tooltip(String text) {
+        tooltip = text;
+    }
+
+    public void quad(double x, double y, double width, double height, Color cTopLeft, Color cTopRight, Color cBottomRight, Color cBottomLeft) {
+        r.quad(x, y, width, height, cTopLeft, cTopRight, cBottomRight, cBottomLeft);
+    }
+
+    public void quad(double x, double y, double width, double height, Color colorLeft, Color colorRight) {
+        quad(x, y, width, height, colorLeft, colorRight, colorRight, colorLeft);
+    }
+
+    public void quad(double x, double y, double width, double height, Color color) {
+        quad(x, y, width, height, color, color);
+    }
+
+    public void quad(WWidget widget, Color color) {
+        quad(widget.x, widget.y, widget.width, widget.height, color);
+    }
+
+    public void fill(WWidget widget, Color color) {
+        graphics.fill((int) widget.x, (int) widget.y, (int) (widget.x + widget.width), (int) (widget.y + widget.height), color.getPacked());
+    }
+
+    public void quad(double x, double y, double width, double height, GuiTexture texture, Color color) {
+        rTex.texQuad(x, y, width, height, texture.get(width, height), color);
+    }
+
+    public void rotatedQuad(double x, double y, double width, double height, double rotation, GuiTexture texture, Color color) {
+        rTex.texQuad(x, y, width, height, rotation, texture.get(width, height), color);
+    }
+
+    public void triangle(double x1, double y1, double x2, double y2, double x3, double y3, Color color) {
+        r.triangle(x1, y1, x2, y2, x3, y3, color);
+    }
+
+    public void text(String text, double x, double y, Color color, boolean title) {
+        texts.add(getOp(textPool, x, y, color).set(text, theme.textRenderer(), title));
+    }
+
+    public void texture(double x, double y, double width, double height, double rotation, Texture texture) {
+        post(() -> {
+            rTex.begin();
+            rTex.texQuad(x, y, width, height, rotation, 0, 0, 1, 1, WHITE);
+            rTex.end();
+
+            rTex.render(texture.getTextureView(), texture.getSampler());
+        });
+    }
+
+    public void post(Runnable task) {
+        scissorStack.top().postTasks.add(task);
+    }
+
+    public void item(ItemStack itemStack, int x, int y, float scale, boolean overlay) {
+        RenderUtils.drawItem(graphics, itemStack, x, y, scale, overlay, null, false);
+    }
+
+    public void absolutePost(Runnable task) {
+        postTasks.add(task);
+    }
+
+    private <T extends GuiRenderOperation<T>> T getOp(Pool<T> pool, double x, double y, Color color) {
+        T op = pool.get();
+        op.set(x, y, color);
+        return op;
+    }
 }

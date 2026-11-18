@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.render.color;
 
 import com.jfant.specter.core.utils.misc.ICopyable;
@@ -10,352 +15,359 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 
+@SuppressWarnings("unused")
 public class Color implements ICopyable<Color>, ISerializable<Color> {
-   public static final Color CLEAR = new Color(0, 0, 0, 0);
-   public static final Color WHITE = new Color(java.awt.Color.WHITE);
-   public static final Color LIGHT_GRAY = new Color(java.awt.Color.LIGHT_GRAY);
-   public static final Color GRAY = new Color(java.awt.Color.GRAY);
-   public static final Color DARK_GRAY = new Color(java.awt.Color.DARK_GRAY);
-   public static final Color BLACK = new Color(java.awt.Color.BLACK);
-   public static final Color RED = new Color(java.awt.Color.RED);
-   public static final Color PINK = new Color(java.awt.Color.PINK);
-   public static final Color ORANGE = new Color(java.awt.Color.ORANGE);
-   public static final Color YELLOW = new Color(java.awt.Color.YELLOW);
-   public static final Color GREEN = new Color(java.awt.Color.GREEN);
-   public static final Color MAGENTA = new Color(java.awt.Color.MAGENTA);
-   public static final Color CYAN = new Color(java.awt.Color.CYAN);
-   public static final Color BLUE = new Color(java.awt.Color.BLUE);
-   public int r;
-   public int g;
-   public int b;
-   public int a;
+    public static final Color CLEAR = new Color(0, 0, 0, 0);
+    public static final Color WHITE = new Color(java.awt.Color.WHITE);
+    public static final Color LIGHT_GRAY = new Color(java.awt.Color.LIGHT_GRAY);
+    public static final Color GRAY = new Color(java.awt.Color.GRAY);
+    public static final Color DARK_GRAY = new Color(java.awt.Color.DARK_GRAY);
+    public static final Color BLACK = new Color(java.awt.Color.BLACK);
+    public static final Color RED = new Color(java.awt.Color.RED);
+    public static final Color PINK = new Color(java.awt.Color.PINK);
+    public static final Color ORANGE = new Color(java.awt.Color.ORANGE);
+    public static final Color YELLOW = new Color(java.awt.Color.YELLOW);
+    public static final Color GREEN = new Color(java.awt.Color.GREEN);
+    public static final Color MAGENTA = new Color(java.awt.Color.MAGENTA);
+    public static final Color CYAN = new Color(java.awt.Color.CYAN);
+    public static final Color BLUE = new Color(java.awt.Color.BLUE);
 
-   public Color() {
-      this(255, 255, 255, 255);
-   }
+    public int r, g, b, a;
 
-   public Color(int r, int g, int b) {
-      this.r = r;
-      this.g = g;
-      this.b = b;
-      this.a = 255;
-      this.validate();
-   }
+    public Color() {
+        this(255, 255, 255, 255);
+    }
 
-   public Color(int r, int g, int b, int a) {
-      this.r = r;
-      this.g = g;
-      this.b = b;
-      this.a = a;
-      this.validate();
-   }
+    public Color(int r, int g, int b) {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.a = 255;
 
-   public Color(float r, float g, float b, float a) {
-      this.r = (int)(r * 255.0F);
-      this.g = (int)(g * 255.0F);
-      this.b = (int)(b * 255.0F);
-      this.a = (int)(a * 255.0F);
-      this.validate();
-   }
+        validate();
+    }
 
-   public Color(int packed) {
-      this.r = toRGBAR(packed);
-      this.g = toRGBAG(packed);
-      this.b = toRGBAB(packed);
-      this.a = toRGBAA(packed);
-   }
+    public Color(int r, int g, int b, int a) {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.a = a;
 
-   public Color(Color color) {
-      this.r = color.r;
-      this.g = color.g;
-      this.b = color.b;
-      this.a = color.a;
-   }
+        validate();
+    }
 
-   public Color(java.awt.Color color) {
-      this.r = color.getRed();
-      this.g = color.getGreen();
-      this.b = color.getBlue();
-      this.a = color.getAlpha();
-   }
+    public Color(float r, float g, float b, float a) {
+        this.r = (int) (r * 255);
+        this.g = (int) (g * 255);
+        this.b = (int) (b * 255);
+        this.a = (int) (a * 255);
 
-   public Color(ChatFormatting formatting) {
-      if (formatting.isColor()) {
-         this.r = toRGBAR(formatting.getColor());
-         this.g = toRGBAG(formatting.getColor());
-         this.b = toRGBAB(formatting.getColor());
-         this.a = toRGBAA(formatting.getColor());
-      } else {
-         this.r = 255;
-         this.g = 255;
-         this.b = 255;
-         this.a = 255;
-      }
-   }
+        validate();
+    }
 
-   public Color(TextColor textColor) {
-      this.r = toRGBAR(textColor.getValue());
-      this.g = toRGBAG(textColor.getValue());
-      this.b = toRGBAB(textColor.getValue());
-      this.a = toRGBAA(textColor.getValue());
-   }
+    public Color(int packed) {
+        this.r = toRGBAR(packed);
+        this.g = toRGBAG(packed);
+        this.b = toRGBAB(packed);
+        this.a = toRGBAA(packed);
+    }
 
-   public Color(Style style) {
-      TextColor textColor = style.getColor();
-      if (textColor == null) {
-         this.r = 255;
-         this.g = 255;
-         this.b = 255;
-         this.a = 255;
-      } else {
-         this.r = toRGBAR(textColor.getValue());
-         this.g = toRGBAG(textColor.getValue());
-         this.b = toRGBAB(textColor.getValue());
-         this.a = toRGBAA(textColor.getValue());
-      }
-   }
+    public Color(Color color) {
+        this.r = color.r;
+        this.g = color.g;
+        this.b = color.b;
+        this.a = color.a;
+    }
 
-   public static int fromRGBA(int r, int g, int b, int a) {
-      return (r << 16) + (g << 8) + b + (a << 24);
-   }
+    public Color(java.awt.Color color) {
+        this.r = color.getRed();
+        this.g = color.getGreen();
+        this.b = color.getBlue();
+        this.a = color.getAlpha();
+    }
 
-   public static int toRGBAR(int color) {
-      return color >> 16 & 0xFF;
-   }
+    public Color(ChatFormatting formatting) {
+        TextColor textColor = TextColor.fromLegacyFormat(formatting);
+        if (textColor != null) {
+            this.r = toRGBAR(textColor.getValue());
+            this.g = toRGBAG(textColor.getValue());
+            this.b = toRGBAB(textColor.getValue());
+            this.a = toRGBAA(textColor.getValue());
+        } else {
+            this.r = 255;
+            this.g = 255;
+            this.b = 255;
+            this.a = 255;
+        }
+    }
 
-   public static int toRGBAG(int color) {
-      return color >> 8 & 0xFF;
-   }
+    public Color(TextColor textColor) {
+        this.r = toRGBAR(textColor.getValue());
+        this.g = toRGBAG(textColor.getValue());
+        this.b = toRGBAB(textColor.getValue());
+        this.a = toRGBAA(textColor.getValue());
+    }
 
-   public static int toRGBAB(int color) {
-      return color & 0xFF;
-   }
+    public Color(Style style) {
+        TextColor textColor = style.getColor();
+        if (textColor == null) {
+            this.r = 255;
+            this.g = 255;
+            this.b = 255;
+            this.a = 255;
+        } else {
+            this.r = toRGBAR(textColor.getValue());
+            this.g = toRGBAG(textColor.getValue());
+            this.b = toRGBAB(textColor.getValue());
+            this.a = toRGBAA(textColor.getValue());
+        }
+    }
 
-   public static int toRGBAA(int color) {
-      return color >> 24 & 0xFF;
-   }
+    public static int fromRGBA(int r, int g, int b, int a) {
+        return (r << 16) + (g << 8) + (b) + (a << 24);
+    }
 
-   public static Color fromHsv(double h, double s, double v) {
-      if (s <= 0.0) {
-         return new Color((int)(v * 255.0), (int)(v * 255.0), (int)(v * 255.0), 255);
-      } else {
-         double hh = h;
-         if (h >= 360.0) {
-            hh = 0.0;
-         }
+    public static int toRGBAR(int color) {
+        return (color >> 16) & 0x000000FF;
+    }
 
-         hh /= 60.0;
-         int i = (int)hh;
-         double ff = hh - i;
-         double p = v * (1.0 - s);
-         double q = v * (1.0 - s * ff);
-         double t = v * (1.0 - s * (1.0 - ff));
-         double r;
-         double g;
-         double b;
-         switch (i) {
+    public static int toRGBAG(int color) {
+        return (color >> 8) & 0x000000FF;
+    }
+
+    public static int toRGBAB(int color) {
+        return (color) & 0x000000FF;
+    }
+
+    public static int toRGBAA(int color) {
+        return (color >> 24) & 0x000000FF;
+    }
+
+    public static Color fromHsv(double h, double s, double v) {
+        double hh, p, q, t, ff;
+        int i;
+        double r, g, b;
+
+        if (s <= 0.0) {       // < is bogus, just shuts up warnings
+            r = v;
+            g = v;
+            b = v;
+            return new Color((int) (r * 255), (int) (g * 255), (int) (b * 255), 255);
+        }
+        hh = h;
+        if (hh >= 360.0) hh = 0.0;
+        hh /= 60.0;
+        i = (int) hh;
+        ff = hh - i;
+        p = v * (1.0 - s);
+        q = v * (1.0 - (s * ff));
+        t = v * (1.0 - (s * (1.0 - ff)));
+
+        switch (i) {
             case 0:
-               r = v;
-               g = t;
-               b = p;
-               break;
+                r = v;
+                g = t;
+                b = p;
+                break;
             case 1:
-               r = q;
-               g = v;
-               b = p;
-               break;
+                r = q;
+                g = v;
+                b = p;
+                break;
             case 2:
-               r = p;
-               g = v;
-               b = t;
-               break;
+                r = p;
+                g = v;
+                b = t;
+                break;
+
             case 3:
-               r = p;
-               g = q;
-               b = v;
-               break;
+                r = p;
+                g = q;
+                b = v;
+                break;
             case 4:
-               r = t;
-               g = p;
-               b = v;
-               break;
+                r = t;
+                g = p;
+                b = v;
+                break;
             case 5:
             default:
-               r = v;
-               g = p;
-               b = q;
-         }
+                r = v;
+                g = p;
+                b = q;
+                break;
+        }
+        return new Color((int) (r * 255), (int) (g * 255), (int) (b * 255), 255);
+    }
 
-         return new Color((int)(r * 255.0), (int)(g * 255.0), (int)(b * 255.0), 255);
-      }
-   }
+    public Color set(int r, int g, int b, int a) {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.a = a;
 
-   public Color set(int r, int g, int b, int a) {
-      this.r = r;
-      this.g = g;
-      this.b = b;
-      this.a = a;
-      this.validate();
-      return this;
-   }
+        validate();
 
-   public Color r(int r) {
-      this.r = r;
-      this.validate();
-      return this;
-   }
+        return this;
+    }
 
-   public Color g(int g) {
-      this.g = g;
-      this.validate();
-      return this;
-   }
+    public Color r(int r) {
+        this.r = r;
+        validate();
+        return this;
+    }
 
-   public Color b(int b) {
-      this.b = b;
-      this.validate();
-      return this;
-   }
+    public Color g(int g) {
+        this.g = g;
+        validate();
+        return this;
+    }
 
-   public Color a(int a) {
-      this.a = a;
-      this.validate();
-      return this;
-   }
+    public Color b(int b) {
+        this.b = b;
+        validate();
+        return this;
+    }
 
-   public Color set(Color value) {
-      this.r = value.r;
-      this.g = value.g;
-      this.b = value.b;
-      this.a = value.a;
-      this.validate();
-      return this;
-   }
+    public Color a(int a) {
+        this.a = a;
+        validate();
+        return this;
+    }
 
-   public boolean parse(String text) {
-      String[] split = text.split(",");
-      if (split.length != 3 && split.length != 4) {
-         return false;
-      } else {
-         try {
+    @Override
+    public Color set(Color value) {
+        r = value.r;
+        g = value.g;
+        b = value.b;
+        a = value.a;
+
+        validate();
+
+        return this;
+    }
+
+    public boolean parse(String text) {
+        String[] split = text.split(",");
+        if (split.length != 3 && split.length != 4) return false;
+
+        try {
+            // Not assigned directly because of exception handling
             int r = Integer.parseInt(split[0]);
             int g = Integer.parseInt(split[1]);
             int b = Integer.parseInt(split[2]);
             int a = split.length == 4 ? Integer.parseInt(split[3]) : this.a;
+
             this.r = r;
             this.g = g;
             this.b = b;
             this.a = a;
+
             return true;
-         } catch (NumberFormatException var7) {
+        } catch (NumberFormatException _) {
             return false;
-         }
-      }
-   }
+        }
+    }
 
-   public Color copy() {
-      return new Color(this.r, this.g, this.b, this.a);
-   }
+    @Override
+    public Color copy() {
+        return new Color(r, g, b, a);
+    }
 
-   public SettingColor toSetting() {
-      return new SettingColor(this.r, this.g, this.b, this.a);
-   }
+    public SettingColor toSetting() {
+        return new SettingColor(r, g, b, a);
+    }
 
-   public TextColor toTextColor() {
-      return TextColor.fromRgb(this.getPacked());
-   }
+    public TextColor toTextColor() {
+        return TextColor.fromRgb(getPacked());
+    }
 
-   public Style toStyle() {
-      return Style.EMPTY.withColor(this.toTextColor());
-   }
+    public Style toStyle() {
+        return Style.EMPTY.withColor(toTextColor());
+    }
 
-   public Style styleWith(Style style) {
-      return style.withColor(this.toTextColor());
-   }
+    public Style styleWith(Style style) {
+        return style.withColor(toTextColor());
+    }
 
-   public void validate() {
-      if (this.r < 0) {
-         this.r = 0;
-      } else if (this.r > 255) {
-         this.r = 255;
-      }
+    public void validate() {
+        if (r < 0) r = 0;
+        else if (r > 255) r = 255;
 
-      if (this.g < 0) {
-         this.g = 0;
-      } else if (this.g > 255) {
-         this.g = 255;
-      }
+        if (g < 0) g = 0;
+        else if (g > 255) g = 255;
 
-      if (this.b < 0) {
-         this.b = 0;
-      } else if (this.b > 255) {
-         this.b = 255;
-      }
+        if (b < 0) b = 0;
+        else if (b > 255) b = 255;
 
-      if (this.a < 0) {
-         this.a = 0;
-      } else if (this.a > 255) {
-         this.a = 255;
-      }
-   }
+        if (a < 0) a = 0;
+        else if (a > 255) a = 255;
+    }
 
-   public Vec3 getVec3d() {
-      return new Vec3(this.r / 255.0, this.g / 255.0, this.b / 255.0);
-   }
+    public Vec3 getVec3d() {
+        return new Vec3(r / 255.0, g / 255.0, b / 255.0);
+    }
 
-   public Vector3f getVec3f() {
-      return new Vector3f(this.r / 255.0F, this.g / 255.0F, this.b / 255.0F);
-   }
+    public Vector3f getVec3f() {
+        return new Vector3f(r / 255.0f, g / 255.0f, b / 255.0f);
+    }
 
-   public Vector4f getVec4f() {
-      return new Vector4f(this.r / 255.0F, this.g / 255.0F, this.b / 255.0F, this.a / 255.0F);
-   }
+    public Vector4f getVec4f() {
+        return getVec4f(new Vector4f());
+    }
 
-   public int getPacked() {
-      return fromRGBA(this.r, this.g, this.b, this.a);
-   }
+    public Vector4f getVec4f(Vector4f dest) {
+        return dest.set(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+    }
 
-   @Override
-   public CompoundTag toTag() {
-      CompoundTag tag = new CompoundTag();
-      tag.putInt("r", this.r);
-      tag.putInt("g", this.g);
-      tag.putInt("b", this.b);
-      tag.putInt("a", this.a);
-      return tag;
-   }
+    public int getPacked() {
+        return fromRGBA(r, g, b, a);
+    }
 
-   public Color fromTag(CompoundTag tag) {
-      this.r = tag.getIntOr("r", 0);
-      this.g = tag.getIntOr("g", 0);
-      this.b = tag.getIntOr("b", 0);
-      this.a = tag.getIntOr("a", 0);
-      this.validate();
-      return this;
-   }
+    @Override
+    public CompoundTag toTag() {
+        CompoundTag tag = new CompoundTag();
 
-   @Override
-   public String toString() {
-      return this.r + " " + this.g + " " + this.b + " " + this.a;
-   }
+        tag.putInt("r", r);
+        tag.putInt("g", g);
+        tag.putInt("b", b);
+        tag.putInt("a", a);
 
-   @Override
-   public boolean equals(Object o) {
-      if (this == o) {
-         return true;
-      } else if (o != null && this.getClass() == o.getClass()) {
-         Color color = (Color)o;
-         return this.r == color.r && this.g == color.g && this.b == color.b && this.a == color.a;
-      } else {
-         return false;
-      }
-   }
+        return tag;
+    }
 
-   @Override
-   public int hashCode() {
-      int result = this.r;
-      result = 31 * result + this.g;
-      result = 31 * result + this.b;
-      return 31 * result + this.a;
-   }
+    @Override
+    public Color fromTag(CompoundTag tag) {
+        r = tag.getIntOr("r", 0);
+        g = tag.getIntOr("g", 0);
+        b = tag.getIntOr("b", 0);
+        a = tag.getIntOr("a", 0);
+
+        validate();
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return r + " " + g + " " + b + " " + a;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Color color = (Color) o;
+
+        return r == color.r && g == color.g && b == color.b && a == color.a;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = r;
+        result = 31 * result + g;
+        result = 31 * result + b;
+        result = 31 * result + a;
+        return result;
+    }
 }

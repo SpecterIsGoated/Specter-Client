@@ -1,144 +1,127 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets.input;
 
 import com.jfant.specter.core.gui.widgets.containers.WHorizontalList;
 
 public class WIntEdit extends WHorizontalList {
-   private int value;
-   public final int min;
-   public final int max;
-   private final int sliderMin;
-   private final int sliderMax;
-   public boolean noSlider = false;
-   public boolean small = false;
-   public Runnable action;
-   public Runnable actionOnRelease;
-   private WTextBox textBox;
-   private WSlider slider;
+    private int value;
 
-   public WIntEdit(int value, int min, int max, int sliderMin, int sliderMax, boolean noSlider) {
-      this.value = value;
-      this.min = min;
-      this.max = max;
-      this.sliderMin = sliderMin;
-      this.sliderMax = sliderMax;
-      if (noSlider || sliderMin == 0 && sliderMax == 0) {
-         this.noSlider = true;
-      }
-   }
+    public final int min, max;
+    private final int sliderMin, sliderMax;
+    public boolean noSlider = false;
+    public boolean small = false;
 
-   @Override
-   public void init() {
-      this.textBox = this.add(this.theme.textBox(Integer.toString(this.value), this::filter)).minWidth(75.0).widget();
-      if (this.noSlider) {
-         this.add(this.theme.button("+")).widget().action = () -> this.setButton(this.get() + 1);
-         this.add(this.theme.button("-")).widget().action = () -> this.setButton(this.get() - 1);
-      } else {
-         this.slider = this.add(this.theme.slider(this.value, this.sliderMin, this.sliderMax))
-            .minWidth(this.small ? 125.0 - this.spacing : 200.0)
-            .centerY()
-            .expandX()
-            .widget();
-      }
+    public Runnable action;
+    public Runnable actionOnRelease;
 
-      this.textBox.actionOnUnfocused = () -> {
-         int lastValue = this.value;
-         if (this.textBox.get().isEmpty()) {
-            this.value = 0;
-         } else if (this.textBox.get().equals("-")) {
-            this.value = 0;
-         } else {
+    private WTextBox textBox;
+    private WSlider slider;
+
+    public WIntEdit(int value, int min, int max, int sliderMin, int sliderMax, boolean noSlider) {
+        this.value = value;
+        this.min = min;
+        this.max = max;
+        this.sliderMin = sliderMin;
+        this.sliderMax = sliderMax;
+
+        if (noSlider || (sliderMin == 0 && sliderMax == 0)) this.noSlider = true;
+    }
+
+    @Override
+    public void init() {
+        textBox = add(theme.textBox(Integer.toString(value), this::filter)).minWidth(75).widget();
+
+        if (noSlider) {
+            add(theme.button("+")).widget().action = () -> setButton(get() + 1);
+            add(theme.button("-")).widget().action = () -> setButton(get() - 1);
+        }
+        else {
+            slider = add(theme.slider(value, sliderMin, sliderMax)).minWidth(small ? 200 - 75 - spacing : 200).centerY().expandX().widget();
+        }
+
+        textBox.actionOnUnfocused = () -> {
+            int lastValue = value;
+
+            if (textBox.get().isEmpty()) value = 0;
+            else if (textBox.get().equals("-")) value = -0;
+            else {
+                try {
+                    value = Integer.parseInt(textBox.get());
+                } catch (NumberFormatException _) {}
+            }
+
+            if (slider != null) slider.set(value);
+
+            if (value != lastValue) {
+                if (action != null) action.run();
+                if (actionOnRelease != null) actionOnRelease.run();
+            }
+        };
+
+        if (slider != null) {
+            slider.action = () -> {
+                int lastValue = value;
+
+                value = (int) Math.round(slider.get());
+                textBox.set(Integer.toString(value));
+
+                if (action != null && value != lastValue) action.run();
+            };
+
+            slider.actionOnRelease = () -> {
+                if (actionOnRelease != null) actionOnRelease.run();
+            };
+        }
+    }
+
+    private boolean filter(String text, char c) {
+        boolean good;
+        boolean validate = true;
+
+        if (c == '-' && !text.contains("-") && textBox.cursor == 0) {
+            good = true;
+            validate = false;
+        }
+        else good = Character.isDigit(c);
+
+        if (good && validate) {
             try {
-               this.value = Integer.parseInt(this.textBox.get());
-            } catch (NumberFormatException var3) {
+                Integer.parseInt(text + c);
+            } catch (NumberFormatException _) {
+                good = false;
             }
-         }
+        }
 
-         if (this.slider != null) {
-            this.slider.set(this.value);
-         }
+        return good;
+    }
 
-         if (this.value != lastValue) {
-            if (this.action != null) {
-               this.action.run();
-            }
+    private void setButton(int v) {
+        if (this.value == v) return;
 
-            if (this.actionOnRelease != null) {
-               this.actionOnRelease.run();
-            }
-         }
-      };
-      if (this.slider != null) {
-         this.slider.action = () -> {
-            int lastValue = this.value;
-            this.value = (int)Math.round(this.slider.get());
-            this.textBox.set(Integer.toString(this.value));
-            if (this.action != null && this.value != lastValue) {
-               this.action.run();
-            }
-         };
-         this.slider.actionOnRelease = () -> {
-            if (this.actionOnRelease != null) {
-               this.actionOnRelease.run();
-            }
-         };
-      }
-   }
+        if (v < min) this.value = min;
+        else this.value = Math.min(v, max);
 
-   private boolean filter(String text, char c) {
-      boolean validate = true;
-      boolean good;
-      if (c == '-' && !text.contains("-") && this.textBox.cursor == 0) {
-         good = true;
-         validate = false;
-      } else {
-         good = Character.isDigit(c);
-      }
+        if (this.value == v) {
+            textBox.set(Integer.toString(this.value));
+            if (slider != null) slider.set(this.value);
 
-      if (good && validate) {
-         try {
-            Integer.parseInt(text + c);
-         } catch (NumberFormatException var6) {
-            good = false;
-         }
-      }
+            if (action != null) action.run();
+            if (actionOnRelease != null) actionOnRelease.run();
+        }
+    }
 
-      return good;
-   }
+    public int get() {
+        return value;
+    }
 
-   private void setButton(int v) {
-      if (this.value != v) {
-         if (v < this.min) {
-            this.value = this.min;
-         } else {
-            this.value = Math.min(v, this.max);
-         }
+    public void set(int value) {
+		this.value = value;
 
-         if (this.value == v) {
-            this.textBox.set(Integer.toString(this.value));
-            if (this.slider != null) {
-               this.slider.set(this.value);
-            }
-
-            if (this.action != null) {
-               this.action.run();
-            }
-
-            if (this.actionOnRelease != null) {
-               this.actionOnRelease.run();
-            }
-         }
-      }
-   }
-
-   public int get() {
-      return this.value;
-   }
-
-   public void set(int value) {
-      this.value = value;
-      this.textBox.set(Integer.toString(value));
-      if (this.slider != null) {
-         this.slider.set(value);
-      }
-   }
+        textBox.set(Integer.toString(value));
+        if (slider != null) slider.set(value);
+    }
 }

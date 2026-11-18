@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "name": "Specter Client",
   "id": "specter",
-  "version": "0.93.5",
+  "version": "${version}",
   "description": "Specter: a standalone client. Built on the Meteor Client framework (GPL-3.0, https://github.com/MeteorDevelopment/meteor-client).",
   "authors": [
     "Specter"
@@ -25,6 +25,7 @@
     "specter-core-indigo.mixins.json",
     "specter-core-sodium.mixins.json",
     "specter-core-lithium.mixins.json",
+    "specter-core-metallum.mixins.json",
     "specter.mixins.json",
     "specter.compat.mixins.json",
     "specter.auto.mixins.json",
@@ -41,19 +42,17 @@
     }
   },
   "depends": {
-    "java": "\u003e\u003d21",
-    "minecraft": [
-      "1.21.11"
-    ],
-    "fabricloader": "\u003e\u003d0.18.2"
+    "java": ">=25",
+    "minecraft": "~26.3",
+    "fabricloader": ">=0.19.5"
   },
   "breaks": {
     "optifabric": "*",
     "feather": "*",
     "origins": "*",
-    "sodium": "\u003c0.8.7",
+    "sodium": "<0.9.1",
     "morechathistory": "*",
-    "lithium": "\u003c0.21.3"
+    "lithium": "<0.22.1"
   },
   "contributors": [
     "Meteor Development (MineGame159, squidoodly, seasnail) - original Meteor Client framework"

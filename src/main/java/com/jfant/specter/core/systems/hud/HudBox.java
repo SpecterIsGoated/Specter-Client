@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.systems.hud;
 
 import com.jfant.specter.core.utils.Utils;
@@ -5,178 +10,151 @@ import com.jfant.specter.core.utils.misc.ISerializable;
 import net.minecraft.nbt.CompoundTag;
 
 public class HudBox implements ISerializable<HudBox> {
-   private final HudElement element;
-   public XAnchor xAnchor = XAnchor.Left;
-   public YAnchor yAnchor = YAnchor.Top;
-   public int x;
-   public int y;
-   int width;
-   int height;
+    private final HudElement element;
 
-   public HudBox(HudElement element) {
-      this.element = element;
-   }
+    public XAnchor xAnchor = XAnchor.Left;
+    public YAnchor yAnchor = YAnchor.Top;
 
-   public void setSize(double width, double height) {
-      if (width >= 0.0) {
-         this.width = (int)Math.ceil(width);
-      }
+    public int x, y;
+    int width, height;
 
-      if (height >= 0.0) {
-         this.height = (int)Math.ceil(height);
-      }
-   }
+    public HudBox(HudElement element) {
+        this.element = element;
+    }
 
-   public void setPos(int x, int y) {
-      this.x = x;
-      this.y = y;
-   }
+    public void setSize(double width, double height) {
+        if (width >= 0) this.width = (int) Math.ceil(width);
+        if (height >= 0) this.height = (int) Math.ceil(height);
+    }
 
-   public void setXAnchor(XAnchor anchor) {
-      if (this.xAnchor != anchor) {
-         int renderX = this.getRenderX();
-         switch (anchor) {
-            case Left:
-               this.x = renderX;
-               break;
-            case Center:
-               this.x = renderX + this.width / 2 - Utils.getWindowWidth() / 2;
-               break;
-            case Right:
-               this.x = renderX + this.width - Utils.getWindowWidth();
-         }
+    public void setPos(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
 
-         this.xAnchor = anchor;
-      }
-   }
+    public void setXAnchor(XAnchor anchor) {
+        if (xAnchor != anchor) {
+            int renderX = getRenderX();
 
-   public void setYAnchor(YAnchor anchor) {
-      if (this.yAnchor != anchor) {
-         int renderY = this.getRenderY();
-         switch (anchor) {
-            case Top:
-               this.y = renderY;
-               break;
-            case Center:
-               this.y = renderY + this.height / 2 - Utils.getWindowHeight() / 2;
-               break;
-            case Bottom:
-               this.y = renderY + this.height - Utils.getWindowHeight();
-         }
+            switch (anchor) {
+                case Left -> x = renderX;
+                case Center -> x = renderX + width / 2 - Utils.getWindowWidth() / 2;
+                case Right -> x = renderX + width - Utils.getWindowWidth();
+            }
 
-         this.yAnchor = anchor;
-      }
-   }
+            xAnchor = anchor;
+        }
+    }
 
-   public void updateAnchors() {
-      this.setXAnchor(this.getXAnchor(this.getRenderX()));
-      this.setYAnchor(this.getYAnchor(this.getRenderY()));
-   }
+    public void setYAnchor(YAnchor anchor) {
+        if (yAnchor != anchor) {
+            int renderY = getRenderY();
 
-   public void move(int deltaX, int deltaY) {
-      this.x += deltaX;
-      this.y += deltaY;
-      if (this.element.autoAnchors) {
-         this.updateAnchors();
-      }
+            switch (anchor) {
+                case Top -> y = renderY;
+                case Center -> y = renderY + height / 2 - Utils.getWindowHeight() / 2;
+                case Bottom -> y = renderY + height - Utils.getWindowHeight();
+            }
 
-      int border = Hud.get().border.get();
-      if (this.xAnchor == XAnchor.Left && this.x < border) {
-         this.x = border;
-      } else if (this.xAnchor == XAnchor.Right && this.x > border) {
-         this.x = border;
-      }
+            yAnchor = anchor;
+        }
+    }
 
-      if (this.yAnchor == YAnchor.Top && this.y < border) {
-         this.y = border;
-      } else if (this.yAnchor == YAnchor.Bottom && this.y > border) {
-         this.y = border;
-      }
-   }
+    public void updateAnchors() {
+        setXAnchor(getXAnchor(getRenderX()));
+        setYAnchor(getYAnchor(getRenderY()));
+    }
 
-   public XAnchor getXAnchor(double x) {
-      double splitLeft = Utils.getWindowWidth() / 3.0;
-      double splitRight = splitLeft * 2.0;
-      boolean left = x <= splitLeft;
-      boolean right = x + this.width >= splitRight;
-      if ((!left || !right) && (left || right)) {
-         return left ? XAnchor.Left : XAnchor.Right;
-      } else {
-         return XAnchor.Center;
-      }
-   }
+    public void move(int deltaX, int deltaY) {
+        x += deltaX;
+        y += deltaY;
 
-   public YAnchor getYAnchor(double y) {
-      double splitTop = Utils.getWindowHeight() / 3.0;
-      double splitBottom = splitTop * 2.0;
-      boolean top = y <= splitTop;
-      boolean bottom = y + this.height >= splitBottom;
-      if ((!top || !bottom) && (top || bottom)) {
-         return top ? YAnchor.Top : YAnchor.Bottom;
-      } else {
-         return YAnchor.Center;
-      }
-   }
+        if (element.autoAnchors) updateAnchors();
 
-   public int getRenderX() {
-      return switch (this.xAnchor) {
-         case Left -> this.x;
-         case Center -> Utils.getWindowWidth() / 2 - this.width / 2 + this.x;
-         case Right -> Utils.getWindowWidth() - this.width + this.x;
-      };
-   }
+        int border = Hud.get().border.get();
 
-   public int getRenderY() {
-      return switch (this.yAnchor) {
-         case Top -> this.y;
-         case Center -> Utils.getWindowHeight() / 2 - this.height / 2 + this.y;
-         case Bottom -> Utils.getWindowHeight() - this.height + this.y;
-      };
-   }
+        // Clamp X
+        if (xAnchor == XAnchor.Left && x < border) x = border;
+        else if (xAnchor == XAnchor.Right && x > border) x = border;
 
-   public double alignX(double selfWidth, double width, Alignment alignment) {
-      XAnchor anchor = this.xAnchor;
-      if (alignment == Alignment.Left) {
-         anchor = XAnchor.Left;
-      } else if (alignment == Alignment.Center) {
-         anchor = XAnchor.Center;
-      } else if (alignment == Alignment.Right) {
-         anchor = XAnchor.Right;
-      }
-      return switch (anchor) {
-         case Left -> 0.0;
-         case Center -> selfWidth / 2.0 - width / 2.0;
-         case Right -> selfWidth - width;
-      };
-   }
+        // Clamp Y
+        if (yAnchor == YAnchor.Top && y < border) y = border;
+        else if (yAnchor == YAnchor.Bottom && y > border) y = border;
+    }
 
-   @Override
-   public CompoundTag toTag() {
-      CompoundTag tag = new CompoundTag();
-      tag.putString("x-anchor", this.xAnchor.name());
-      tag.putString("y-anchor", this.yAnchor.name());
-      tag.putInt("x", this.x);
-      tag.putInt("y", this.y);
-      return tag;
-   }
+    public XAnchor getXAnchor(double x) {
+        double splitLeft = Utils.getWindowWidth() / 3.0;
+        double splitRight = splitLeft * 2;
 
-   public HudBox fromTag(CompoundTag tag) {
-      if (tag.getString("x-anchor").isPresent()) {
-         this.xAnchor = XAnchor.valueOf(tag.getString("x-anchor").get());
-      }
+        boolean left = x <= splitLeft;
+        boolean right = x + width >= splitRight;
 
-      if (tag.getString("y-anchor").isPresent()) {
-         this.yAnchor = YAnchor.valueOf(tag.getString("y-anchor").get());
-      }
+        if ((left && right) || (!left && !right)) return XAnchor.Center;
+        return left ? XAnchor.Left : XAnchor.Right;
+    }
 
-      if (tag.getInt("x").isPresent()) {
-         this.x = tag.getInt("x").get();
-      }
+    public YAnchor getYAnchor(double y) {
+        double splitTop = Utils.getWindowHeight() / 3.0;
+        double splitBottom = splitTop * 2;
 
-      if (tag.getInt("y").isPresent()) {
-         this.y = tag.getInt("y").get();
-      }
+        boolean top = y <= splitTop;
+        boolean bottom = y + height >= splitBottom;
 
-      return this;
-   }
+        if ((top && bottom) || (!top && !bottom)) return YAnchor.Center;
+        return top ? YAnchor.Top : YAnchor.Bottom;
+    }
+
+    public int getRenderX() {
+        return switch (xAnchor) {
+            case Left -> x;
+            case Center -> Utils.getWindowWidth() / 2 - width / 2 + x;
+            case Right -> Utils.getWindowWidth() - width + x;
+        };
+    }
+
+    public int getRenderY() {
+        return switch (yAnchor) {
+            case Top -> y;
+            case Center -> Utils.getWindowHeight() / 2 - height / 2 + y;
+            case Bottom -> Utils.getWindowHeight() - height + y;
+        };
+    }
+
+    public double alignX(double selfWidth, double width, Alignment alignment) {
+        XAnchor anchor = xAnchor;
+
+        if (alignment == Alignment.Left) anchor = XAnchor.Left;
+        else if (alignment == Alignment.Center) anchor = XAnchor.Center;
+        else if (alignment == Alignment.Right) anchor = XAnchor.Right;
+
+        return switch (anchor) {
+            case Left -> 0;
+            case Center -> selfWidth / 2.0 - width / 2.0;
+            case Right -> selfWidth - width;
+        };
+    }
+
+    // Serialization
+
+    @Override
+    public CompoundTag toTag() {
+        CompoundTag tag = new CompoundTag();
+
+        tag.putString("x-anchor", xAnchor.name());
+        tag.putString("y-anchor", yAnchor.name());
+        tag.putInt("x", x);
+        tag.putInt("y", y);
+
+        return tag;
+    }
+
+    @Override
+    public HudBox fromTag(CompoundTag tag) {
+        if (tag.getString("x-anchor").isPresent()) xAnchor = XAnchor.valueOf(tag.getString("x-anchor").get());
+        if (tag.getString("y-anchor").isPresent()) yAnchor = YAnchor.valueOf(tag.getString("y-anchor").get());
+        if (tag.getInt("x").isPresent()) x = tag.getInt("x").get();
+        if (tag.getInt("y").isPresent()) y = tag.getInt("y").get();
+
+        return this;
+    }
 }

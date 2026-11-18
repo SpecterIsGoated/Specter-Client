@@ -1,196 +1,202 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets.containers;
 
-import com.jfant.specter.core.gui.utils.Cell;
-import com.jfant.specter.core.gui.widgets.WWidget;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.ints.IntListIterator;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import com.jfant.specter.core.gui.utils.Cell;
+import com.jfant.specter.core.gui.widgets.WWidget;
+
+import java.util.*;
 
 public class WTable extends WContainer {
-   public double horizontalSpacing = 3.0;
-   public double verticalSpacing = 3.0;
-   private final List<List<Cell<?>>> rows = new ArrayList<>();
-   private int rowI;
-   private final DoubleList rowHeights = new DoubleArrayList();
-   private final DoubleList columnWidths = new DoubleArrayList();
-   private final DoubleList rowWidths = new DoubleArrayList();
-   private final IntList rowExpandCellXCounts = new IntArrayList();
+    public double horizontalSpacing = 3;
+    public double verticalSpacing = 3;
 
-   @Override
-   public <T extends WWidget> Cell<T> add(T widget) {
-      Cell<T> cell = super.add(widget);
-      if (this.rows.size() <= this.rowI) {
-         List<Cell<?>> row = new ArrayList<>();
-         row.add(cell);
-         this.rows.add(row);
-      } else {
-         this.rows.get(this.rowI).add(cell);
-      }
+    private final List<List<Cell<?>>> rows = new ArrayList<>();
+    private int rowI;
 
-      return cell;
-   }
+    private final DoubleList rowHeights = new DoubleArrayList();
+    private final DoubleList columnWidths = new DoubleArrayList();
 
-   public void row() {
-      this.rowI++;
-   }
+    private final DoubleList rowWidths = new DoubleArrayList();
+    private final IntList rowExpandCellXCounts = new IntArrayList();
 
-   public int rowI() {
-      return this.rowI;
-   }
+    @Override
+    public <T extends WWidget> Cell<T> add(T widget) {
+        Cell<T> cell = super.add(widget);
 
-   public void removeRow(int i) {
-      for (Cell<?> cell : this.rows.remove(i)) {
-         Iterator<Cell<?>> it = this.cells.iterator();
+        if (rows.size() <= rowI) {
+            List<Cell<?>> row = new ArrayList<>();
+            row.add(cell);
+            rows.add(row);
+        } else rows.get(rowI).add(cell);
 
-         while (it.hasNext()) {
-            if (it.next() == cell) {
-               it.remove();
-               break;
+        return cell;
+    }
+
+    public void row() {
+        rowI++;
+    }
+
+    public int rowI() {
+        return rowI;
+    }
+
+    public void removeRow(int i) {
+        for (Cell<?> cell : rows.remove(i)) {
+            for (Iterator<Cell<?>> it = cells.iterator(); it.hasNext(); ) {
+                if (it.next() == cell) {
+                    it.remove();
+                    break;
+                }
             }
-         }
-      }
+        }
 
-      this.rowI--;
-   }
+        rowI--;
+    }
 
-   public List<Cell<?>> getRow(int i) {
-      return i >= 0 && i < this.rows.size() ? this.rows.get(i) : null;
-   }
+    public List<Cell<?>> getRow(int i) {
+        if (i < 0 || i >= rows.size()) return null;
+        return rows.get(i);
+    }
 
-   @Override
-   public void clear() {
-      super.clear();
-      this.rows.clear();
-      this.rowI = 0;
-   }
+    @Override
+    public void clear() {
+        super.clear();
+        rows.clear();
+        rowI = 0;
+    }
 
-   protected double horizontalSpacing() {
-      return this.theme.scale(this.horizontalSpacing);
-   }
+    protected double horizontalSpacing() {
+        return theme.scale(horizontalSpacing);
+    }
 
-   protected double verticalSpacing() {
-      return this.theme.scale(this.verticalSpacing);
-   }
+    protected double verticalSpacing() {
+        return theme.scale(verticalSpacing);
+    }
 
-   @Override
-   protected void onCalculateSize() {
-      this.calculateInfo();
-      this.rowWidths.clear();
-      this.width = 0.0;
-      this.height = 0.0;
+    @Override
+    protected void onCalculateSize() {
+        calculateInfo();
 
-      for (int rowI = 0; rowI < this.rows.size(); rowI++) {
-         List<Cell<?>> row = this.rows.get(rowI);
-         double rowWidth = 0.0;
+        // Reset
+        rowWidths.clear();
 
-         for (int cellI = 0; cellI < row.size(); cellI++) {
-            if (cellI > 0) {
-               rowWidth += this.horizontalSpacing();
-            }
+        width = 0;
+        height = 0;
 
-            rowWidth += this.columnWidths.getDouble(cellI);
-         }
+        // Loop over rows
+        for (int rowI = 0; rowI < rows.size(); rowI++) {
+            List<Cell<?>> row = rows.get(rowI);
 
-         this.rowWidths.add(rowWidth);
-         this.width = Math.max(this.width, rowWidth);
-         if (rowI > 0) {
-            this.height = this.height + this.verticalSpacing();
-         }
+            double rowWidth = 0;
 
-         this.height = this.height + this.rowHeights.getDouble(rowI);
-      }
-   }
-
-   @Override
-   protected void onCalculateWidgetPositions() {
-      double y = this.y;
-
-      for (int rowI = 0; rowI < this.rows.size(); rowI++) {
-         List<Cell<?>> row = this.rows.get(rowI);
-         if (rowI > 0) {
-            y += this.verticalSpacing();
-         }
-
-         double x = this.x;
-         double rowHeight = this.rowHeights.getDouble(rowI);
-         double expandXAdd = this.rowExpandCellXCounts.getInt(rowI) > 0
-            ? (this.width - this.rowWidths.getDouble(rowI)) / this.rowExpandCellXCounts.getInt(rowI)
-            : 0.0;
-
-         for (int cellI = 0; cellI < row.size(); cellI++) {
-            Cell<?> cell = row.get(cellI);
-            if (cellI > 0) {
-               x += this.horizontalSpacing();
+            // Loop over cells in the row
+            for (int cellI = 0; cellI < row.size(); cellI++) {
+                // Calculate row width
+                if (cellI > 0) rowWidth += horizontalSpacing();
+                rowWidth += columnWidths.getDouble(cellI);
             }
 
-            double columnWidth = this.columnWidths.getDouble(cellI);
-            cell.x = x;
-            cell.y = y;
-            cell.width = columnWidth + (cell.expandCellX ? expandXAdd : 0.0);
-            cell.height = rowHeight;
-            cell.alignWidget();
-            x += columnWidth + (cell.expandCellX ? expandXAdd : 0.0);
-         }
+            // Store row width
+            rowWidths.add(rowWidth);
+            width = Math.max(width, rowWidth);
 
-         y += rowHeight;
-      }
-   }
+            // Calculate height
+            if (rowI > 0) height += verticalSpacing();
+            height += rowHeights.getDouble(rowI);
+        }
+    }
 
-   private void calculateInfo() {
-      this.rowHeights.clear();
-      this.columnWidths.clear();
-      this.rowExpandCellXCounts.clear();
-      Map<String, IntList> columnGroups = new HashMap<>();
+    @Override
+    protected void onCalculateWidgetPositions() {
+        double y = this.y;
 
-      for (List<Cell<?>> row : this.rows) {
-         double rowHeight = 0.0;
-         int rowExpandXCount = 0;
+        // Loop over rows
+        for (int rowI = 0; rowI < rows.size(); rowI++) {
+            List<Cell<?>> row = rows.get(rowI);
 
-         for (int i = 0; i < row.size(); i++) {
-            Cell<?> cell = row.get(i);
-            rowHeight = Math.max(rowHeight, cell.padTop() + cell.widget().height + cell.padBottom());
-            double cellWidth = cell.padLeft() + cell.widget().width + cell.padRight();
-            if (this.columnWidths.size() <= i) {
-               this.columnWidths.add(cellWidth);
-            } else {
-               this.columnWidths.set(i, Math.max(this.columnWidths.getDouble(i), cellWidth));
+            if (rowI > 0) y += verticalSpacing();
+
+            double x = this.x;
+            double rowHeight = rowHeights.getDouble(rowI);
+
+            double expandXAdd = rowExpandCellXCounts.getInt(rowI) > 0 ? (width - rowWidths.getDouble(rowI)) / rowExpandCellXCounts.getInt(rowI) : 0;
+
+            // Loop over cells in the row
+            for (int cellI = 0; cellI < row.size(); cellI++) {
+                Cell<?> cell = row.get(cellI);
+
+                if (cellI > 0) x += horizontalSpacing();
+                double columnWidth = columnWidths.getDouble(cellI);
+
+                cell.x = x;
+                cell.y = y;
+
+                cell.width = columnWidth + (cell.expandCellX ? expandXAdd : 0);
+                cell.height = rowHeight;
+
+                cell.alignWidget();
+
+                x += columnWidth + (cell.expandCellX ? expandXAdd : 0);
             }
 
-            if (cell.group != null) {
-               columnGroups.computeIfAbsent(cell.group, k -> new IntArrayList()).add(i);
+            y += rowHeight;
+        }
+    }
+
+    private void calculateInfo() {
+        // Reset
+        rowHeights.clear();
+        columnWidths.clear();
+        rowExpandCellXCounts.clear();
+
+        Map<String, IntList> columnGroups = new HashMap<>();
+
+        // Loop over rows
+        for (List<Cell<?>> row : rows) {
+            double rowHeight = 0;
+            int rowExpandXCount = 0;
+
+            // Loop over cells in the row
+            for (int i = 0; i < row.size(); i++) {
+                Cell<?> cell = row.get(i);
+
+                // Calculate row height
+                rowHeight = Math.max(rowHeight, cell.padTop() + cell.widget().height + cell.padBottom());
+
+                // Calculate column width
+                double cellWidth = cell.padLeft() + cell.widget().width + cell.padRight();
+                if (columnWidths.size() <= i) columnWidths.add(cellWidth);
+                else columnWidths.set(i, Math.max(columnWidths.getDouble(i), cellWidth));
+
+                if (cell.group != null) columnGroups.computeIfAbsent(cell.group, _ -> new IntArrayList()).add(i);
+
+                // Calculate row expandX count
+                if (cell.expandCellX) rowExpandXCount++;
             }
 
-            if (cell.expandCellX) {
-               rowExpandXCount++;
+            // Store calculated info
+            rowHeights.add(rowHeight);
+            rowExpandCellXCounts.add(rowExpandXCount);
+        }
+
+        // Normalize group widths
+        columnGroups.values().forEach(columns -> {
+            double maxWidth = Integer.MIN_VALUE;
+            for (int i : columns) {
+                maxWidth = Math.max(maxWidth, columnWidths.getDouble(i));
             }
-         }
 
-         this.rowHeights.add(rowHeight);
-         this.rowExpandCellXCounts.add(rowExpandXCount);
-      }
-
-      columnGroups.values().forEach(columns -> {
-         double maxWidth = -2.147483648E9;
-         IntListIterator var4x = columns.iterator();
-
-         while (var4x.hasNext()) {
-            int ixx = (Integer)var4x.next();
-            maxWidth = Math.max(maxWidth, this.columnWidths.getDouble(ixx));
-         }
-
-         var4x = columns.iterator();
-
-         while (var4x.hasNext()) {
-            int ix = (Integer)var4x.next();
-            this.columnWidths.set(ix, maxWidth);
-         }
-      });
-   }
+            for (int i : columns) {
+                columnWidths.set(i, maxWidth);
+            }
+        });
+    }
 }

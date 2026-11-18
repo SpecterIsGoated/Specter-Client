@@ -1,53 +1,56 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.systems.accounts.types;
 
+import com.mojang.util.UndashedUuid;
 import com.jfant.specter.core.systems.accounts.Account;
 import com.jfant.specter.core.systems.accounts.AccountType;
 import com.jfant.specter.core.systems.accounts.MicrosoftLogin;
-import com.mojang.util.UndashedUuid;
-import java.util.Optional;
 import net.minecraft.client.User;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+
+import java.util.Optional;
 
 public class MicrosoftAccount extends Account<MicrosoftAccount> {
-   @Nullable
-   private String token;
+    private @Nullable String token;
 
-   public MicrosoftAccount(String refreshToken) {
-      super(AccountType.Microsoft, refreshToken);
-   }
+    public MicrosoftAccount(String refreshToken) {
+        super(AccountType.Microsoft, refreshToken);
+    }
 
-   @Override
-   public boolean fetchInfo() {
-      this.token = this.auth();
-      return this.token != null;
-   }
+    @Override
+    public boolean fetchInfo() {
+        token = auth();
+        return token != null;
+    }
 
-   @Override
-   public boolean login() {
-      if (this.token == null) {
-         return false;
-      } else {
-         super.login();
-         setSession(new User(this.cache.username, UndashedUuid.fromStringLenient(this.cache.uuid), this.token, Optional.empty(), Optional.empty()));
-         return true;
-      }
-   }
+    @Override
+    public boolean login() {
+        if (token == null) return false;
 
-   @Nullable
-   private String auth() {
-      MicrosoftLogin.LoginData data = MicrosoftLogin.login(this.name);
-      if (data != null && data.newRefreshToken() != null) {
-         this.name = data.newRefreshToken();
-         this.cache.username = data.username();
-         this.cache.uuid = data.uuid();
-         return data.mcToken();
-      } else {
-         return null;
-      }
-   }
+        super.login();
 
-   @Override
-   public boolean equals(Object o) {
-      return o instanceof MicrosoftAccount account ? account.name.equals(this.name) : false;
-   }
+        setSession(new User(cache.username, UndashedUuid.fromStringLenient(cache.uuid), token, Optional.empty(), Optional.empty()));
+        return true;
+    }
+
+    private @Nullable String auth() {
+        MicrosoftLogin.LoginData data = MicrosoftLogin.login(name);
+        if (data == null || data.newRefreshToken() == null) return null;
+
+        name = data.newRefreshToken();
+        cache.username = data.username();
+        cache.uuid = data.uuid();
+
+        return data.mcToken();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof MicrosoftAccount account)) return false;
+        return account.name.equals(this.name);
+    }
 }

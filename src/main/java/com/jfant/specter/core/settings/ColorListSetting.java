@@ -1,77 +1,78 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.settings;
 
 import com.jfant.specter.core.utils.misc.NbtUtils;
 import com.jfant.specter.core.utils.render.color.SettingColor;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
 public class ColorListSetting extends Setting<List<SettingColor>> {
-   public ColorListSetting(
-      String name,
-      String description,
-      List<SettingColor> defaultValue,
-      Consumer<List<SettingColor>> onChanged,
-      Consumer<Setting<List<SettingColor>>> onModuleActivated,
-      IVisible visible
-   ) {
-      super(name, description, defaultValue, onChanged, onModuleActivated, visible);
-   }
+    public ColorListSetting(String name, String description, List<SettingColor> defaultValue, Consumer<List<SettingColor>> onChanged, Consumer<Setting<List<SettingColor>>> onModuleActivated, IVisible visible) {
+        super(name, description, defaultValue, onChanged, onModuleActivated, visible);
+    }
 
-   protected List<SettingColor> parseImpl(String str) {
-      List<SettingColor> colors = new ArrayList<>();
+    @Override
+    protected List<SettingColor> parseImpl(String str) {
+        List<SettingColor> colors = new ArrayList<>();
+        try {
+            String[] colorsStr = str.replaceAll("\\s+", "").split(";");
+            for (String colorStr : colorsStr) {
+                String[] strs = colorStr.split(",");
+                colors.add(new SettingColor(Integer.parseInt(strs[0]), Integer.parseInt(strs[1]), Integer.parseInt(strs[2]), Integer.parseInt(strs[3])));
+            }
+        } catch (IndexOutOfBoundsException | NumberFormatException _) {
+        }
+        return colors;
+    }
 
-      try {
-         String[] colorsStr = str.replaceAll("\\s+", "").split(";");
+    @Override
+    protected boolean isValueValid(List<SettingColor> value) {
+        return true;
+    }
 
-         for (String colorStr : colorsStr) {
-            String[] strs = colorStr.split(",");
-            colors.add(new SettingColor(Integer.parseInt(strs[0]), Integer.parseInt(strs[1]), Integer.parseInt(strs[2]), Integer.parseInt(strs[3])));
-         }
-      } catch (NumberFormatException | IndexOutOfBoundsException var9) {
-      }
+    @Override
+    protected void resetImpl() {
+        value = new ArrayList<>(defaultValue.size());
 
-      return colors;
-   }
+        for (SettingColor settingColor : defaultValue) {
+            value.add(new SettingColor(settingColor));
+        }
+    }
 
-   protected boolean isValueValid(List<SettingColor> value) {
-      return true;
-   }
+    @Override
+    protected CompoundTag save(CompoundTag tag) {
+        tag.put("value", NbtUtils.listToTag(get()));
 
-   @Override
-   protected void resetImpl() {
-      this.value = new ArrayList<>(this.defaultValue.size());
+        return tag;
+    }
 
-      for (SettingColor settingColor : this.defaultValue) {
-         this.value.add(new SettingColor(settingColor));
-      }
-   }
+    @Override
+    protected List<SettingColor> load(CompoundTag tag) {
+        get().clear();
 
-   @Override
-   protected CompoundTag save(CompoundTag tag) {
-      tag.put("value", NbtUtils.listToTag(this.get()));
-      return tag;
-   }
+        for (Tag e : tag.getListOrEmpty("value")) {
+            get().add(new SettingColor().fromTag((CompoundTag) e));
+        }
 
-   protected List<SettingColor> load(CompoundTag tag) {
-      this.get().clear();
+        return get();
+    }
 
-      for (Tag e : tag.getListOrEmpty("value")) {
-         this.get().add(new SettingColor().fromTag((CompoundTag)e));
-      }
+    public static class Builder extends SettingBuilder<Builder, List<SettingColor>, ColorListSetting> {
+        public Builder() {
+            super(new ArrayList<>());
+        }
 
-      return this.get();
-   }
-
-   public static class Builder extends Setting.SettingBuilder<ColorListSetting.Builder, List<SettingColor>, ColorListSetting> {
-      public Builder() {
-         super(new ArrayList<>());
-      }
-
-      public ColorListSetting build() {
-         return new ColorListSetting(this.name, this.description, this.defaultValue, this.onChanged, this.onModuleActivated, this.visible);
-      }
-   }
+        @Override
+        public ColorListSetting build() {
+            return new ColorListSetting(name, description, defaultValue, onChanged, onModuleActivated, visible);
+        }
+    }
 }

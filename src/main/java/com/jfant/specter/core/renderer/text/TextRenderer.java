@@ -1,53 +1,39 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.renderer.text;
 
 import com.jfant.specter.core.renderer.Fonts;
 import com.jfant.specter.core.systems.config.Config;
 import com.jfant.specter.core.utils.render.color.Color;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public interface TextRenderer {
-   static TextRenderer get() {
-      return (TextRenderer)(Config.get().customFont.get() ? Fonts.RENDERER : VanillaTextRenderer.INSTANCE);
-   }
+    static TextRenderer get() {
+        return Config.get().customFont.get() ? Fonts.RENDERER : VanillaTextRenderer.INSTANCE;
+    }
 
-   void setAlpha(double var1);
+    void setAlpha(double a);
 
-   void begin(double var1, boolean var3, boolean var4);
+    void begin(GuiGraphicsExtractor graphics, double scale, boolean scaleOnly, boolean big);
+    default void begin(GuiGraphicsExtractor graphics, double scale) { begin(graphics, scale, false, false); }
+    default void begin(GuiGraphicsExtractor graphics) { begin(graphics, 1, false, false); }
 
-   default void begin(double scale) {
-      this.begin(scale, false, false);
-   }
+    default void beginBig(GuiGraphicsExtractor graphics) { begin(graphics, 1, false, true); }
 
-   default void begin() {
-      this.begin(1.0, false, false);
-   }
+    double getWidth(String text, int length, boolean shadow);
+    default double getWidth(String text, boolean shadow) { return getWidth(text, text.length(), shadow); }
+    default double getWidth(String text) { return getWidth(text, text.length(), false); }
 
-   default void beginBig() {
-      this.begin(1.0, false, true);
-   }
+    double getHeight(boolean shadow);
+    default double getHeight() { return getHeight(false); }
 
-   double getWidth(String var1, int var2, boolean var3);
+    double render(String text, double x, double y, Color color, boolean shadow);
+    default double render(String text, double x, double y, Color color) { return render(text, x, y, color, false); }
 
-   default double getWidth(String text, boolean shadow) {
-      return this.getWidth(text, text.length(), shadow);
-   }
+    boolean isBuilding();
 
-   default double getWidth(String text) {
-      return this.getWidth(text, text.length(), false);
-   }
-
-   double getHeight(boolean var1);
-
-   default double getHeight() {
-      return this.getHeight(false);
-   }
-
-   double render(String var1, double var2, double var4, Color var6, boolean var7);
-
-   default double render(String text, double x, double y, Color color) {
-      return this.render(text, x, y, color, false);
-   }
-
-   boolean isBuilding();
-
-   void end();
+    void end();
 }

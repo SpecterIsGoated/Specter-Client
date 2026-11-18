@@ -1,14 +1,18 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.mixin;
 
 import net.minecraft.client.resources.MapTextureManager;
-import net.minecraft.client.resources.MapTextureManager.MapInstance;
 import net.minecraft.world.level.saveddata.maps.MapId;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-@Mixin({MapTextureManager.class})
+@Mixin(MapTextureManager.class)
 public interface MapTextureManagerAccessor {
-   @Invoker("getOrCreateMapInstance")
-   MapInstance meteor$invokeGetMapTexture(MapId var1, MapItemSavedData var2);
+    @Invoker("getOrCreateMapInstance")
+    MapTextureManager.MapInstance meteor$invokeGetOrCreateMapInstance(MapId id, MapItemSavedData state);
 }

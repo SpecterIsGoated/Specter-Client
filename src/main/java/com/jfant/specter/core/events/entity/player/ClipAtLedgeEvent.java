@@ -1,29 +1,33 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.events.entity.player;
 
 public class ClipAtLedgeEvent {
-   private static final ClipAtLedgeEvent INSTANCE = new ClipAtLedgeEvent();
-   private boolean set;
-   private boolean clip;
+    private static final ClipAtLedgeEvent INSTANCE = new ClipAtLedgeEvent();
 
-   public void reset() {
-      this.set = false;
-   }
+    private boolean set, clip;
 
-   public void setClip(boolean clip) {
-      this.set = true;
-      this.clip = clip;
-   }
+    public void reset() {
+        set = false;
+    }
 
-   public boolean isSet() {
-      return this.set;
-   }
+    public void setClip(boolean clip) {
+        set = true;
+        this.clip = clip;
+    }
 
-   public boolean isClip() {
-      return this.clip;
-   }
+    public boolean isSet() {
+        return set;
+    }
+    public boolean isClip() {
+        return clip;
+    }
 
-   public static ClipAtLedgeEvent get() {
-      INSTANCE.reset();
-      return INSTANCE;
-   }
+    public static ClipAtLedgeEvent get() {
+        INSTANCE.reset();
+        return INSTANCE;
+    }
 }

@@ -1,12 +1,16 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.events.entity.player.FinishUsingItemEvent;
 import com.jfant.specter.core.events.entity.player.StoppedUsingItemEvent;
 import com.jfant.specter.core.events.game.ItemStackTooltipEvent;
 import com.jfant.specter.core.utils.Utils;
-import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import java.util.List;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -17,38 +21,33 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin({ItemStack.class})
+import java.util.List;
+
+import static com.jfant.specter.core.SpecterCore.mc;
+
+@Mixin(ItemStack.class)
 public abstract class ItemStackMixin {
-   @ModifyReturnValue(
-      method = {"getTooltipLines"},
-      at = {@At("RETURN")}
-   )
-   private List<Component> onGetTooltip(List<Component> original) {
-      if (Utils.canUpdate()) {
-         ItemStackTooltipEvent event = (ItemStackTooltipEvent)SpecterCore.EVENT_BUS.post(new ItemStackTooltipEvent((ItemStack)this, original));
-         return event.list();
-      } else {
-         return original;
-      }
-   }
+    @ModifyReturnValue(method = "getTooltipLines", at = @At("RETURN"))
+    private List<Component> onGetTooltipLines(List<Component> original) {
+        if (Utils.canUpdate()) {
+            ItemStackTooltipEvent event = SpecterCore.EVENT_BUS.post(new ItemStackTooltipEvent((ItemStack) (Object) this, original));
+            return event.list();
+        }
 
-   @Inject(
-      method = {"finishUsingItem"},
-      at = {@At("HEAD")}
-   )
-   private void onFinishUsing(Level world, LivingEntity user, CallbackInfoReturnable<ItemStack> info) {
-      if (user == SpecterCore.mc.player) {
-         SpecterCore.EVENT_BUS.post(FinishUsingItemEvent.get((ItemStack)this));
-      }
-   }
+        return original;
+    }
 
-   @Inject(
-      method = {"releaseUsing"},
-      at = {@At("HEAD")}
-   )
-   private void onStoppedUsing(Level world, LivingEntity user, int remainingUseTicks, CallbackInfo info) {
-      if (user == SpecterCore.mc.player) {
-         SpecterCore.EVENT_BUS.post(StoppedUsingItemEvent.get((ItemStack)this));
-      }
-   }
+    @Inject(method = "finishUsingItem", at = @At("HEAD"))
+    private void onFinishUsingItem(Level level, LivingEntity livingEntity, CallbackInfoReturnable<ItemStack> cir) {
+        if (livingEntity == mc.player) {
+            SpecterCore.EVENT_BUS.post(FinishUsingItemEvent.get((ItemStack) (Object) this));
+        }
+    }
+
+    @Inject(method = "releaseUsing", at = @At("HEAD"))
+    private void onReleaseUsing(Level level, LivingEntity entity, int remainingTime, CallbackInfo ci) {
+        if (entity == mc.player) {
+            SpecterCore.EVENT_BUS.post(StoppedUsingItemEvent.get((ItemStack) (Object) this));
+        }
+    }
 }

@@ -1,102 +1,102 @@
 package com.jfant.specter.core.utils.render.prompts;
 
-import com.jfant.specter.core.SpecterCore;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.jfant.specter.core.gui.GuiTheme;
 import com.jfant.specter.core.gui.WindowScreen;
 import com.jfant.specter.core.gui.widgets.containers.WHorizontalList;
 import com.jfant.specter.core.gui.widgets.pressable.WCheckbox;
 import com.jfant.specter.core.systems.config.Config;
-import com.mojang.blaze3d.systems.RenderSystem;
-import java.util.ArrayList;
-import java.util.List;
 import net.minecraft.client.gui.screens.Screen;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.jfant.specter.core.SpecterCore.mc;
+
+@SuppressWarnings("unchecked") // cant instantiate a Prompt directly so this is fine
 public abstract class Prompt<T> {
-   protected final GuiTheme theme;
-   protected final Screen parent;
-   protected String title = "";
-   protected final List<String> messages = new ArrayList<>();
-   protected boolean dontShowAgainCheckboxVisible = true;
-   protected String id = null;
+    protected final GuiTheme theme;
+    protected final Screen parent;
 
-   protected Prompt(GuiTheme theme, Screen parent) {
-      this.theme = theme;
-      this.parent = parent;
-   }
+    protected String title = "";
+    protected final List<String> messages = new ArrayList<>();
+    protected boolean dontShowAgainCheckboxVisible = true;
+    protected String id = null;
 
-   public T title(String title) {
-      this.title = title;
-      return (T)this;
-   }
+    protected Prompt(GuiTheme theme, Screen parent) {
+        this.theme = theme;
+        this.parent = parent;
+    }
 
-   public T message(String message) {
-      this.messages.add(message);
-      return (T)this;
-   }
+    public T title(String title) {
+        this.title = title;
+        return (T) this;
+    }
 
-   public T message(String message, Object... args) {
-      this.messages.add(String.format(message, args));
-      return (T)this;
-   }
+    public T message(String message) {
+        this.messages.add(message);
+        return (T) this;
+    }
 
-   public T dontShowAgainCheckboxVisible(boolean visible) {
-      this.dontShowAgainCheckboxVisible = visible;
-      return (T)this;
-   }
+    public T message(String message, Object... args) {
+        this.messages.add(String.format(message, args));
+        return (T) this;
+    }
 
-   public T id(String from) {
-      this.id = from;
-      return (T)this;
-   }
+    public T dontShowAgainCheckboxVisible(boolean visible) {
+        this.dontShowAgainCheckboxVisible = visible;
+        return (T) this;
+    }
 
-   public boolean show() {
-      if (this.id != null && Config.get().dontShowAgainPrompts.contains(this.id)) {
-         return false;
-      } else {
-         if (!RenderSystem.isOnRenderThread()) {
-            SpecterCore.mc.execute(() -> SpecterCore.mc.setScreen(new Prompt.PromptScreen(this.theme)));
-         } else {
-            SpecterCore.mc.setScreen(new Prompt.PromptScreen(this.theme));
-         }
+    public T id(String from) {
+        this.id = from;
+        return (T) this;
+    }
 
-         return true;
-      }
-   }
+    public boolean show() {
+        if (id != null && Config.get().dontShowAgainPrompts.contains(id)) return false;
 
-   protected void dontShowAgain(Prompt<T>.PromptScreen screen) {
-      if (screen.dontShowAgainCheckbox != null && screen.dontShowAgainCheckbox.checked && this.id != null) {
-         Config.get().dontShowAgainPrompts.add(this.id);
-      }
-   }
+        if (!RenderSystem.isOnRenderThread()) {
+            mc.execute(() -> mc.gui.setScreen(new PromptScreen(theme)));
+        } else {
+            mc.gui.setScreen(new PromptScreen(theme));
+        }
 
-   protected abstract void initialiseWidgets(Prompt<T>.PromptScreen var1);
+        return true;
+    }
 
-   protected class PromptScreen extends WindowScreen {
-      protected WCheckbox dontShowAgainCheckbox;
-      protected WHorizontalList list;
+    protected void dontShowAgain(PromptScreen screen) {
+        if (screen.dontShowAgainCheckbox != null && screen.dontShowAgainCheckbox.checked && id != null) {
+            Config.get().dontShowAgainPrompts.add(id);
+        }
+    }
 
-      public PromptScreen(GuiTheme theme) {
-         super(theme, Prompt.this.title);
-         this.parent = Prompt.this.parent;
-      }
+    protected abstract void initialiseWidgets(PromptScreen screen);
 
-      @Override
-      public void initWidgets() {
-         for (String line : Prompt.this.messages) {
-            this.add(this.theme.label(line)).expandX();
-         }
+    protected class PromptScreen extends WindowScreen {
+        protected WCheckbox dontShowAgainCheckbox;
+        protected WHorizontalList list;
 
-         this.add(this.theme.horizontalSeparator()).expandX();
-         if (Prompt.this.dontShowAgainCheckboxVisible) {
-            WHorizontalList checkboxContainer = this.<WHorizontalList>add(this.theme.horizontalList()).expandX().widget();
-            this.dontShowAgainCheckbox = checkboxContainer.add(this.theme.checkbox(false)).widget();
-            checkboxContainer.add(this.theme.label("Don't show this again.")).expandX();
-         } else {
-            this.dontShowAgainCheckbox = null;
-         }
+        public PromptScreen(GuiTheme theme) {
+            super(theme, Prompt.this.title);
 
-         this.list = this.<WHorizontalList>add(this.theme.horizontalList()).expandX().widget();
-         Prompt.this.initialiseWidgets(this);
-      }
-   }
+            this.parent = Prompt.this.parent;
+        }
+
+        @Override
+        public void initWidgets() {
+            for (String line : messages) add(theme.label(line)).expandX();
+            add(theme.horizontalSeparator()).expandX();
+
+            if (dontShowAgainCheckboxVisible) {
+                WHorizontalList checkboxContainer = add(theme.horizontalList()).expandX().widget();
+                dontShowAgainCheckbox = checkboxContainer.add(theme.checkbox(false)).widget();
+                checkboxContainer.add(theme.label("Don't show this again.")).expandX();
+            } else dontShowAgainCheckbox = null;
+
+            list = add(theme.horizontalList()).expandX().widget();
+
+            initialiseWidgets(this);
+        }
+    }
 }

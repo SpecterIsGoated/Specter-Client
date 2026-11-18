@@ -1,6 +1,10 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.tabs.builtin;
 
-import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.gui.GuiTheme;
 import com.jfant.specter.core.gui.GuiThemes;
 import com.jfant.specter.core.gui.renderer.GuiRenderer;
@@ -13,62 +17,72 @@ import com.jfant.specter.core.gui.widgets.pressable.WButton;
 import com.jfant.specter.core.utils.misc.NbtUtils;
 import net.minecraft.client.gui.screens.Screen;
 
+import static com.jfant.specter.core.SpecterCore.mc;
+
 public class GuiTab extends Tab {
-   public GuiTab() {
-      super("GUI");
-   }
+    public GuiTab() {
+        super("GUI");
+    }
 
-   @Override
-   public TabScreen createScreen(GuiTheme theme) {
-      return new GuiTab.GuiScreen(theme, this);
-   }
+    @Override
+    public TabScreen createScreen(GuiTheme theme) {
+        return new GuiScreen(theme, this);
+    }
 
-   @Override
-   public boolean isScreen(Screen screen) {
-      return screen instanceof GuiTab.GuiScreen;
-   }
+    @Override
+    public boolean isScreen(Screen screen) {
+        return screen instanceof GuiScreen;
+    }
 
-   private static class GuiScreen extends WindowTabScreen {
-      public GuiScreen(GuiTheme theme, Tab tab) {
-         super(theme, tab);
-         theme.settings.onActivated();
-      }
+    private static class GuiScreen extends WindowTabScreen {
+        public GuiScreen(GuiTheme theme, Tab tab) {
+            super(theme, tab);
 
-      @Override
-      public void initWidgets() {
-         WHorizontalList opts = this.add(this.theme.horizontalList()).expandX().widget();
-         opts.add(this.theme.label("Theme:"));
-         WDropdown<String> themeW = opts.add(this.theme.dropdown(GuiThemes.getNames(), GuiThemes.get().name)).widget();
-         themeW.action = () -> {
-            GuiThemes.select(themeW.get());
-            SpecterCore.mc.setScreen(null);
-            this.tab.openScreen(GuiThemes.get());
-         };
-         WButton resetLayout = opts.add(this.theme.button("Reset Layout")).expandX().widget();
-         resetLayout.action = this.theme::clearWindowConfigs;
-         WButton reset = opts.add(this.theme.button("Reset Colors")).right().widget();
-         reset.action = () -> {
-            this.theme.settings.reset();
-            SpecterCore.mc.setScreen(null);
-            this.tab.openScreen(GuiThemes.get());
-         };
-         WButton copyButton = opts.add(this.theme.button(GuiRenderer.COPY)).widget();
-         copyButton.action = this::toClipboard;
-         copyButton.tooltip = "Copy config";
-         WButton pasteButton = opts.add(this.theme.button(GuiRenderer.PASTE)).right().widget();
-         pasteButton.action = this::fromClipboard;
-         pasteButton.tooltip = "Paste config";
-         this.add(this.theme.settings(this.theme.settings)).expandX();
-      }
+            theme.settings.onActivated();
+        }
 
-      @Override
-      public boolean toClipboard() {
-         return NbtUtils.toClipboard(this.theme);
-      }
+        @Override
+        public void initWidgets() {
+            WHorizontalList opts = add(theme.horizontalList()).expandX().widget();
 
-      @Override
-      public boolean fromClipboard() {
-         return NbtUtils.fromClipboard(this.theme);
-      }
-   }
+            opts.add(theme.label("Theme:"));
+            WDropdown<String> themeW = opts.add(theme.dropdown(GuiThemes.getNames(), GuiThemes.get().name)).widget();
+            themeW.action = () -> {
+                GuiThemes.select(themeW.get());
+
+                mc.gui.setScreen(null);
+                tab.openScreen(GuiThemes.get());
+            };
+
+            WButton resetLayout = opts.add(theme.button("Reset Layout")).expandX().widget();
+            resetLayout.action = theme::clearWindowConfigs;
+
+            WButton reset = opts.add(theme.button("Reset Colors")).right().widget();
+            reset.action = () -> {
+                theme.settings.reset();
+                mc.gui.setScreen(null);
+                tab.openScreen(GuiThemes.get());
+            };
+
+            WButton copyButton = opts.add(theme.button(GuiRenderer.COPY)).widget();
+            copyButton.action = this::toClipboard;
+            copyButton.tooltip = "Copy config";
+
+            WButton pasteButton = opts.add(theme.button(GuiRenderer.PASTE)).right().widget();
+            pasteButton.action = this::fromClipboard;
+            pasteButton.tooltip = "Paste config";
+
+            add(theme.settings(theme.settings)).expandX();
+        }
+
+        @Override
+        public boolean toClipboard() {
+            return NbtUtils.toClipboard(theme);
+        }
+
+        @Override
+        public boolean fromClipboard() {
+            return NbtUtils.fromClipboard(theme);
+        }
+    }
 }

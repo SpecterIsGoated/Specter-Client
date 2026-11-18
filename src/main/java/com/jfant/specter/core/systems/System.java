@@ -1,120 +1,133 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.systems;
 
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.utils.files.StreamUtils;
 import com.jfant.specter.core.utils.misc.ISerializable;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Locale;
 import net.minecraft.ReportedException;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import org.apache.commons.io.FilenameUtils;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+
 public abstract class System<T> implements ISerializable<T> {
-   private final String name;
-   private File file;
-   protected boolean isFirstInit;
-   private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss", Locale.ROOT);
+    private final String name;
+    private File file;
 
-   public System(String name) {
-      this.name = name;
-      if (name != null) {
-         this.file = new File(SpecterCore.FOLDER, name + ".nbt");
-         this.isFirstInit = !this.file.exists();
-      }
-   }
+    protected boolean isFirstInit;
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss", Locale.ROOT);
 
-   public void init() {
-   }
+    public System(String name) {
+        this.name = name;
 
-   public void save(File folder) {
-      File file = this.getFile();
-      if (file != null) {
-         CompoundTag tag = this.toTag();
-         if (tag != null) {
+        if (name != null) {
+            this.file = new File(SpecterCore.FOLDER, name + ".nbt");
+            this.isFirstInit = !file.exists();
+        }
+    }
+
+    public void init() {
+    }
+
+    public void save(File folder) {
+        File file = getFile();
+        if (file == null) return;
+
+        CompoundTag tag = toTag();
+        if (tag == null) return;
+
+        Path tempFile = null;
+        try {
+            tempFile = Files.createTempFile(SpecterCore.MOD_ID, file.getName());
+            NbtIo.write(tag, tempFile);
+
+            if (folder != null) file = new File(folder, file.getName());
+
+            Files.createDirectories(file.toPath().getParent());
+
             try {
-               File tempFile = File.createTempFile("specter", file.getName());
-               NbtIo.write(tag, tempFile.toPath());
-               if (folder != null) {
-                  file = new File(folder, file.getName());
-               }
-
-               file.getParentFile().mkdirs();
-
-               try {
-                  Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-               } catch (AtomicMoveNotSupportedException var6) {
-                  StreamUtils.copy(tempFile, file);
-               }
-
-               tempFile.delete();
-            } catch (IOException var7) {
-               SpecterCore.LOG.error("Error saving {}. Possibly corrupted?", this.name, var7);
+                Files.move(tempFile, file.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException _) {
+                StreamUtils.copy(tempFile.toFile(), file);
             }
-         }
-      }
-   }
-
-   public void save() {
-      this.save(null);
-   }
-
-   public void load(File folder) {
-      File file = this.getFile();
-      if (file != null) {
-         try {
-            if (folder != null) {
-               file = new File(folder, file.getName());
+        } catch (IOException e) {
+            SpecterCore.LOG.error("Error saving {}. Possibly corrupted?", this.name, e);
+        } finally {
+            if (tempFile != null) {
+                try {
+                    Files.deleteIfExists(tempFile);
+                } catch (IOException e) {
+                    SpecterCore.LOG.warn("Failed to delete temporary file '{}'.", tempFile, e);
+                }
             }
+        }
+    }
+
+    public void save() {
+        save(null);
+    }
+
+    public void load(File folder) {
+        File file = getFile();
+        if (file == null) return;
+
+        try {
+            if (folder != null) file = new File(folder, file.getName());
 
             if (file.exists()) {
-               try {
-                  this.fromTag(NbtIo.read(file.toPath()));
-               } catch (ReportedException var8) {
-                  String backupName = FilenameUtils.removeExtension(file.getName()) + "-" + ZonedDateTime.now().format(DATE_TIME_FORMATTER) + ".backup.nbt";
-                  File backup = new File(file.getParentFile(), backupName);
+                try {
+                    fromTag(NbtIo.read(file.toPath()));
+                } catch (ReportedException e) {
+                    String backupName = FilenameUtils.removeExtension(file.getName()) + "-" + ZonedDateTime.now().format(DATE_TIME_FORMATTER) + ".backup.nbt";
+                    File backup = new File(file.getParentFile(), backupName);
 
-                  try {
-                     Files.move(file.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-                  } catch (AtomicMoveNotSupportedException var7) {
-                     StreamUtils.copy(file, backup);
-                  }
+                    try {
+                        Files.move(file.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                    } catch (AtomicMoveNotSupportedException _) {
+                        StreamUtils.copy(file, backup);
+                    }
 
-                  SpecterCore.LOG.error("Error loading {}. Possibly corrupted?", this.name, var8);
-                  SpecterCore.LOG.info("Saved settings backup to '{}'.", backup);
-               }
+                    SpecterCore.LOG.error("Error loading {}. Possibly corrupted?", this.name, e);
+                    SpecterCore.LOG.info("Saved settings backup to '{}'.", backup);
+                }
             }
-         } catch (IOException var9) {
-            SpecterCore.LOG.error("Error loading {}. Possibly corrupted?", this.name, var9);
-         }
-      }
-   }
+        } catch (IOException e) {
+            SpecterCore.LOG.error("Error loading {}. Possibly corrupted?", this.name, e);
+        }
+    }
 
-   public void load() {
-      this.load(null);
-   }
+    public void load() {
+        load(null);
+    }
 
-   public File getFile() {
-      return this.file;
-   }
+    public File getFile() {
+        return file;
+    }
 
-   public String getName() {
-      return this.name;
-   }
+    public String getName() {
+        return name;
+    }
 
-   @Override
-   public CompoundTag toTag() {
-      return null;
-   }
+    @Override
+    public CompoundTag toTag() {
+        return null;
+    }
 
-   @Override
-   public T fromTag(CompoundTag tag) {
-      return null;
-   }
+    @Override
+    public T fromTag(CompoundTag tag) {
+        return null;
+    }
 }

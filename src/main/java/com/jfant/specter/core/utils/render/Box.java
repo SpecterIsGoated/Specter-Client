@@ -1,41 +1,40 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.render;
 
 import java.util.Objects;
 
 public class Box {
-   public double x;
-   public double y;
-   public double width;
-   public double height;
+    public double x, y;
+    public double width, height;
 
-   public Box(double x, double y, double width, double height) {
-      this.x = x;
-      this.y = y;
-      this.width = width;
-      this.height = height;
-   }
+    public Box(double x, double y, double width, double height) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
 
-   public Box() {
-      this(0.0, 0.0, 0.0, 0.0);
-   }
+    public Box() {
+        this(0, 0, 0, 0);
+    }
 
-   @Override
-   public boolean equals(Object o) {
-      if (this == o) {
-         return true;
-      } else if (o != null && this.getClass() == o.getClass()) {
-         Box box = (Box)o;
-         return Double.compare(box.x, this.x) == 0
-            && Double.compare(box.y, this.y) == 0
-            && Double.compare(box.width, this.width) == 0
-            && Double.compare(box.height, this.height) == 0;
-      } else {
-         return false;
-      }
-   }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Box box = (Box) o;
+        return Double.compare(box.x, x) == 0 &&
+                Double.compare(box.y, y) == 0 &&
+                Double.compare(box.width, width) == 0 &&
+                Double.compare(box.height, height) == 0;
+    }
 
-   @Override
-   public int hashCode() {
-      return Objects.hash(this.x, this.y, this.width, this.height);
-   }
+    @Override
+    public int hashCode() {
+        return Objects.hash(x, y, width, height);
+    }
 }

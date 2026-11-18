@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.render.color;
 
 import net.minecraft.ChatFormatting;
@@ -6,109 +11,107 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 
 public class SettingColor extends Color {
-   public boolean rainbow;
+    public boolean rainbow;
 
-   public SettingColor() {
-   }
+    public SettingColor() {
+        super();
+    }
 
-   public SettingColor(int packed) {
-      super(packed);
-   }
+    public SettingColor(int packed) {
+        super(packed);
+    }
 
-   public SettingColor(int r, int g, int b) {
-      super(r, g, b);
-   }
+    public SettingColor(int r, int g, int b) {
+        super(r, g, b);
+    }
 
-   public SettingColor(int r, int g, int b, boolean rainbow) {
-      this(r, g, b, 255, rainbow);
-   }
+    public SettingColor(int r, int g, int b, boolean rainbow) {
+        this(r, g, b, 255, rainbow);
+    }
 
-   public SettingColor(int r, int g, int b, int a) {
-      super(r, g, b, a);
-   }
+    public SettingColor(int r, int g, int b, int a) {
+        super(r, g, b, a);
+    }
 
-   public SettingColor(float r, float g, float b, float a) {
-      super(r, g, b, a);
-   }
+    public SettingColor(float r, float g, float b, float a) {
+        super(r, g, b, a);
+    }
 
-   public SettingColor(int r, int g, int b, int a, boolean rainbow) {
-      super(r, g, b, a);
-      this.rainbow = rainbow;
-   }
+    public SettingColor(int r, int g, int b, int a, boolean rainbow) {
+        super(r, g, b, a);
+        this.rainbow = rainbow;
+    }
 
-   public SettingColor(SettingColor color) {
-      super(color);
-      this.rainbow = color.rainbow;
-   }
+    public SettingColor(SettingColor color) {
+        super(color);
+        this.rainbow = color.rainbow;
+    }
 
-   public SettingColor(java.awt.Color color) {
-      super(color);
-   }
+    public SettingColor(java.awt.Color color) {
+        super(color);
+    }
 
-   public SettingColor(ChatFormatting formatting) {
-      super(formatting);
-   }
+    public SettingColor(ChatFormatting formatting) {
+        super(formatting);
+    }
 
-   public SettingColor(TextColor textColor) {
-      super(textColor);
-   }
+    public SettingColor(TextColor textColor) {
+        super(textColor);
+    }
 
-   public SettingColor(Style style) {
-      super(style);
-   }
+    public SettingColor(Style style) {
+        super(style);
+    }
 
-   public SettingColor rainbow(boolean rainbow) {
-      this.rainbow = rainbow;
-      return this;
-   }
+    public SettingColor rainbow(boolean rainbow) {
+        this.rainbow = rainbow;
+        return this;
+    }
 
-   public void update() {
-      if (this.rainbow) {
-         this.set(RainbowColors.GLOBAL.r, RainbowColors.GLOBAL.g, RainbowColors.GLOBAL.b, this.a);
-      }
-   }
+    public void update() {
+        if (rainbow) set(RainbowColors.GLOBAL.r, RainbowColors.GLOBAL.g, RainbowColors.GLOBAL.b, a);
+    }
 
-   public SettingColor set(Color value) {
-      super.set(value);
-      if (value instanceof SettingColor) {
-         this.rainbow = ((SettingColor)value).rainbow;
-      }
+    @Override
+    public SettingColor set(Color value) {
+        super.set(value);
+        if (value instanceof SettingColor settingColor) rainbow = settingColor.rainbow;
 
-      return this;
-   }
+        return this;
+    }
 
-   @Override
-   public Color copy() {
-      return new SettingColor(this.r, this.g, this.b, this.a, this.rainbow);
-   }
+    @Override
+    public Color copy() {
+        return new SettingColor(r, g, b, a, rainbow);
+    }
 
-   @Override
-   public CompoundTag toTag() {
-      CompoundTag tag = super.toTag();
-      tag.putBoolean("rainbow", this.rainbow);
-      return tag;
-   }
+    @Override
+    public CompoundTag toTag() {
+        CompoundTag tag = super.toTag();
+        tag.putBoolean("rainbow", rainbow);
+        return tag;
+    }
 
-   public SettingColor fromTag(CompoundTag tag) {
-      super.fromTag(tag);
-      this.rainbow = tag.getBooleanOr("rainbow", false);
-      return this;
-   }
+    @Override
+    public SettingColor fromTag(CompoundTag tag) {
+        super.fromTag(tag);
+        rainbow = tag.getBooleanOr("rainbow", false);
+        return this;
+    }
 
-   @Override
-   public boolean equals(Object o) {
-      if (this == o) {
-         return true;
-      } else if (o == null || this.getClass() != o.getClass()) {
-         return false;
-      } else {
-         return !super.equals(o) ? false : this.rainbow == ((SettingColor)o).rainbow;
-      }
-   }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
 
-   @Override
-   public int hashCode() {
-      int result = super.hashCode();
-      return 31 * result + (this.rainbow ? 1 : 0);
-   }
+        return rainbow == ((SettingColor) o).rainbow;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (rainbow ? 1 : 0);
+        return result;
+    }
 }

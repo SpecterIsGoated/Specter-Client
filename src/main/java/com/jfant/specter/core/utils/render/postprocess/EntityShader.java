@@ -1,31 +1,28 @@
 package com.jfant.specter.core.utils.render.postprocess;
 
-import com.jfant.specter.core.SpecterCore;
-import com.jfant.specter.core.mixininterface.IWorldRenderer;
-import com.jfant.specter.core.utils.render.CustomOutlineVertexConsumerProvider;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.jfant.specter.core.mixininterface.ILevelRenderer;
 import net.minecraft.world.entity.Entity;
 
+import static com.jfant.specter.core.SpecterCore.mc;
+
 public abstract class EntityShader extends PostProcessShader {
-   public final CustomOutlineVertexConsumerProvider vertexConsumerProvider = new CustomOutlineVertexConsumerProvider();
+    protected EntityShader(RenderPipeline pipeline) {
+        super(pipeline);
+    }
 
-   protected EntityShader(RenderPipeline pipeline) {
-      super(pipeline);
-   }
+    public abstract boolean shouldDraw(Entity entity);
 
-   public abstract boolean shouldDraw(Entity var1);
+    @Override
+    protected void preDraw() {
+        ((ILevelRenderer) mc.levelRenderer).meteor$pushEntityOutlineFramebuffer(framebuffer);
+    }
 
-   @Override
-   protected void preDraw() {
-      ((IWorldRenderer)SpecterCore.mc.levelRenderer).meteor$pushEntityOutlineFramebuffer(this.framebuffer);
-   }
+    @Override
+    protected void postDraw() {
+        ((ILevelRenderer) mc.levelRenderer).meteor$popEntityOutlineFramebuffer();
+    }
 
-   @Override
-   protected void postDraw() {
-      ((IWorldRenderer)SpecterCore.mc.levelRenderer).meteor$popEntityOutlineFramebuffer();
-   }
-
-   public void submitVertices() {
-      this.submitVertices(this.vertexConsumerProvider::draw);
-   }
+    public void submitVertices() {
+    }
 }

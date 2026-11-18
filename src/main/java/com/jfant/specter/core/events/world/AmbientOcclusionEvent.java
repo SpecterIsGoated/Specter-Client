@@ -1,11 +1,17 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.events.world;
 
 public class AmbientOcclusionEvent {
-   private static final AmbientOcclusionEvent INSTANCE = new AmbientOcclusionEvent();
-   public float lightLevel = -1.0F;
+    private static final AmbientOcclusionEvent INSTANCE = new AmbientOcclusionEvent();
 
-   public static AmbientOcclusionEvent get() {
-      INSTANCE.lightLevel = -1.0F;
-      return INSTANCE;
-   }
+    public float lightLevel = -1;
+
+    public static AmbientOcclusionEvent get() {
+        INSTANCE.lightLevel = -1;
+        return INSTANCE;
+    }
 }

@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.screens.settings;
 
 import com.jfant.specter.core.gui.GuiTheme;
@@ -5,21 +10,27 @@ import com.jfant.specter.core.gui.screens.settings.base.DynamicRegistryListSetti
 import com.jfant.specter.core.gui.widgets.WWidget;
 import com.jfant.specter.core.settings.Setting;
 import com.jfant.specter.core.utils.misc.Names;
-import java.util.Set;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.enchantment.Enchantment;
 
+import java.util.Set;
+
 public class EnchantmentListSettingScreen extends DynamicRegistryListSettingScreen<Enchantment> {
-   public EnchantmentListSettingScreen(GuiTheme theme, Setting<Set<ResourceKey<Enchantment>>> setting) {
-      super(theme, "Select Enchantments", setting, setting.get(), Registries.ENCHANTMENT);
-   }
+    public EnchantmentListSettingScreen(GuiTheme theme, Setting<Set<ResourceKey<Enchantment>>> setting) {
+        super(theme, "Select Enchantments", setting, setting.get(), Registries.ENCHANTMENT);
+    }
 
-   protected WWidget getValueWidget(ResourceKey<Enchantment> value) {
-      return this.theme.label(Names.get(value));
-   }
+    @Override
+    protected WWidget getValueWidget(ResourceKey<Enchantment> value) {
+        return theme.label(Names.get(value));
+    }
 
-   protected String[] getValueNames(ResourceKey<Enchantment> value) {
-      return new String[]{Names.get(value), value.identifier().toString()};
-   }
+    @Override
+    protected String[] getValueNames(ResourceKey<Enchantment> value) {
+        return new String[]{
+            Names.get(value),
+            value.identifier().toString()
+        };
+    }
 }

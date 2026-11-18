@@ -1,15 +1,21 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.events.game;
 
 import com.jfant.specter.core.events.Cancellable;
 import net.minecraft.client.CameraType;
 
 public class ChangePerspectiveEvent extends Cancellable {
-   private static final ChangePerspectiveEvent INSTANCE = new ChangePerspectiveEvent();
-   public CameraType perspective;
+    private static final ChangePerspectiveEvent INSTANCE = new ChangePerspectiveEvent();
 
-   public static ChangePerspectiveEvent get(CameraType perspective) {
-      INSTANCE.setCancelled(false);
-      INSTANCE.perspective = perspective;
-      return INSTANCE;
-   }
+    public CameraType perspective;
+
+    public static ChangePerspectiveEvent get(CameraType perspective) {
+        INSTANCE.setCancelled(false);
+        INSTANCE.perspective = perspective;
+        return INSTANCE;
+    }
 }

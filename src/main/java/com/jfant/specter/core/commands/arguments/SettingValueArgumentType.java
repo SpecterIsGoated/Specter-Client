@@ -1,64 +1,76 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.commands.arguments;
 
-import com.jfant.specter.core.settings.Setting;
-import com.jfant.specter.core.settings.Settings;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import java.util.concurrent.CompletableFuture;
+import com.jfant.specter.core.settings.Setting;
+import com.jfant.specter.core.settings.Settings;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.resources.Identifier;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
+
+import java.util.concurrent.CompletableFuture;
 
 public class SettingValueArgumentType implements ArgumentType<String> {
-   private static final SettingValueArgumentType INSTANCE = new SettingValueArgumentType();
+    private static final SettingValueArgumentType INSTANCE = new SettingValueArgumentType();
 
-   public static SettingValueArgumentType create() {
-      return INSTANCE;
-   }
+    public static SettingValueArgumentType create() {
+        return INSTANCE;
+    }
 
-   public static String get(CommandContext<?> context) {
-      return (String)context.getArgument("value", String.class);
-   }
+    public static String get(CommandContext<?> context) {
+        return context.getArgument("value", String.class);
+    }
 
-   private SettingValueArgumentType() {
-   }
+    private SettingValueArgumentType() {
+    }
 
-   public String parse(StringReader reader) throws CommandSyntaxException {
-      String text = reader.getRemaining();
-      reader.setCursor(reader.getTotalLength());
-      return text;
-   }
+    @Override
+    public String parse(StringReader reader) throws CommandSyntaxException {
+        String text = reader.getRemaining();
+        reader.setCursor(reader.getTotalLength());
+        return text;
+    }
 
-   public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-      Setting<?> setting;
-      try {
-         setting = SettingArgumentType.get(context);
-      } catch (CommandSyntaxException var5) {
-         return Suggestions.empty();
-      }
+    @Override
+    public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
+        Setting<?> setting;
 
-      return suggest(builder, setting);
-   }
+        try {
+            setting = SettingArgumentType.get(context);
+        } catch (CommandSyntaxException _) {
+            return Suggestions.empty();
+        }
 
-   public static <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder, Settings settings) {
-      Setting<?> setting;
-      try {
-         setting = SettingArgumentType.get(context, settings);
-      } catch (CommandSyntaxException var5) {
-         return Suggestions.empty();
-      }
+        return suggest(builder, setting);
+    }
 
-      return suggest(builder, setting);
-   }
+    public static <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder, Settings settings) {
+        Setting<?> setting;
 
-   public static CompletableFuture<Suggestions> suggest(SuggestionsBuilder builder, @NotNull Setting<?> setting) {
-      Iterable<Identifier> identifiers = setting.getIdentifierSuggestions();
-      return identifiers != null
-         ? SharedSuggestionProvider.suggestResource(identifiers, builder)
-         : SharedSuggestionProvider.suggest(setting.getSuggestions(), builder);
-   }
+        try {
+            setting = SettingArgumentType.get(context, settings);
+        } catch (CommandSyntaxException _) {
+            return Suggestions.empty();
+        }
+
+        return suggest(builder, setting);
+    }
+
+    public static CompletableFuture<Suggestions> suggest(SuggestionsBuilder builder, @NonNull Setting<?> setting) {
+        Iterable<Identifier> identifiers = setting.getIdentifierSuggestions();
+        if (identifiers != null) {
+            return SharedSuggestionProvider.suggestResource(identifiers, builder);
+        }
+
+        return SharedSuggestionProvider.suggest(setting.getSuggestions(), builder);
+    }
 }

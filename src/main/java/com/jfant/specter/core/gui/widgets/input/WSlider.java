@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets.input;
 
 import com.jfant.specter.core.gui.widgets.WWidget;
@@ -5,151 +10,152 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.util.Mth;
 
 public abstract class WSlider extends WWidget {
-   public Runnable action;
-   public Runnable actionOnRelease;
-   protected double value;
-   protected double min;
-   protected double max;
-   protected double scrollHandleX;
-   protected double scrollHandleY;
-   protected double scrollHandleH;
-   protected boolean scrollHandleMouseOver;
-   protected boolean handleMouseOver;
-   protected boolean dragging;
-   protected double valueAtDragStart;
+    public Runnable action;
+    public Runnable actionOnRelease;
 
-   public WSlider(double value, double min, double max) {
-      this.value = Mth.clamp(value, min, max);
-      this.min = min;
-      this.max = max;
-   }
+    protected double value;
+    protected double min, max;
 
-   protected double handleSize() {
-      return this.theme.textHeight();
-   }
+    // ghost slider for scrolling event
+    protected double scrollHandleX, scrollHandleY, scrollHandleH;
+    protected boolean scrollHandleMouseOver;
 
-   @Override
-   protected void onCalculateSize() {
-      double s = this.handleSize();
-      this.width = s;
-      this.height = s;
-   }
+    protected boolean handleMouseOver;
+    protected boolean dragging;
+    protected double valueAtDragStart;
 
-   @Override
-   public boolean onMouseClicked(MouseButtonEvent click, boolean doubled) {
-      if (this.mouseOver && !doubled) {
-         this.valueAtDragStart = this.value;
-         double handleSize = this.handleSize();
-         double valueWidth = click.x() - (this.x + handleSize / 2.0);
-         this.set(valueWidth / (this.width - handleSize) * (this.max - this.min) + this.min);
-         if (this.action != null) {
-            this.action.run();
-         }
+    public WSlider(double value, double min, double max) {
+        this.value = Mth.clamp(value, min, max);
+        this.min = min;
+        this.max = max;
+    }
 
-         this.dragging = true;
-         this.setFocused(true);
-         return true;
-      } else {
-         return false;
-      }
-   }
+    protected double handleSize() {
+        return theme.textHeight();
+    }
 
-   @Override
-   public void onMouseMoved(double mouseX, double mouseY, double lastMouseX, double lastMouseY) {
-      double valueWidth = this.valueWidth();
-      double s = this.handleSize();
-      double s2 = s / 2.0;
-      double x = this.x + s2 + valueWidth - this.height / 2.0;
-      this.handleMouseOver = mouseX >= x && mouseX <= x + this.height && mouseY >= this.y && mouseY <= this.y + this.height;
-      if (!this.scrollHandleMouseOver) {
-         this.scrollHandleX = x;
-         this.scrollHandleY = this.y;
-         this.scrollHandleH = this.height;
-         if (this.handleMouseOver) {
-            this.scrollHandleMouseOver = true;
-         }
-      } else {
-         this.scrollHandleMouseOver = mouseX >= this.scrollHandleX
-            && mouseX <= this.scrollHandleX + this.scrollHandleH
-            && mouseY >= this.scrollHandleY
-            && mouseY <= this.scrollHandleY + this.scrollHandleH;
-      }
+    @Override
+    protected void onCalculateSize() {
+        double s = handleSize();
 
-      boolean mouseOverX = mouseX >= this.x + s2 && mouseX <= this.x + s2 + this.width - s;
-      this.mouseOver = mouseOverX && mouseY >= this.y && mouseY <= this.y + this.height;
-      if (this.dragging) {
-         if (mouseOverX) {
-            valueWidth += mouseX - lastMouseX;
-            valueWidth = Mth.clamp(valueWidth, 0.0, this.width - s);
-            this.set(valueWidth / (this.width - s) * (this.max - this.min) + this.min);
-            if (this.action != null) {
-               this.action.run();
+        width = s;
+        height = s;
+    }
+
+    @Override
+    public boolean onMouseClicked(MouseButtonEvent click, boolean doubled) {
+        if (mouseOver && !doubled) {
+            valueAtDragStart = value;
+            double handleSize = handleSize();
+
+            double valueWidth = click.x() - (x + handleSize / 2);
+            set((valueWidth / (width - handleSize)) * (max - min) + min);
+            if (action != null) action.run();
+
+            dragging = true;
+            setFocused(true);
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public void onMouseMoved(double mouseX, double mouseY, double lastMouseX, double lastMouseY) {
+        double valueWidth = valueWidth();
+        double s = handleSize();
+        double s2 = s / 2;
+
+        double x = this.x + s2 + valueWidth - height / 2;
+        handleMouseOver = mouseX >= x && mouseX <= x + height && mouseY >= y && mouseY <= y + height;
+
+        if (!scrollHandleMouseOver) {
+            scrollHandleX = x;
+            scrollHandleY = y;
+            scrollHandleH = height;
+            if (handleMouseOver) {
+                scrollHandleMouseOver = true;
             }
-         } else if (this.value > this.min && mouseX < this.x + s2) {
-            this.value = this.min;
-            if (this.action != null) {
-               this.action.run();
+        } else {
+            scrollHandleMouseOver = mouseX >= scrollHandleX &&
+                mouseX <= scrollHandleX + scrollHandleH &&
+                mouseY >= scrollHandleY &&
+                mouseY <= scrollHandleY + scrollHandleH;
+        }
+
+        boolean mouseOverX = mouseX >= this.x + s2 && mouseX <= this.x + s2 + width - s;
+        mouseOver = mouseOverX && mouseY >= this.y && mouseY <= this.y + height;
+
+        if (dragging) {
+            if (mouseOverX) {
+                valueWidth += mouseX - lastMouseX;
+                valueWidth = Mth.clamp(valueWidth, 0, width - s);
+
+                set((valueWidth / (width - s)) * (max - min) + min);
+                if (action != null) action.run();
+            } else {
+                if (value > min && mouseX < this.x + s2) {
+                    value = min;
+                    if (action != null) action.run();
+                } else if (value < max && mouseX > this.x + s2 + width - s) {
+                    value = max;
+                    if (action != null) action.run();
+                }
             }
-         } else if (this.value < this.max && mouseX > this.x + s2 + this.width - s) {
-            this.value = this.max;
-            if (this.action != null) {
-               this.action.run();
+        }
+    }
+
+    @Override
+    public boolean onMouseReleased(MouseButtonEvent click) {
+        if (dragging) {
+            if (value != valueAtDragStart && actionOnRelease != null) {
+                actionOnRelease.run();
             }
-         }
-      }
-   }
 
-   @Override
-   public boolean onMouseReleased(MouseButtonEvent click) {
-      if (this.dragging) {
-         if (this.value != this.valueAtDragStart && this.actionOnRelease != null) {
-            this.actionOnRelease.run();
-         }
+            dragging = false;
+            setFocused(false);
+            return true;
+        }
 
-         this.dragging = false;
-         this.setFocused(false);
-         return true;
-      } else {
-         return false;
-      }
-   }
+        return false;
+    }
 
-   @Override
-   public boolean onMouseScrolled(double amount) {
-      if (!this.scrollHandleMouseOver && this.handleMouseOver) {
-         this.scrollHandleX = this.x;
-         this.scrollHandleY = this.y;
-         this.scrollHandleH = this.height;
-         this.scrollHandleMouseOver = true;
-      }
+    @Override
+    public boolean onMouseScrolled(double amount) {
+        // when user starts to scroll over regular handle
+        // remember its position and check only this "ghost"
+        // position to allow scroll (until it leaves ghost area)
+        if (!scrollHandleMouseOver && handleMouseOver) {
+            scrollHandleX = x;
+            scrollHandleY = y;
+            scrollHandleH = height;
+            scrollHandleMouseOver = true;
+        }
 
-      if (this.scrollHandleMouseOver) {
-         if (this.parent instanceof WIntEdit) {
-            this.set(this.value + amount);
-         } else {
-            this.set(this.value + 0.05 * amount);
-         }
+        if (scrollHandleMouseOver) {
+            if (parent instanceof WIntEdit) {
+                set(value + amount);
+            } else {
+                set(value + 0.05 * amount);
+            }
 
-         if (this.action != null) {
-            this.action.run();
-         }
+            if (action != null) action.run();
+            return true;
+        }
 
-         return true;
-      } else {
-         return false;
-      }
-   }
+        return false;
+    }
 
-   public void set(double value) {
-      this.value = Mth.clamp(value, this.min, this.max);
-   }
+    public void set(double value) {
+        this.value = Mth.clamp(value, min, max);
+    }
 
-   public double get() {
-      return this.value;
-   }
+    public double get() {
+        return value;
+    }
 
-   protected double valueWidth() {
-      double valuePercentage = (this.value - this.min) / (this.max - this.min);
-      return valuePercentage * (this.width - this.handleSize());
-   }
+    protected double valueWidth() {
+        double valuePercentage = (value - min) / (max - min);
+        return valuePercentage * (width - handleSize());
+    }
 }

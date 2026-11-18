@@ -40,6 +40,10 @@ configurations {
     include.configure { extendsFrom(jij) }
 }
 
+val launcher = sourceSets.create("launcher") {
+    java.srcDir("src/launcher/java")
+}
+
 dependencies {
     minecraft("com.mojang:minecraft:$minecraftVersion")
     implementation("net.fabricmc:fabric-loader:$loaderVersion")
@@ -57,19 +61,37 @@ dependencies {
     compileOnly("meteordevelopment:baritone:26.1-SNAPSHOT")
     compileOnly("maven.modrinth:modmenu:21.0.0")
 
-    // Bundled libraries (jar-in-jar)
-    jij("org.reflections:reflections:0.10.2") { isTransitive = false }
-    jij("io.netty:netty-handler-proxy:4.2.7.Final") { isTransitive = false }
-    jij("io.netty:netty-codec-socks:4.2.7.Final") { isTransitive = false }
-    jij("com.google.code.gson:gson:2.14.0") { isTransitive = false }
-    jij("com.google.errorprone:error_prone_annotations:2.48.0") { isTransitive = false }
-    // Taken from the original 1.21.11 jar (not all available on reachable Maven repos)
-    for (name in listOf(
-        "orbit-0.2.4", "starscript-0.2.5", "javassist-3.28.0-GA", "MinecraftAuth-5.0.2",
-        "WaybackAuthLib-1.0.1", "gson-1.9.2", "httpclient-1.9.2", "java-spotify-api-1.4.7"
-    )) {
-        val file = files("libs/$name.jar")
-        implementation(file)
+    // Bundled libraries (jar-in-jar), versions matching Meteor 26.3
+    jij("meteordevelopment:orbit:0.2.4")
+    jij("org.meteordev:starscript:0.2.5")
+    jij("org.reflections:reflections:0.10.2")
+    jij("io.netty:netty-handler-proxy:4.2.16.Final") { isTransitive = false }
+    jij("io.netty:netty-codec-socks:4.2.16.Final") { isTransitive = false }
+    jij("de.florianreuth:waybackauthlib:1.1.0")
+    jij("net.raphimc:MinecraftAuth:5.0.2") {
+        exclude("com.google.code.gson")
+        exclude("com.google.errorprone")
+    }
+
+    // Spotify API (only published on JitPack, so taken from the original jar)
+    implementation(files("libs/java-spotify-api-1.4.7.jar"))
+    include(files("libs/java-spotify-api-1.4.7.jar"))
+}
+
+// Jar-in-jar transitive dependencies (same approach as Meteor's build)
+val jijExcluded = setOf("org.slf4j", "jsr305")
+listOf("api", "implementation", "include").forEach { configName ->
+    configurations.named(configName).configure {
+        defaultDependencies {
+            configurations.getByName("jij").incoming.resolutionResult.allComponents
+                .mapNotNull { it.id as? ModuleComponentIdentifier }
+                .forEach { id ->
+                    val notation = "${id.group}:${id.module}:${id.version}"
+                    if (jijExcluded.none { notation.contains(it) }) {
+                        add(project.dependencies.create(notation) { isTransitive = false })
+                    }
+                }
+        }
     }
 }
 
@@ -82,12 +104,26 @@ loom {
 }
 
 tasks {
-    withType<JavaCompile>().configureEach {
+    named<JavaCompile>("compileJava").configure {
         options.encoding = "UTF-8"
         options.release = 25
         options.compilerArgs.addAll(listOf("-Xmaxerrs", "100000"))
     }
+    processResources {
+        val props = mapOf("version" to project.version)
+        inputs.properties(props)
+        filesMatching("fabric.mod.json") { expand(props) }
+    }
+
+    // Launcher (shown when the jar is double-clicked) targets Java 8
+    named<JavaCompile>("compileLauncherJava").configure {
+        options.release = 8
+        options.compilerArgs.add("-Xlint:-options")
+    }
+
     jar {
         from("LICENSE") { rename { "LICENSE_specter" } }
+        from(launcher.output)
+        manifest { attributes["Main-Class"] = "com.jfant.specter.core.Main" }
     }
 }

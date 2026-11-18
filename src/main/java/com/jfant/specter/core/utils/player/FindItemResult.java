@@ -1,38 +1,46 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.player;
 
-import com.jfant.specter.core.SpecterCore;
 import net.minecraft.world.InteractionHand;
 
+import static com.jfant.specter.core.SpecterCore.mc;
+
+/**
+ * @param slot  The slot index
+ * @param count The number of items in the slot
+ */
 public record FindItemResult(int slot, int count) {
-   public boolean found() {
-      return this.slot != -1;
-   }
+    public boolean found() {
+        return slot != -1;
+    }
 
-   public InteractionHand getHand() {
-      if (this.slot == 40) {
-         return InteractionHand.OFF_HAND;
-      } else {
-         return this.slot == SpecterCore.mc.player.getInventory().getSelectedSlot() ? InteractionHand.MAIN_HAND : null;
-      }
-   }
+    public InteractionHand getHand() {
+        if (slot == SlotUtils.OFFHAND) return InteractionHand.OFF_HAND;
+        if (slot == mc.player.getInventory().getSelectedSlot()) return InteractionHand.MAIN_HAND;
+        return null;
+    }
 
-   public boolean isMainHand() {
-      return this.getHand() == InteractionHand.MAIN_HAND;
-   }
+    public boolean isMainHand() {
+        return getHand() == InteractionHand.MAIN_HAND;
+    }
 
-   public boolean isOffhand() {
-      return this.getHand() == InteractionHand.OFF_HAND;
-   }
+    public boolean isOffhand() {
+        return getHand() == InteractionHand.OFF_HAND;
+    }
 
-   public boolean isHotbar() {
-      return this.slot >= 0 && this.slot <= 8;
-   }
+    public boolean isHotbar() {
+        return slot >= SlotUtils.HOTBAR_START && slot <= SlotUtils.HOTBAR_END;
+    }
 
-   public boolean isMain() {
-      return this.slot >= 9 && this.slot <= 35;
-   }
+    public boolean isMain() {
+        return slot >= SlotUtils.MAIN_START && slot <= SlotUtils.MAIN_END;
+    }
 
-   public boolean isArmor() {
-      return this.slot >= 36 && this.slot <= 39;
-   }
+    public boolean isArmor() {
+        return slot >= SlotUtils.ARMOR_START && slot <= SlotUtils.ARMOR_END;
+    }
 }

@@ -1,5 +1,10 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.mixininterface;
 
 public interface ICamera {
-   void meteor$setRot(double var1, double var3);
+    void meteor$setRot(double yaw, double pitch);
 }

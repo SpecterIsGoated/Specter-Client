@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.themes.meteor.widgets.input;
 
 import com.jfant.specter.core.gui.renderer.GuiRenderer;
@@ -7,63 +12,72 @@ import com.jfant.specter.core.gui.widgets.input.WDropdown;
 import com.jfant.specter.core.utils.render.color.Color;
 
 public class WMeteorDropdown<T> extends WDropdown<T> implements MeteorWidget {
-   public WMeteorDropdown(T[] values, T value) {
-      super(values, value);
-   }
+    public WMeteorDropdown(T[] values, T value) {
+        super(values, value);
+    }
 
-   @Override
-   protected WDropdown.WDropdownRoot createRootWidget() {
-      return new WMeteorDropdown.WRoot();
-   }
+    @Override
+    protected WDropdownRoot createRootWidget() {
+        return new WRoot();
+    }
 
-   @Override
-   protected WDropdown<T>.WDropdownValue createValueWidget() {
-      return new WMeteorDropdown.WValue();
-   }
+    @Override
+    protected WDropdownValue createValueWidget() {
+        return new WValue();
+    }
 
-   @Override
-   protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-      MeteorGuiTheme theme = this.theme();
-      double pad = this.pad();
-      double s = theme.textHeight();
-      this.renderBackground(renderer, this, this.pressed, this.mouseOver);
-      String text = this.get().toString();
-      double w = theme.textWidth(text);
-      renderer.text(text, this.x + pad + this.maxValueWidth / 2.0 - w / 2.0, this.y + pad, theme.textColor.get(), false);
-      renderer.rotatedQuad(this.x + pad + this.maxValueWidth + pad, this.y + pad, s, s, 0.0, GuiRenderer.TRIANGLE, theme.textColor.get());
-   }
+    @Override
+    protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+        MeteorGuiTheme theme = theme();
+        double pad = pad();
+        double s = theme.textHeight();
 
-   private static class WRoot extends WDropdown.WDropdownRoot implements MeteorWidget {
-      @Override
-      protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-         MeteorGuiTheme theme = this.theme();
-         double s = theme.scale(2.0);
-         Color c = theme.outlineColor.get();
-         renderer.quad(this.x, this.y + this.height - s, this.width, s, c);
-         renderer.quad(this.x, this.y, s, this.height - s, c);
-         renderer.quad(this.x + this.width - s, this.y, s, this.height - s, c);
-      }
-   }
+        renderBackground(renderer, this, pressed, mouseOver);
 
-   private class WValue extends WDropdown<T>.WDropdownValue implements MeteorWidget {
-      @Override
-      protected void onCalculateSize() {
-         double pad = this.pad();
-         this.width = pad + this.theme.textWidth(this.value.toString()) + pad;
-         this.height = pad + this.theme.textHeight() + pad;
-      }
+        String text = get().toString();
+        double w = theme.textWidth(text);
+        renderer.text(text, x + pad + maxValueWidth / 2 - w / 2, y + pad, theme.textColor.get(), false);
 
-      @Override
-      protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-         MeteorGuiTheme theme = this.theme();
-         Color color = theme.backgroundColor.get(this.pressed, this.mouseOver, true);
-         int preA = color.a;
-         color.a = color.a + color.a / 2;
-         color.validate();
-         renderer.quad(this, color);
-         color.a = preA;
-         String text = this.value.toString();
-         renderer.text(text, this.x + this.width / 2.0 - theme.textWidth(text) / 2.0, this.y + this.pad(), theme.textColor.get(), false);
-      }
-   }
+        renderer.rotatedQuad(x + pad + maxValueWidth + pad, y + pad, s, s, 0, GuiRenderer.TRIANGLE, theme.textColor.get());
+    }
+
+    private static class WRoot extends WDropdownRoot implements MeteorWidget {
+        @Override
+        protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+            MeteorGuiTheme theme = theme();
+            double s = theme.scale(2);
+            Color c = theme.outlineColor.get();
+
+            renderer.quad(x, y + height - s, width, s, c);
+            renderer.quad(x, y, s, height - s, c);
+            renderer.quad(x + width - s, y, s, height - s, c);
+        }
+    }
+
+    private class WValue extends WDropdownValue implements MeteorWidget {
+        @Override
+        protected void onCalculateSize() {
+            double pad = pad();
+
+            width = pad + theme.textWidth(value.toString()) + pad;
+            height = pad + theme.textHeight() + pad;
+        }
+
+        @Override
+        protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+            MeteorGuiTheme theme = theme();
+
+            Color color = theme.backgroundColor.get(pressed, mouseOver, true);
+            int preA = color.a;
+            color.a += color.a / 2;
+            color.validate();
+
+            renderer.quad(this, color);
+
+            color.a = preA;
+
+            String text = value.toString();
+            renderer.text(text, x + width / 2 - theme.textWidth(text) / 2, y + pad(), theme.textColor.get(), false);
+        }
+    }
 }

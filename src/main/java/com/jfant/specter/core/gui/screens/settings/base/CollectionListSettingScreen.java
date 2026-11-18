@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.screens.settings.base;
 
 import com.jfant.specter.core.gui.GuiTheme;
@@ -9,113 +14,126 @@ import com.jfant.specter.core.gui.widgets.input.WTextBox;
 import com.jfant.specter.core.gui.widgets.pressable.WPressable;
 import com.jfant.specter.core.settings.Setting;
 import com.jfant.specter.core.systems.config.Config;
+
 import java.util.Collection;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public abstract class CollectionListSettingScreen<T> extends WindowScreen {
-   protected final Setting<?> setting;
-   protected final Collection<T> collection;
-   private final Iterable<T> registry;
-   private WTable table;
-   private String filterText = "";
+    protected final Setting<?> setting;
+    protected final Collection<T> collection;
+    private final Iterable<T> registry;
 
-   public CollectionListSettingScreen(GuiTheme theme, String title, Setting<?> setting, Collection<T> collection, Iterable<T> registry) {
-      super(theme, title);
-      this.registry = registry;
-      this.setting = setting;
-      this.collection = collection;
-   }
+    private WTable table;
+    private String filterText = "";
 
-   @Override
-   public void initWidgets() {
-      WTextBox filter = this.add(this.theme.textBox("")).minWidth(400.0).expandX().widget();
-      filter.setFocused(true);
-      filter.action = () -> {
-         this.filterText = filter.get().trim();
-         this.table.clear();
-         this.initTable();
-      };
-      this.table = this.add(this.theme.table()).expandX().widget();
-      this.initTable();
-   }
+    public CollectionListSettingScreen(GuiTheme theme, String title, Setting<?> setting, Collection<T> collection, Iterable<T> registry) {
+        super(theme, title);
 
-   private void initTable() {
-      WTable left = this.abc(this.registry, true, t -> {
-         this.addValue(t);
-         T v = this.getAdditionalValue(t);
-         if (v != null) {
-            this.addValue(v);
-         }
-      });
-      if (Config.get().syncListSettingWidths.get() || !left.cells.isEmpty()) {
-         this.table.add(this.theme.verticalSeparator()).expandWidgetY();
-      }
+        this.registry = registry;
+        this.setting = setting;
+        this.collection = collection;
+    }
 
-      WTable right = this.abc(this.collection, false, t -> {
-         this.removeValue(t);
-         T v = this.getAdditionalValue(t);
-         if (v != null) {
-            this.removeValue(v);
-         }
-      });
-      this.postWidgets(left, right);
-   }
+    @Override
+    public void initWidgets() {
+        // Filter
+        WTextBox filter = add(theme.textBox("")).minWidth(400).expandX().widget();
+        filter.setFocused(true);
+        filter.action = () -> {
+            filterText = filter.get().trim();
 
-   private WTable abc(Iterable<T> iterable, boolean isLeft, Consumer<T> buttonAction) {
-      Cell<WTable> cell = this.table.add(this.theme.table()).top();
-      if (Config.get().syncListSettingWidths.get()) {
-         cell.group("sync-width");
-      }
+            table.clear();
+            initTable();
+        };
 
-      WTable table = cell.widget();
-      Predicate<T> predicate = isLeft ? value -> this.includeValue(value) && !this.collection.contains(value) : this::includeValue;
-      Iterable<T> sorted = SortingHelper.sort(iterable, predicate, this::getValueNames, this.filterText);
-      sorted.forEach(t -> {
-         table.add(this.getValueWidget((T)t));
-         WPressable button = table.add((WPressable)(isLeft ? this.theme.plus() : this.theme.minus())).expandCellX().right().widget();
-         button.action = () -> buttonAction.accept((T)t);
-         table.row();
-      });
-      if (!table.cells.isEmpty()) {
-         cell.expandX();
-      }
+        table = add(theme.table()).expandX().widget();
 
-      return table;
-   }
+        initTable();
+    }
 
-   protected void invalidateTable() {
-      this.table.clear();
-      this.initTable();
-   }
+    private void initTable() {
+        // Left (all)
+        WTable left = abc(registry, true, t -> {
+            addValue(t);
 
-   protected void addValue(T value) {
-      if (!this.collection.contains(value)) {
-         this.collection.add(value);
-         this.setting.onChanged();
-         this.invalidateTable();
-      }
-   }
+            T v = getAdditionalValue(t);
+            if (v != null) addValue(v);
+        });
 
-   protected void removeValue(T value) {
-      if (this.collection.remove(value)) {
-         this.setting.onChanged();
-         this.invalidateTable();
-      }
-   }
+        if (Config.get().syncListSettingWidths.get() || !left.cells.isEmpty()) {
+            table.add(theme.verticalSeparator()).expandWidgetY();
+        }
 
-   protected void postWidgets(WTable left, WTable right) {
-   }
+        // Right (selected)
+        WTable right = abc(collection, false, t -> {
+            removeValue(t);
 
-   protected boolean includeValue(T value) {
-      return true;
-   }
+            T v = getAdditionalValue(t);
+            if (v != null) removeValue(v);
+        });
 
-   protected abstract WWidget getValueWidget(T var1);
+        postWidgets(left, right);
+    }
 
-   protected abstract String[] getValueNames(T var1);
+    private WTable abc(Iterable<T> iterable, boolean isLeft, Consumer<T> buttonAction) {
+        // Create
+        Cell<WTable> cell = this.table.add(theme.table()).top();
+        if (Config.get().syncListSettingWidths.get()) cell.group("sync-width");
+        WTable table = cell.widget();
 
-   protected T getAdditionalValue(T value) {
-      return null;
-   }
+        // Sort
+        Predicate<T> predicate = isLeft
+            ? value -> this.includeValue(value) && !collection.contains(value)
+            : this::includeValue;
+
+        Iterable<T> sorted = SortingHelper.sort(iterable, predicate, this::getValueNames, filterText);
+
+        sorted.forEach(t -> {
+            table.add(getValueWidget(t));
+
+            WPressable button = table.add(isLeft ? theme.plus() : theme.minus()).expandCellX().right().widget();
+            button.action = () -> buttonAction.accept(t);
+
+            table.row();
+        });
+
+        if (!table.cells.isEmpty()) cell.expandX();
+
+        return table;
+    }
+
+    protected void invalidateTable() {
+        table.clear();
+        initTable();
+    }
+
+    protected void addValue(T value) {
+        if (!collection.contains(value)) {
+            collection.add(value);
+            setting.onChanged();
+            invalidateTable();
+        }
+    }
+
+    protected void removeValue(T value) {
+        if (collection.remove(value)) {
+            setting.onChanged();
+            invalidateTable();
+        }
+    }
+
+    protected void postWidgets(WTable left, WTable right) {}
+
+    protected boolean includeValue(T value) {
+        return true;
+    }
+
+    protected abstract WWidget getValueWidget(T value);
+
+    protected abstract String[] getValueNames(T value);
+
+    protected T getAdditionalValue(T value) {
+        return null;
+    }
 }

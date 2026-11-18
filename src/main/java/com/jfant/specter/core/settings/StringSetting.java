@@ -1,107 +1,92 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.settings;
 
 import com.jfant.specter.core.gui.utils.CharFilter;
 import com.jfant.specter.core.gui.widgets.input.WTextBox;
-import java.util.function.Consumer;
 import net.minecraft.nbt.CompoundTag;
 
+import java.util.function.Consumer;
+
 public class StringSetting extends Setting<String> {
-   public final String placeholder;
-   public final Class<? extends WTextBox.Renderer> renderer;
-   public final CharFilter filter;
-   public final boolean wide;
+    public final String placeholder;
+    public final Class<? extends WTextBox.Renderer> renderer;
+    public final CharFilter filter;
+    public final boolean wide;
 
-   public StringSetting(
-      String name,
-      String description,
-      String defaultValue,
-      Consumer<String> onChanged,
-      Consumer<Setting<String>> onModuleActivated,
-      IVisible visible,
-      String placeholder,
-      Class<? extends WTextBox.Renderer> renderer,
-      CharFilter filter,
-      boolean wide
-   ) {
-      super(name, description, defaultValue, onChanged, onModuleActivated, visible);
-      this.placeholder = placeholder;
-      this.renderer = renderer;
-      this.filter = filter;
-      this.wide = wide;
-   }
+    public StringSetting(String name, String description, String defaultValue, Consumer<String> onChanged, Consumer<Setting<String>> onModuleActivated, IVisible visible, String placeholder, Class<? extends WTextBox.Renderer> renderer, CharFilter filter, boolean wide) {
+        super(name, description, defaultValue, onChanged, onModuleActivated, visible);
 
-   protected String parseImpl(String str) {
-      return str;
-   }
+        this.placeholder = placeholder;
+        this.renderer = renderer;
+        this.filter = filter;
+        this.wide = wide;
+    }
 
-   protected boolean isValueValid(String value) {
-      if (this.filter == null) {
-         return true;
-      } else {
-         for (int i = 0; i < value.length(); i++) {
-            if (!this.filter.filter(value, value.charAt(i))) {
-               return false;
-            }
-         }
+    @Override
+    protected String parseImpl(String str) {
+        return str;
+    }
 
-         return true;
-      }
-   }
+    @Override
+    protected boolean isValueValid(String value) {
+        if (filter == null) return true;
+        for (int i = 0; i < value.length(); i++) {
+            if (!filter.filter(value, value.charAt(i))) return false;
+        }
+        return true;
+    }
 
-   @Override
-   public CompoundTag save(CompoundTag tag) {
-      tag.putString("value", this.get());
-      return tag;
-   }
+    @Override
+    public CompoundTag save(CompoundTag tag) {
+        tag.putString("value", get());
 
-   public String load(CompoundTag tag) {
-      this.set(tag.getStringOr("value", ""));
-      return this.get();
-   }
+        return tag;
+    }
 
-   public static class Builder extends Setting.SettingBuilder<StringSetting.Builder, String, StringSetting> {
-      private String placeholder;
-      private Class<? extends WTextBox.Renderer> renderer;
-      private CharFilter filter;
-      private boolean wide;
+    @Override
+    public String load(CompoundTag tag) {
+        set(tag.getStringOr("value", ""));
 
-      public Builder() {
-         super("");
-      }
+        return get();
+    }
 
-      public StringSetting.Builder placeholder(String placeholder) {
-         this.placeholder = placeholder;
-         return this;
-      }
+    public static class Builder extends SettingBuilder<Builder, String, StringSetting> {
+        private String placeholder;
+        private Class<? extends WTextBox.Renderer> renderer;
+        private CharFilter filter;
+        private boolean wide;
 
-      public StringSetting.Builder renderer(Class<? extends WTextBox.Renderer> renderer) {
-         this.renderer = renderer;
-         return this;
-      }
+        public Builder() {
+            super("");
+        }
 
-      public StringSetting.Builder filter(CharFilter filter) {
-         this.filter = filter;
-         return this;
-      }
+        public Builder placeholder(String placeholder) {
+            this.placeholder = placeholder;
+            return this;
+        }
 
-      public StringSetting.Builder wide() {
-         this.wide = true;
-         return this;
-      }
+        public Builder renderer(Class<? extends WTextBox.Renderer> renderer) {
+            this.renderer = renderer;
+            return this;
+        }
 
-      public StringSetting build() {
-         return new StringSetting(
-            this.name,
-            this.description,
-            this.defaultValue,
-            this.onChanged,
-            this.onModuleActivated,
-            this.visible,
-            this.placeholder,
-            this.renderer,
-            this.filter,
-            this.wide
-         );
-      }
-   }
+        public Builder filter(CharFilter filter) {
+            this.filter = filter;
+            return this;
+        }
+
+        public Builder wide() {
+            wide = true;
+            return this;
+        }
+
+        @Override
+        public StringSetting build() {
+            return new StringSetting(name, description, defaultValue, onChanged, onModuleActivated, visible, placeholder, renderer, filter, wide);
+        }
+    }
 }

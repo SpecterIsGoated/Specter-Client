@@ -1,6 +1,10 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.screens.accounts;
 
-import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.gui.GuiTheme;
 import com.jfant.specter.core.gui.WindowScreen;
 import com.jfant.specter.core.gui.widgets.WAccount;
@@ -12,73 +16,73 @@ import com.jfant.specter.core.systems.accounts.AccountType;
 import com.jfant.specter.core.systems.accounts.Accounts;
 import com.jfant.specter.core.utils.misc.NbtUtils;
 import com.jfant.specter.core.utils.network.MeteorExecutor;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+
+import static com.jfant.specter.core.SpecterCore.mc;
 
 public class AccountsScreen extends WindowScreen {
-   public AccountsScreen(GuiTheme theme) {
-      super(theme, "Accounts");
-   }
+    public AccountsScreen(GuiTheme theme) {
+        super(theme, "Accounts");
+    }
 
-   @Override
-   public void initWidgets() {
-      for (Account<?> account : Accounts.get()) {
-         WAccount wAccount = this.add(this.theme.account(this, account)).expandX().widget();
-         wAccount.refreshScreenAction = this::reload;
-      }
+    @Override
+    public void initWidgets() {
+        // Accounts
+        for (Account<?> account : Accounts.get()) {
+            WAccount wAccount = add(theme.account(this, account)).expandX().widget();
+            wAccount.refreshScreenAction = this::reload;
+        }
 
-      WHorizontalList l = this.add(this.theme.horizontalList()).expandX().widget();
-      this.addButton(l, "Cracked", () -> SpecterCore.mc.setScreen(new AddCrackedAccountScreen(this.theme, this)));
-      this.addButton(l, "Altening", () -> SpecterCore.mc.setScreen(new AddAlteningAccountScreen(this.theme, this)));
-      this.addButton(l, "Session", () -> SpecterCore.mc.setScreen(new AddSessionAccountScreen(this.theme, this)));
-      this.addButton(l, "Microsoft", () -> SpecterCore.mc.setScreen(new AddMicrosoftAccountScreen(this.theme, this)));
-   }
+        // Add account
+        WHorizontalList l = add(theme.horizontalList()).expandX().widget();
 
-   private void addButton(WContainer c, String text, Runnable action) {
-      WButton button = c.add(this.theme.button(text)).expandX().widget();
-      button.action = action;
-   }
+        addButton(l, "Cracked", () -> mc.gui.setScreen(new AddCrackedAccountScreen(theme, this)));
+        addButton(l, "Altening", () -> mc.gui.setScreen(new AddAlteningAccountScreen(theme, this)));
+        addButton(l, "Session", () -> mc.gui.setScreen(new AddSessionAccountScreen(theme, this)));
+        addButton(l, "Microsoft", () -> mc.gui.setScreen(new AddMicrosoftAccountScreen(theme, this)));
+    }
 
-   public static void addAccount(@Nullable AddAccountScreen screen, AccountsScreen parent, Account<?> account) {
-      if (screen != null) {
-         screen.locked = true;
-      }
+    private void addButton(WContainer c, String text, Runnable action) {
+        WButton button = c.add(theme.button(text)).expandX().widget();
+        button.action = action;
+    }
 
-      MeteorExecutor.execute(() -> {
-         if (!account.fetchInfo()) {
-            SpecterCore.mc.execute(() -> {
-               if (screen != null) {
-                  screen.locked = false;
-               }
-            });
-         } else {
-            Accounts.get().add(account);
-            if (account.login()) {
-               if (account.getType() != AccountType.Cracked) {
-                  account.getCache().loadHead(parent::reload);
-               }
+    public static void addAccount(@Nullable AddAccountScreen screen, AccountsScreen parent, Account<?> account) {
+        if (screen != null) screen.locked = true;
 
-               Accounts.get().save();
+        MeteorExecutor.execute(() -> {
+            if (!account.fetchInfo()) {
+                mc.execute(() -> {
+                    if (screen != null) screen.locked = false;
+                });
+                return;
             }
 
-            SpecterCore.mc.execute(() -> {
-               if (screen != null) {
-                  screen.locked = false;
-                  screen.onClose();
-               }
+            Accounts.get().add(account);
 
-               parent.reload();
+            if (account.login()) {
+                if (account.getType() != AccountType.Cracked) account.getCache().loadHead(parent::reload);
+                Accounts.get().save();
+            }
+
+            mc.execute(() -> {
+                if (screen != null) {
+                    screen.locked = false;
+                    screen.onClose();
+                }
+
+                parent.reload();
             });
-         }
-      });
-   }
+        });
+    }
 
-   @Override
-   public boolean toClipboard() {
-      return NbtUtils.toClipboard(Accounts.get());
-   }
+    @Override
+    public boolean toClipboard() {
+        return NbtUtils.toClipboard(Accounts.get());
+    }
 
-   @Override
-   public boolean fromClipboard() {
-      return NbtUtils.fromClipboard(Accounts.get());
-   }
+    @Override
+    public boolean fromClipboard() {
+        return NbtUtils.fromClipboard(Accounts.get());
+    }
 }

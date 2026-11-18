@@ -1,12 +1,17 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.events.world;
 
 import com.jfant.specter.core.events.Cancellable;
 
 public class ChunkOcclusionEvent extends Cancellable {
-   private static final ChunkOcclusionEvent INSTANCE = new ChunkOcclusionEvent();
+    private static final ChunkOcclusionEvent INSTANCE = new ChunkOcclusionEvent();
 
-   public static ChunkOcclusionEvent get() {
-      INSTANCE.setCancelled(false);
-      return INSTANCE;
-   }
+    public static ChunkOcclusionEvent get() {
+        INSTANCE.setCancelled(false);
+        return INSTANCE;
+    }
 }

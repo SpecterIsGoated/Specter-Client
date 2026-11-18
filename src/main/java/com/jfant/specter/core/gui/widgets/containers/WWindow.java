@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets.containers;
 
 import com.jfant.specter.core.gui.renderer.GuiRenderer;
@@ -5,226 +10,238 @@ import com.jfant.specter.core.gui.utils.Cell;
 import com.jfant.specter.core.gui.utils.WindowConfig;
 import com.jfant.specter.core.gui.widgets.WWidget;
 import com.jfant.specter.core.gui.widgets.pressable.WTriangle;
-import com.jfant.specter.core.utils.Utils;
-import java.util.function.Consumer;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.util.Mth;
 
+import java.util.function.Consumer;
+
+import static com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT;
+import static com.jfant.specter.core.utils.Utils.getWindowHeight;
+import static com.jfant.specter.core.utils.Utils.getWindowWidth;
+
 public abstract class WWindow extends WVerticalList {
-   public double padding = 8.0;
-   public Consumer<WContainer> beforeHeaderInit;
-   public String id;
-   public final WWidget icon;
-   protected final String title;
-   protected WWindow.WHeader header;
-   public WView view;
-   protected boolean dragging;
-   protected boolean expanded = true;
-   protected boolean dragged;
-   protected double animProgress = 1.0;
-   protected boolean moved = false;
-   protected double movedX;
-   protected double movedY;
-   private boolean propagateEventsExpanded;
+    public double padding = 8;
+    public Consumer<WContainer> beforeHeaderInit;
+    public String id;
 
-   public WWindow(WWidget icon, String title) {
-      this.icon = icon;
-      this.title = title;
-   }
+    public final WWidget icon;
+    protected final String title;
 
-   @Override
-   public void init() {
-      this.header = this.header(this.icon);
-      this.header.theme = this.theme;
-      super.add(this.header).expandWidgetX().widget();
-      this.view = super.add(this.theme.view()).expandX().pad(this.padding).widget();
-      if (this.id != null) {
-         this.expanded = this.theme.getWindowConfig(this.id).expanded;
-         this.animProgress = this.expanded ? 1.0 : 0.0;
-      }
-   }
+    protected WHeader header;
+    public WView view;
 
-   protected abstract WWindow.WHeader header(WWidget var1);
+    protected boolean dragging;
+    protected boolean expanded = true;
+    protected boolean dragged;
 
-   @Override
-   public <T extends WWidget> Cell<T> add(T widget) {
-      return this.view.add(widget);
-   }
+    protected double animProgress = 1;
 
-   @Override
-   public void clear() {
-      this.view.clear();
-   }
+    protected boolean moved = false;
+    protected double movedX, movedY;
 
-   public void setExpanded(boolean expanded) {
-      this.expanded = expanded;
-      if (this.id != null) {
-         WindowConfig config = this.theme.getWindowConfig(this.id);
-         config.expanded = expanded;
-      }
-   }
+    private boolean propagateEventsExpanded;
 
-   @Override
-   protected void onCalculateWidgetPositions() {
-      if (this.id != null) {
-         WindowConfig config = this.theme.getWindowConfig(this.id);
-         if (config.x != -1.0) {
-            this.x = config.x;
-            if (this.x + this.width > Utils.getWindowWidth()) {
-               this.x = Utils.getWindowWidth() - this.width;
-            }
-         }
+    public WWindow(WWidget icon, String title) {
+        this.icon = icon;
+        this.title = title;
+    }
 
-         if (config.y != -1.0) {
-            this.y = config.y;
-            if (this.y + this.height > Utils.getWindowHeight()) {
-               this.y = Utils.getWindowHeight() - this.height;
-            }
-         }
-      }
+    @Override
+    public void init() {
+        header = header(icon);
+        header.theme = theme;
+        super.add(header).expandWidgetX().widget();
 
-      super.onCalculateWidgetPositions();
-      if (this.moved) {
-         this.move(this.movedX - this.x, this.movedY - this.y);
-      }
-   }
+        view = super.add(theme.view()).expandX().pad(padding).widget();
 
-   @Override
-   public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-      if (!this.visible) {
-         return true;
-      } else {
-         boolean scissor = this.animProgress != 0.0 && this.animProgress != 1.0 || this.expanded && this.animProgress != 1.0;
-         if (scissor) {
-            renderer.scissorStart(this.x, this.y, this.width, (this.height - this.header.height) * this.animProgress + this.header.height);
-         }
+        if (id != null) {
+            expanded = theme.getWindowConfig(id).expanded;
+            animProgress = expanded ? 1 : 0;
+        }
+    }
 
-         boolean toReturn = super.render(renderer, mouseX, mouseY, delta);
-         if (scissor) {
-            renderer.scissorEnd();
-         }
+    protected abstract WHeader header(WWidget icon);
 
-         return toReturn;
-      }
-   }
+    @Override
+    public <T extends WWidget> Cell<T> add(T widget) {
+        return view.add(widget);
+    }
 
-   @Override
-   protected void renderWidget(WWidget widget, GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-      if (this.expanded || this.animProgress > 0.0 || widget instanceof WWindow.WHeader) {
-         widget.render(renderer, mouseX, mouseY, delta);
-      }
+    @Override
+    public void clear() {
+        view.clear();
+    }
 
-      this.propagateEventsExpanded = this.expanded;
-   }
+    public void setExpanded(boolean expanded) {
+        this.expanded = expanded;
 
-   @Override
-   protected boolean propagateEvents(WWidget widget) {
-      return widget instanceof WWindow.WHeader || this.propagateEventsExpanded;
-   }
+        if (id != null) {
+            WindowConfig config = theme.getWindowConfig(id);
+            config.expanded = expanded;
+        }
+    }
 
-   protected abstract class WHeader extends WContainer {
-      private final WWidget icon;
-      private WTriangle triangle;
-      private WHorizontalList list;
+    @Override
+    protected void onCalculateWidgetPositions() {
+        if (id != null) {
+            WindowConfig config = theme.getWindowConfig(id);
 
-      public WHeader(WWidget icon) {
-         this.icon = icon;
-      }
+            if (config.x != -1) {
+                x = config.x;
 
-      @Override
-      public void init() {
-         if (this.icon != null) {
-            this.createList();
-            this.add(this.icon).centerY();
-         }
-
-         if (WWindow.this.beforeHeaderInit != null) {
-            this.createList();
-            WWindow.this.beforeHeaderInit.accept(this);
-         }
-
-         this.add(this.theme.label(WWindow.this.title, true)).expandCellX().center().pad(4.0);
-         this.triangle = this.<WTriangle>add(this.theme.triangle()).pad(4.0).right().centerY().widget();
-         this.triangle.action = () -> WWindow.this.setExpanded(!WWindow.this.expanded);
-      }
-
-      private void createList() {
-         this.list = this.<WHorizontalList>add(this.theme.horizontalList()).expandX().widget();
-         this.list.spacing = 0.0;
-      }
-
-      @Override
-      public <T extends WWidget> Cell<T> add(T widget) {
-         return this.list != null ? this.list.add(widget) : super.add(widget);
-      }
-
-      @Override
-      protected void onCalculateSize() {
-         this.width = 0.0;
-         this.height = 0.0;
-
-         for (Cell<?> cell : this.cells) {
-            double w = cell.padLeft() + cell.widget().width + cell.padRight();
-            if (cell.widget() instanceof WTriangle) {
-               w *= 2.0;
+                if (x + width > getWindowWidth()) {
+                    x = getWindowWidth() - width;
+                }
             }
 
-            this.width += w;
-            this.height = Math.max(this.height, cell.padTop() + cell.widget().height + cell.padBottom());
-         }
-      }
+            if (config.y != -1) {
+                y = config.y;
 
-      @Override
-      public boolean onMouseClicked(MouseButtonEvent click, boolean doubled) {
-         if (this.mouseOver && !doubled) {
-            if (click.button() == 1) {
-               WWindow.this.setExpanded(!WWindow.this.expanded);
-            } else {
-               WWindow.this.dragging = true;
-               WWindow.this.dragged = false;
+                if (y + height > getWindowHeight()) {
+                    y = getWindowHeight() - height;
+                }
+            }
+        }
+
+        super.onCalculateWidgetPositions();
+
+        if (moved) {
+            move(movedX - x, movedY - y);
+        }
+    }
+
+    @Override
+    public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+        if (!visible) return true;
+
+        boolean scissor = (animProgress != 0 && animProgress != 1) || (expanded && animProgress != 1);
+        if (scissor) renderer.scissorStart(x, y, width, (height - header.height) * animProgress + header.height);
+        boolean toReturn = super.render(renderer, mouseX, mouseY, delta);
+        if (scissor) renderer.scissorEnd();
+
+        return toReturn;
+    }
+
+    @Override
+    protected void renderWidget(WWidget widget, GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+        if (expanded || animProgress > 0 || widget instanceof WHeader) {
+            widget.render(renderer, mouseX, mouseY, delta);
+        }
+
+        propagateEventsExpanded = expanded;
+    }
+
+    @Override
+    protected boolean propagateEvents(WWidget widget) {
+        return widget instanceof WHeader || propagateEventsExpanded;
+    }
+
+    protected abstract class WHeader extends WContainer {
+        private final WWidget icon;
+        private WTriangle triangle;
+        private WHorizontalList list;
+
+        public WHeader(WWidget icon) {
+            this.icon = icon;
+        }
+
+        @Override
+        public void init() {
+            if (icon != null) {
+                createList();
+                add(icon).centerY();
             }
 
-            return true;
-         } else {
+            if (beforeHeaderInit != null) {
+                createList();
+                beforeHeaderInit.accept(this);
+            }
+
+            add(theme.label(title, true)).expandCellX().center().pad(4);
+
+            triangle = add(theme.triangle()).pad(4).right().centerY().widget();
+            triangle.action = () -> setExpanded(!expanded);
+        }
+
+        private void createList() {
+            list = add(theme.horizontalList()).expandX().widget();
+            list.spacing = 0;
+        }
+
+        @Override
+        public <T extends WWidget> Cell<T> add(T widget) {
+            if (list != null) return list.add(widget);
+            return super.add(widget);
+        }
+
+        @Override
+        protected void onCalculateSize() {
+            width = 0;
+            height = 0;
+
+            for (Cell<?> cell : cells) {
+                double w = cell.padLeft() + cell.widget().width + cell.padRight();
+                if (cell.widget() instanceof WTriangle) w *= 2;
+
+                width += w;
+                height = Math.max(height, cell.padTop() + cell.widget().height + cell.padBottom());
+            }
+        }
+
+        @Override
+        public boolean onMouseClicked(MouseButtonEvent click, boolean doubled) {
+            if (mouseOver && !doubled) {
+                if (click.button() == MOUSE_BUTTON_RIGHT) setExpanded(!expanded);
+                else {
+                    dragging = true;
+                    dragged = false;
+                }
+
+                return true;
+            }
+
             return false;
-         }
-      }
+        }
 
-      @Override
-      public boolean onMouseReleased(MouseButtonEvent click) {
-         if (WWindow.this.dragging) {
-            WWindow.this.dragging = false;
-            if (!WWindow.this.dragged) {
-               WWindow.this.setExpanded(!WWindow.this.expanded);
-            }
-         }
+        @Override
+        public boolean onMouseReleased(MouseButtonEvent click) {
+            if (dragging) {
+                dragging = false;
 
-         return false;
-      }
-
-      @Override
-      public void onMouseMoved(double mouseX, double mouseY, double lastMouseX, double lastMouseY) {
-         if (WWindow.this.dragging) {
-            WWindow.this.move(mouseX - lastMouseX, mouseY - lastMouseY);
-            WWindow.this.moved = true;
-            WWindow.this.movedX = this.x;
-            WWindow.this.movedY = this.y;
-            if (WWindow.this.id != null) {
-               WindowConfig config = this.theme.getWindowConfig(WWindow.this.id);
-               config.x = this.x;
-               config.y = this.y;
+                if (!dragged) setExpanded(!expanded);
             }
 
-            WWindow.this.dragged = true;
-         }
-      }
+            return false;
+        }
 
-      @Override
-      public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-         WWindow.this.animProgress = WWindow.this.animProgress + (WWindow.this.expanded ? 1 : -1) * delta * 14.0;
-         WWindow.this.animProgress = Mth.clamp(WWindow.this.animProgress, 0.0, 1.0);
-         this.triangle.rotation = (1.0 - WWindow.this.animProgress) * -90.0;
-         return super.render(renderer, mouseX, mouseY, delta);
-      }
-   }
+        @Override
+        public void onMouseMoved(double mouseX, double mouseY, double lastMouseX, double lastMouseY) {
+            if (dragging) {
+                WWindow.this.move(mouseX - lastMouseX, mouseY - lastMouseY);
+
+                moved = true;
+                movedX = x;
+                movedY = y;
+
+                if (id != null) {
+                    WindowConfig config = theme.getWindowConfig(id);
+
+                    config.x = x;
+                    config.y = y;
+                }
+
+                dragged = true;
+            }
+        }
+
+        @Override
+        public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+            animProgress += (expanded ? 1 : -1) * delta * 14;
+            animProgress = Mth.clamp(animProgress, 0, 1);
+
+            triangle.rotation = (1 - animProgress) * -90;
+
+            return super.render(renderer, mouseX, mouseY, delta);
+        }
+    }
 }

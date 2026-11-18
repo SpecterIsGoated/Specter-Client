@@ -1,12 +1,18 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.mixin;
 
-import java.nio.file.Path;
-import net.minecraft.client.resources.SkinManager.TextureCache;
+import net.minecraft.client.resources.SkinManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin({TextureCache.class})
+import java.nio.file.Path;
+
+@Mixin(SkinManager.TextureCache.class)
 public interface FileCacheAccessor {
-   @Accessor("root")
-   Path meteor$getDirectory();
+    @Accessor("root")
+    Path meteor$getRoot();
 }

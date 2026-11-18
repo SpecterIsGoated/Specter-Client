@@ -1,14 +1,23 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.pathing;
 
 import baritone.api.BaritoneAPI;
 
 public class BaritoneUtils {
-   public static boolean IS_AVAILABLE = false;
+    public static boolean IS_AVAILABLE = false;
 
-   private BaritoneUtils() {
-   }
+    private BaritoneUtils() {
+    }
 
-   public static String getPrefix() {
-      return IS_AVAILABLE ? (String)BaritoneAPI.getSettings().prefix.value : "";
-   }
+    public static String getPrefix() {
+        if (IS_AVAILABLE) {
+            return BaritoneAPI.getSettings().prefix.value;
+        }
+
+        return "";
+    }
 }

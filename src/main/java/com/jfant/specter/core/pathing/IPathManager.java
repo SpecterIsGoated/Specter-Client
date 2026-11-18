@@ -1,52 +1,58 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.pathing;
 
 import com.jfant.specter.core.settings.Setting;
 import com.jfant.specter.core.settings.Settings;
-import java.util.function.Predicate;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.core.BlockPos;
+
+import java.util.function.Predicate;
 
 public interface IPathManager {
-   String getName();
+    String getName();
 
-   boolean isPathing();
+    boolean isPathing();
 
-   void pause();
+    void pause();
 
-   void resume();
+    void resume();
 
-   void stop();
+    void stop();
 
-   default void moveTo(BlockPos pos) {
-      this.moveTo(pos, false);
-   }
+    default void moveTo(BlockPos pos) {
+        moveTo(pos, false);
+    }
 
-   void moveTo(BlockPos var1, boolean var2);
+    void moveTo(BlockPos pos, boolean ignoreY);
 
-   void moveInDirection(float var1);
+    void moveInDirection(float yaw);
 
-   void mine(Block... var1);
+    void mine(Block... blocks);
 
-   void follow(Predicate<Entity> var1);
+    void follow(Predicate<Entity> entity);
 
-   float getTargetYaw();
+    float getTargetYaw();
 
-   float getTargetPitch();
+    float getTargetPitch();
 
-   IPathManager.ISettings getSettings();
+    ISettings getSettings();
 
-   public interface ISettings {
-      Settings get();
+    interface ISettings {
+        Settings get();
 
-      Setting<Boolean> getWalkOnWater();
+        Setting<Boolean> getWalkOnWater();
 
-      Setting<Boolean> getWalkOnLava();
+        Setting<Boolean> getWalkOnLava();
 
-      Setting<Boolean> getStep();
+        Setting<Boolean> getStep();
 
-      Setting<Boolean> getNoFall();
+        Setting<Boolean> getNoFall();
 
-      void save();
-   }
+        void save();
+    }
 }

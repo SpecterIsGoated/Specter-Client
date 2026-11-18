@@ -1,4 +1,11 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.misc;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.AbstractList;
 import java.util.Arrays;
@@ -6,149 +13,140 @@ import java.util.Objects;
 import java.util.function.Predicate;
 
 public class UnorderedArrayList<T> extends AbstractList<T> {
-   private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = new Object[0];
-   private static final int DEFAULT_CAPACITY = 10;
-   private static final int MAX_ARRAY_SIZE = 2147483639;
-   private transient T[] items = (T[])DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
-   private int size;
+    private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
+    private static final int DEFAULT_CAPACITY = 10;
+    private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
-   @Override
-   public boolean add(T t) {
-      if (this.size == this.items.length) {
-         this.grow(this.size + 1);
-      }
+    private transient T[] items;
+    private int size;
 
-      this.items[this.size++] = t;
-      this.modCount++;
-      return true;
-   }
+    @SuppressWarnings("unchecked")
+    public UnorderedArrayList() {
+        items = (T[]) DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
+    }
 
-   @Override
-   public T set(int index, T element) {
-      T old = this.items[index];
-      this.items[index] = element;
-      return old;
-   }
+    @Override
+    public boolean add(T t) {
+        if (size == items.length) grow(size + 1);
+        items[size++] = t;
+        modCount++;
+        return true;
+    }
 
-   @Override
-   public T get(int index) {
-      return this.items[index];
-   }
+    @Override
+    public T set(int index, T element) {
+        T old = items[index];
+        items[index] = element;
+        return old;
+    }
 
-   @Override
-   public void clear() {
-      this.modCount++;
+    @Override
+    public T get(int index) {
+        return items[index];
+    }
 
-      for (int i = 0; i < this.size; i++) {
-         this.items[i] = null;
-      }
+    @Override
+    public void clear() {
+        modCount++;
+        for (int i = 0; i < size; i++) items[i] = null;
+        size = 0;
+    }
 
-      this.size = 0;
-   }
+    @Override
+    public int indexOf(Object o) {
+        for (int i = 0; i < size; i++) {
+            if (Objects.equals(items[i], o)) return i;
+        }
+        return -1;
+    }
 
-   @Override
-   public int indexOf(Object o) {
-      for (int i = 0; i < this.size; i++) {
-         if (Objects.equals(this.items[i], o)) {
-            return i;
-         }
-      }
+    @Override
+    public int lastIndexOf(Object o) {
+        final T[] elements = this.items;
+        for (int i = size - 1; i >= 0; i--) {
+            if (Objects.equals(elements[i], o)) return i;
+        }
+        return -1;
+    }
 
-      return -1;
-   }
+    @Override
+    public boolean remove(Object o) {
+        int i = indexOf(o);
+        if (i == -1) return false;
 
-   @Override
-   public int lastIndexOf(Object o) {
-      T[] elements = this.items;
+        items[i] = null;
+        items[i] = items[--size];
+        modCount++;
+        return true;
+    }
 
-      for (int i = this.size - 1; i >= 0; i--) {
-         if (Objects.equals(elements[i], o)) {
-            return i;
-         }
-      }
+    @Override
+    public T remove(int index) {
+        T old = items[index];
+        items[index] = null;
+        items[index] = items[--size];
+        modCount++;
+        return old;
+    }
 
-      return -1;
-   }
+    @Override
+    public boolean removeIf(@NonNull Predicate<? super T> filter) {
+        int preSize = size;
+        int j = 0;
 
-   @Override
-   public boolean remove(Object o) {
-      int i = this.indexOf(o);
-      if (i == -1) {
-         return false;
-      } else {
-         this.items[i] = null;
-         this.items[i] = this.items[--this.size];
-         this.modCount++;
-         return true;
-      }
-   }
+        for (int i = 0; i < size; i++) {
+            T item = items[i];
 
-   @Override
-   public T remove(int index) {
-      T old = this.items[index];
-      this.items[index] = null;
-      this.items[index] = this.items[--this.size];
-      this.modCount++;
-      return old;
-   }
+            if (!filter.test(item)) {
+                if (j < i) items[j] = item;
 
-   @Override
-   public boolean removeIf(Predicate<? super T> filter) {
-      int preSize = this.size;
-      int j = 0;
-
-      for (int i = 0; i < this.size; i++) {
-         T item = this.items[i];
-         if (!filter.test(item)) {
-            if (j < i) {
-               this.items[j] = item;
+                j++;
             }
+        }
 
-            j++;
-         }
-      }
+        size = j;
+        return size != preSize;
+    }
 
-      this.size = j;
-      return this.size != preSize;
-   }
+    @Override
+    public int size() {
+        return size;
+    }
 
-   @Override
-   public int size() {
-      return this.size;
-   }
+    public void ensureCapacity(int minCapacity) {
+        if (minCapacity > items.length
+            && !(items == DEFAULTCAPACITY_EMPTY_ELEMENTDATA
+            && minCapacity <= DEFAULT_CAPACITY)) {
+            modCount++;
+            grow(minCapacity);
+        }
+    }
 
-   public void ensureCapacity(int minCapacity) {
-      if (minCapacity > this.items.length && (this.items != DEFAULTCAPACITY_EMPTY_ELEMENTDATA || minCapacity > 10)) {
-         this.modCount++;
-         this.grow(minCapacity);
-      }
-   }
+    private void grow(int minCapacity) {
+        items = Arrays.copyOf(items, newCapacity(minCapacity));
+    }
 
-   private void grow(int minCapacity) {
-      this.items = (T[])Arrays.copyOf(this.items, this.newCapacity(minCapacity));
-   }
-
-   private int newCapacity(int minCapacity) {
-      int oldCapacity = this.items.length;
-      int newCapacity = oldCapacity + (oldCapacity >> 1);
-      if (newCapacity - minCapacity <= 0) {
-         if (this.items == DEFAULTCAPACITY_EMPTY_ELEMENTDATA) {
-            return Math.max(10, minCapacity);
-         } else if (minCapacity < 0) {
-            throw new OutOfMemoryError();
-         } else {
+    private int newCapacity(int minCapacity) {
+        // overflow-conscious code
+        int oldCapacity = items.length;
+        int newCapacity = oldCapacity + (oldCapacity >> 1);
+        if (newCapacity - minCapacity <= 0) {
+            if (items == DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
+                return Math.max(DEFAULT_CAPACITY, minCapacity);
+            if (minCapacity < 0) // overflow
+                throw new OutOfMemoryError();
             return minCapacity;
-         }
-      } else {
-         return newCapacity - 2147483639 <= 0 ? newCapacity : hugeCapacity(minCapacity);
-      }
-   }
+        }
+        return (newCapacity - MAX_ARRAY_SIZE <= 0)
+            ? newCapacity
+            : hugeCapacity(minCapacity);
+    }
 
-   private static int hugeCapacity(int minCapacity) {
-      if (minCapacity < 0) {
-         throw new OutOfMemoryError();
-      } else {
-         return minCapacity > 2147483639 ? 2147483647 : 2147483639;
-      }
-   }
+    private static int hugeCapacity(int minCapacity) {
+        if (minCapacity < 0) // overflow
+            throw new OutOfMemoryError();
+        return (minCapacity > MAX_ARRAY_SIZE)
+                ? Integer.MAX_VALUE
+                : MAX_ARRAY_SIZE;
+    }
 }

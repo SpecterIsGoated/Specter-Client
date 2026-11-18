@@ -1,168 +1,172 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets.input;
 
+import com.jfant.specter.core.utils.player.ChatUtils;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.events.entity.player.InteractBlockEvent;
 import com.jfant.specter.core.events.entity.player.StartBreakingBlockEvent;
 import com.jfant.specter.core.gui.widgets.containers.WHorizontalList;
 import com.jfant.specter.core.gui.widgets.pressable.WButton;
+import com.jfant.specter.core.systems.modules.Modules;
 import com.jfant.specter.core.utils.Utils;
-import com.jfant.specter.core.utils.player.ChatUtils;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.phys.HitResult.Type;
+import net.minecraft.world.phys.HitResult;
+
+import static com.jfant.specter.core.SpecterCore.mc;
 
 public class WBlockPosEdit extends WHorizontalList {
-   public Runnable action;
-   public Runnable actionOnRelease;
-   private WTextBox textBoxX;
-   private WTextBox textBoxY;
-   private WTextBox textBoxZ;
-   private Screen previousScreen;
-   private BlockPos value;
-   private BlockPos lastValue;
-   private boolean clicking;
+    public Runnable action;
+    public Runnable actionOnRelease;
 
-   public WBlockPosEdit(BlockPos value) {
-      this.value = value;
-   }
+    private WTextBox textBoxX, textBoxY, textBoxZ;
 
-   @Override
-   public void init() {
-      this.addTextBox();
-      if (Utils.canUpdate()) {
-         WButton click = this.add(this.theme.button("Click")).expandX().widget();
-         click.action = () -> {
-            String sb = "Click!\nRight click to pick a new position.\nLeft click to cancel.";
-            ChatUtils.info(sb);
-            this.clicking = true;
-            SpecterCore.EVENT_BUS.subscribe(this);
-            this.previousScreen = SpecterCore.mc.screen;
-            SpecterCore.mc.setScreen(null);
-         };
-         WButton here = this.add(this.theme.button("Set Here")).expandX().widget();
-         here.action = () -> {
-            this.lastValue = this.value;
-            this.set(new BlockPos(SpecterCore.mc.player.blockPosition()));
-            this.newValueCheck();
-            this.clear();
-            this.init();
-         };
-      }
-   }
+    private Screen previousScreen;
 
-   @EventHandler
-   private void onStartBreakingBlock(StartBreakingBlockEvent event) {
-      if (this.clicking) {
-         this.clicking = false;
-         event.cancel();
-         SpecterCore.EVENT_BUS.unsubscribe(this);
-         SpecterCore.mc.setScreen(this.previousScreen);
-      }
-   }
+    private BlockPos value;
+    private BlockPos lastValue;
 
-   @EventHandler
-   private void onInteractBlock(InteractBlockEvent event) {
-      if (this.clicking) {
-         if (event.result.getType() == Type.MISS) {
-            return;
-         }
+    private boolean clicking;
 
-         this.lastValue = this.value;
-         this.set(event.result.getBlockPos());
-         this.newValueCheck();
-         this.clear();
-         this.init();
-         this.clicking = false;
-         event.cancel();
-         SpecterCore.EVENT_BUS.unsubscribe(this);
-         SpecterCore.mc.setScreen(this.previousScreen);
-      }
-   }
+    public WBlockPosEdit(BlockPos value) {
+        this.value = value;
+    }
 
-   private boolean filter(String text, char c) {
-      boolean validate = true;
-      boolean good;
-      if (c == '-' && text.isEmpty()) {
-         good = true;
-         validate = false;
-      } else {
-         good = Character.isDigit(c);
-      }
+    @Override
+    public void init() {
+        addTextBox();
 
-      if (good && validate) {
-         try {
-            Integer.parseInt(text + c);
-         } catch (NumberFormatException var6) {
-            good = false;
-         }
-      }
+        if (Utils.canUpdate()) {
+            WButton click = add(theme.button("Click")).expandX().widget();
+            click.action = () -> {
+                String sb = "Click!\nRight click to pick a new position.\nLeft click to cancel.";
+                ChatUtils.info(sb);
 
-      return good;
-   }
+                clicking = true;
+                SpecterCore.EVENT_BUS.subscribe(this);
+                previousScreen = mc.gui.screen();
+                mc.gui.setScreen(null);
+            };
 
-   public BlockPos get() {
-      return this.value;
-   }
+            WButton here = add(theme.confirmedButton("Set Here", "Confirm")).expandX().widget();
+            here.action = () -> {
+                lastValue = value;
+                set(BlockPos.containing(mc.player.position()));
+                newValueCheck();
 
-   public void set(BlockPos value) {
-      this.value = value;
-   }
+                clear();
+                init();
+            };
+        }
+    }
 
-   private void addTextBox() {
-      this.textBoxX = this.add(this.theme.textBox(Integer.toString(this.value.getX()), this::filter)).minWidth(75.0).widget();
-      this.textBoxY = this.add(this.theme.textBox(Integer.toString(this.value.getY()), this::filter)).minWidth(75.0).widget();
-      this.textBoxZ = this.add(this.theme.textBox(Integer.toString(this.value.getZ()), this::filter)).minWidth(75.0).widget();
-      this.textBoxX.actionOnUnfocused = () -> {
-         this.lastValue = this.value;
-         if (this.textBoxX.get().isEmpty()) {
-            this.set(new BlockPos(0, 0, 0));
-         } else {
+    @EventHandler
+    private void onStartBreakingBlock(StartBreakingBlockEvent event) {
+        if (clicking) {
+            clicking = false;
+            event.cancel();
+            SpecterCore.EVENT_BUS.unsubscribe(this);
+            mc.gui.setScreen(previousScreen);
+        }
+    }
+
+    @EventHandler
+    private void onInteractBlock(InteractBlockEvent event) {
+        if (clicking) {
+            if (event.result.getType() == HitResult.Type.MISS) return;
+            lastValue = value;
+            set(event.result.getBlockPos());
+            newValueCheck();
+
+            clear();
+            init();
+
+            clicking = false;
+            event.cancel();
+            SpecterCore.EVENT_BUS.unsubscribe(this);
+            mc.gui.setScreen(previousScreen);
+        }
+    }
+
+    private boolean filter(String text, char c) {
+        boolean good;
+        boolean validate = true;
+
+        if (c == '-' && text.isEmpty()) {
+            good = true;
+            validate = false;
+        } else good = Character.isDigit(c);
+
+        if (good && validate) {
             try {
-               this.set(new BlockPos(Integer.parseInt(this.textBoxX.get()), this.value.getY(), this.value.getZ()));
-            } catch (NumberFormatException var2) {
+                Integer.parseInt(text + c);
+            } catch (NumberFormatException _) {
+                good = false;
             }
-         }
+        }
 
-         this.newValueCheck();
-      };
-      this.textBoxY.actionOnUnfocused = () -> {
-         this.lastValue = this.value;
-         if (this.textBoxY.get().isEmpty()) {
-            this.set(new BlockPos(0, 0, 0));
-         } else {
-            try {
-               this.set(new BlockPos(this.value.getX(), Integer.parseInt(this.textBoxY.get()), this.value.getZ()));
-            } catch (NumberFormatException var2) {
+        return good;
+    }
+
+    public BlockPos get() {
+        return value;
+    }
+
+    public void set(BlockPos value) {
+        this.value = value;
+    }
+
+    private void addTextBox() {
+        textBoxX = add(theme.textBox(Integer.toString(value.getX()), this::filter)).minWidth(75).widget();
+        textBoxY = add(theme.textBox(Integer.toString(value.getY()), this::filter)).minWidth(75).widget();
+        textBoxZ = add(theme.textBox(Integer.toString(value.getZ()), this::filter)).minWidth(75).widget();
+
+        textBoxX.actionOnUnfocused = () -> {
+            lastValue = value;
+            if (textBoxX.get().isEmpty()) set(new BlockPos(0, 0, 0));
+            else {
+                try {
+                    set(new BlockPos(Integer.parseInt(textBoxX.get()), value.getY(), value.getZ()));
+                } catch (NumberFormatException _) {
+                }
             }
-         }
+            newValueCheck();
+        };
 
-         this.newValueCheck();
-      };
-      this.textBoxZ.actionOnUnfocused = () -> {
-         this.lastValue = this.value;
-         if (this.textBoxZ.get().isEmpty()) {
-            this.set(new BlockPos(0, 0, 0));
-         } else {
-            try {
-               this.set(new BlockPos(this.value.getX(), this.value.getY(), Integer.parseInt(this.textBoxZ.get())));
-            } catch (NumberFormatException var2) {
+        textBoxY.actionOnUnfocused = () -> {
+            lastValue = value;
+            if (textBoxY.get().isEmpty()) set(new BlockPos(0, 0, 0));
+            else {
+                try {
+                    set(new BlockPos(value.getX(), Integer.parseInt(textBoxY.get()), value.getZ()));
+                } catch (NumberFormatException _) {
+                }
             }
-         }
+            newValueCheck();
+        };
 
-         this.newValueCheck();
-      };
-   }
+        textBoxZ.actionOnUnfocused = () -> {
+            lastValue = value;
+            if (textBoxZ.get().isEmpty()) set(new BlockPos(0, 0, 0));
+            else {
+                try {
+                    set(new BlockPos(value.getX(), value.getY(), Integer.parseInt(textBoxZ.get())));
+                } catch (NumberFormatException _) {
+                }
+            }
+            newValueCheck();
+        };
+    }
 
-   private void newValueCheck() {
-      if (this.value != this.lastValue) {
-         if (this.action != null) {
-            this.action.run();
-         }
-
-         if (this.actionOnRelease != null) {
-            this.actionOnRelease.run();
-         }
-      }
-   }
+    private void newValueCheck() {
+        if (value != lastValue) {
+            if (action != null) action.run();
+            if (actionOnRelease != null) actionOnRelease.run();
+        }
+    }
 }

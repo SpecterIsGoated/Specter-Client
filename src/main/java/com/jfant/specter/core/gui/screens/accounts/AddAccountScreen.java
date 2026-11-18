@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.screens.accounts;
 
 import com.jfant.specter.core.gui.GuiTheme;
@@ -5,38 +10,39 @@ import com.jfant.specter.core.gui.WindowScreen;
 import com.jfant.specter.core.gui.widgets.pressable.WButton;
 
 public abstract class AddAccountScreen extends WindowScreen {
-   public final AccountsScreen parent;
-   public WButton add;
-   private int timer;
+    public final AccountsScreen parent;
+    public WButton add;
+    private int timer;
 
-   protected AddAccountScreen(GuiTheme theme, String title, AccountsScreen parent) {
-      super(theme, title);
-      this.parent = parent;
-   }
+    protected AddAccountScreen(GuiTheme theme, String title, AccountsScreen parent) {
+        super(theme, title);
+        this.parent = parent;
+    }
 
-   @Override
-   public void tick() {
-      if (this.locked) {
-         if (this.timer > 2) {
-            this.add.set(this.getNext(this.add));
-            this.timer = 0;
-         } else {
-            this.timer++;
-         }
-      } else if (!this.add.getText().equals("Add")) {
-         this.add.set("Add");
-      }
-   }
+    @Override
+    public void tick() {
+        if (locked) {
+            if (timer > 2) {
+                add.set(getNext(add));
+                timer = 0;
+            }
+            else {
+                timer++;
+            }
+        }
 
-   private String getNext(WButton add) {
-      String var2 = add.getText();
+        else if (!add.getText().equals("Add")) {
+            add.set("Add");
+        }
+    }
 
-      return switch (var2) {
-         case "Add", "oo0" -> "ooo";
-         case "ooo" -> "0oo";
-         case "0oo" -> "o0o";
-         case "o0o" -> "oo0";
-         default -> "Add";
-      };
-   }
+    private String getNext(WButton add) {
+        return switch (add.getText()) {
+            case "Add", "oo0" -> "ooo";
+            case "ooo" -> "0oo";
+            case "0oo" -> "o0o";
+            case "o0o" -> "oo0";
+            default -> "Add";
+        };
+    }
 }

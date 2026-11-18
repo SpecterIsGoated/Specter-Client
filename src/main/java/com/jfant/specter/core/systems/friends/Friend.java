@@ -1,123 +1,129 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.systems.friends;
 
+import com.mojang.util.UndashedUuid;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.utils.misc.ISerializable;
 import com.jfant.specter.core.utils.network.FailedHttpResponse;
 import com.jfant.specter.core.utils.network.Http;
 import com.jfant.specter.core.utils.render.PlayerHeadTexture;
 import com.jfant.specter.core.utils.render.PlayerHeadUtils;
-import com.mojang.util.UndashedUuid;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.player.Player;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.net.http.HttpResponse;
 import java.util.Objects;
 import java.util.UUID;
-import javax.annotation.Nullable;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.entity.player.Player;
-import org.jetbrains.annotations.NotNull;
+
+import static com.jfant.specter.core.SpecterCore.mc;
 
 public class Friend implements ISerializable<Friend>, Comparable<Friend> {
-   public volatile String name;
-   @Nullable
-   private volatile UUID id;
-   @Nullable
-   private volatile PlayerHeadTexture headTexture;
-   private volatile boolean updating;
+    public volatile String name;
+    private volatile @Nullable UUID id;
+    private volatile @Nullable PlayerHeadTexture headTexture;
+    private volatile boolean updating;
 
-   public Friend(String name, @Nullable UUID id) {
-      this.name = name;
-      this.id = id;
-      this.headTexture = null;
-   }
+    public Friend(String name, @Nullable UUID id) {
+        this.name = name;
+        this.id = id;
+        this.headTexture = null;
+    }
 
-   public Friend(Player player) {
-      this(player.getName().getString(), player.getUUID());
-   }
+    public Friend(Player player) {
+        this(player.getName().getString(), player.getUUID());
+    }
 
-   public Friend(String name) {
-      this(name, null);
-   }
+    public Friend(String name) {
+        this(name, null);
+    }
 
-   public String getName() {
-      return this.name;
-   }
+    public String getName() {
+        return name;
+    }
 
-   public PlayerHeadTexture getHead() {
-      return this.headTexture != null ? this.headTexture : PlayerHeadUtils.STEVE_HEAD;
-   }
+    public PlayerHeadTexture getHead() {
+        return headTexture != null ? headTexture : PlayerHeadUtils.STEVE_HEAD;
+    }
 
-   public void updateInfo() {
-      this.updating = true;
-      HttpResponse<Friend.APIResponse> res = null;
-      if (this.id != null) {
-         res = Http.get("https://sessionserver.mojang.com/session/minecraft/profile/" + UndashedUuid.toString(this.id))
-            .exceptionHandler(e -> SpecterCore.LOG.error("Error while trying to connect session server for friend '{}'", this.name))
-            .sendJsonResponse(Friend.APIResponse.class);
-      }
+    public void updateInfo() {
+        updating = true;
+        HttpResponse<APIResponse> res = null;
 
-      if (res == null || res.statusCode() != 200) {
-         res = Http.get("https://api.mojang.com/users/profiles/minecraft/" + this.name)
-            .exceptionHandler(e -> SpecterCore.LOG.error("Error while trying to update info for friend '{}'", this.name))
-            .sendJsonResponse(Friend.APIResponse.class);
-      }
+        if (id != null) {
+            res = Http.get("https://sessionserver.mojang.com/session/minecraft/profile/" + UndashedUuid.toString(id))
+                .exceptionHandler(_ -> SpecterCore.LOG.error("Error while trying to connect session server for friend '{}'", name))
+                .sendJsonResponse(APIResponse.class);
+        }
 
-      if (res != null && res.statusCode() == 200) {
-         this.name = res.body().name;
-         this.id = UndashedUuid.fromStringLenient(res.body().id);
-         byte[] head = PlayerHeadUtils.fetchHead(this.id);
-         SpecterCore.mc.execute(() -> {
-            if (head != null) {
-               this.headTexture = new PlayerHeadTexture(head, true);
-            }
-         });
-      } else if (!(res instanceof FailedHttpResponse)) {
-         this.id = null;
-      }
+        // Fallback to name-based lookup
+        if (res == null || res.statusCode() != 200) {
+            res = Http.get("https://api.mojang.com/users/profiles/minecraft/" + name)
+                .exceptionHandler(_ -> SpecterCore.LOG.error("Error while trying to update info for friend '{}'", name))
+                .sendJsonResponse(APIResponse.class);
+        }
 
-      this.updating = false;
-   }
+        if (res != null && res.statusCode() == 200) {
+            name = res.body().name;
+            id = UndashedUuid.fromStringLenient(res.body().id);
 
-   public boolean headTextureNeedsUpdate() {
-      return !this.updating && this.headTexture == null;
-   }
+            byte[] head = PlayerHeadUtils.fetchHead(id);
+            mc.execute(() -> {
+                if (head != null) headTexture = new PlayerHeadTexture(head, true);
+            });
+        }
 
-   @Override
-   public CompoundTag toTag() {
-      CompoundTag tag = new CompoundTag();
-      tag.putString("name", this.name);
-      if (this.id != null) {
-         tag.putString("id", UndashedUuid.toString(this.id));
-      }
+        // cracked accounts shouldn't be assigned ids
+        else if (!(res instanceof FailedHttpResponse)) {
+            id = null;
+        }
 
-      return tag;
-   }
+        updating = false;
+    }
 
-   public Friend fromTag(CompoundTag tag) {
-      return this;
-   }
+    public boolean headTextureNeedsUpdate() {
+        return !this.updating && headTexture == null;
+    }
 
-   @Override
-   public boolean equals(Object o) {
-      if (this == o) {
-         return true;
-      } else if (o != null && this.getClass() == o.getClass()) {
-         Friend friend = (Friend)o;
-         return Objects.equals(this.name, friend.name);
-      } else {
-         return false;
-      }
-   }
+    @Override
+    public CompoundTag toTag() {
+        CompoundTag tag = new CompoundTag();
 
-   @Override
-   public int hashCode() {
-      return Objects.hash(this.name);
-   }
+        tag.putString("name", name);
+        if (id != null) tag.putString("id", UndashedUuid.toString(id));
 
-   public int compareTo(@NotNull Friend friend) {
-      return this.name.compareToIgnoreCase(friend.name);
-   }
+        return tag;
+    }
 
-   private static class APIResponse {
-      String name;
-      String id;
-   }
+    @Override
+    public Friend fromTag(CompoundTag tag) {
+        return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Friend friend = (Friend) o;
+        return Objects.equals(name, friend.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name);
+    }
+
+    @Override
+    public int compareTo(@NonNull Friend friend) {
+        return name.compareToIgnoreCase(friend.name);
+    }
+
+    private static class APIResponse {
+        String name, id;
+    }
 }

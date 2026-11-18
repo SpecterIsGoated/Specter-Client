@@ -1,9 +1,14 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.events.game;
 
 public class GameLeftEvent {
-   private static final GameLeftEvent INSTANCE = new GameLeftEvent();
+    private static final GameLeftEvent INSTANCE = new GameLeftEvent();
 
-   public static GameLeftEvent get() {
-      return INSTANCE;
-   }
+    public static GameLeftEvent get() {
+        return INSTANCE;
+    }
 }

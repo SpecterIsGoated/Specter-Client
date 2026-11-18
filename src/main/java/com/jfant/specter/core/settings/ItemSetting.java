@@ -1,75 +1,80 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.settings;
 
-import java.util.function.Consumer;
-import java.util.function.Predicate;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
 public class ItemSetting extends Setting<Item> {
-   public final Predicate<Item> filter;
+    public final Predicate<Item> filter;
 
-   public ItemSetting(
-      String name,
-      String description,
-      Item defaultValue,
-      Consumer<Item> onChanged,
-      Consumer<Setting<Item>> onModuleActivated,
-      IVisible visible,
-      Predicate<Item> filter
-   ) {
-      super(name, description, defaultValue, onChanged, onModuleActivated, visible);
-      this.filter = filter;
-   }
+    public ItemSetting(String name, String description, Item defaultValue, Consumer<Item> onChanged, Consumer<Setting<Item>> onModuleActivated, IVisible visible, Predicate<Item> filter) {
+        super(name, description, defaultValue, onChanged, onModuleActivated, visible);
 
-   protected Item parseImpl(String str) {
-      return parseId(BuiltInRegistries.ITEM, str);
-   }
+        this.filter = filter;
+    }
 
-   protected boolean isValueValid(Item value) {
-      return this.filter == null || this.filter.test(value);
-   }
+    @Override
+    protected Item parseImpl(String str) {
+        return parseId(BuiltInRegistries.ITEM, str);
+    }
 
-   @Override
-   public Iterable<Identifier> getIdentifierSuggestions() {
-      return BuiltInRegistries.ITEM.keySet();
-   }
+    @Override
+    protected boolean isValueValid(Item value) {
+        return filter == null || filter.test(value);
+    }
 
-   @Override
-   public CompoundTag save(CompoundTag tag) {
-      tag.putString("value", BuiltInRegistries.ITEM.getKey(this.get()).toString());
-      return tag;
-   }
+    @Override
+    public Iterable<Identifier> getIdentifierSuggestions() {
+        return BuiltInRegistries.ITEM.keySet();
+    }
 
-   public Item load(CompoundTag tag) {
-      this.value = BuiltInRegistries.ITEM.getValue(Identifier.parse(tag.getStringOr("value", "")));
-      if (this.filter != null && !this.filter.test(this.value)) {
-         for (Item item : BuiltInRegistries.ITEM) {
-            if (this.filter.test(item)) {
-               this.value = item;
-               break;
+    @Override
+    public CompoundTag save(CompoundTag tag) {
+        tag.putString("value", BuiltInRegistries.ITEM.getKey(get()).toString());
+
+        return tag;
+    }
+
+    @Override
+    public Item load(CompoundTag tag) {
+        value = BuiltInRegistries.ITEM.getValue(Identifier.parse(tag.getStringOr("value", "")));
+
+        if (filter != null && !filter.test(value)) {
+            for (Item item : BuiltInRegistries.ITEM) {
+                if (filter.test(item)) {
+                    value = item;
+                    break;
+                }
             }
-         }
-      }
+        }
 
-      return this.get();
-   }
+        return get();
+    }
 
-   public static class Builder extends Setting.SettingBuilder<ItemSetting.Builder, Item, ItemSetting> {
-      private Predicate<Item> filter;
+    public static class Builder extends SettingBuilder<Builder, Item, ItemSetting> {
+        private Predicate<Item> filter;
 
-      public Builder() {
-         super(null);
-      }
+        public Builder() {
+            super(null);
+        }
 
-      public ItemSetting.Builder filter(Predicate<Item> filter) {
-         this.filter = filter;
-         return this;
-      }
+        public Builder filter(Predicate<Item> filter) {
+            this.filter = filter;
+            return this;
+        }
 
-      public ItemSetting build() {
-         return new ItemSetting(this.name, this.description, this.defaultValue, this.onChanged, this.onModuleActivated, this.visible, this.filter);
-      }
-   }
+        @Override
+        public ItemSetting build() {
+            return new ItemSetting(name, description, defaultValue, onChanged, onModuleActivated, visible, filter);
+        }
+    }
 }

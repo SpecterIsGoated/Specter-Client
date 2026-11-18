@@ -1,192 +1,227 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.renderer;
 
-import com.jfant.specter.core.SpecterCore;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+import com.mojang.renderpearl.api.commands.CommandEncoder;
+import com.mojang.renderpearl.api.commands.RenderPass;
+import com.mojang.renderpearl.api.pipeline.IndexType;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.textures.GpuSampler;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import com.jfant.specter.core.utils.Utils;
 import com.jfant.specter.core.utils.render.RenderUtils;
 import com.jfant.specter.core.utils.render.color.Color;
-import com.mojang.blaze3d.buffers.GpuBuffer;
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.systems.RenderPass;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.GpuSampler;
-import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexFormat.IndexType;
-import java.util.HashMap;
-import java.util.OptionalDouble;
-import java.util.OptionalInt;
-import net.minecraft.util.ARGB;
-import net.minecraft.util.Tuple;
 import net.minecraft.world.phys.Vec3;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
+import org.joml.Vector4fc;
+import org.jspecify.annotations.Nullable;
+
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalDouble;
+
+import static com.jfant.specter.core.SpecterCore.mc;
 
 public class MeshRenderer {
-   private static final MeshRenderer INSTANCE = new MeshRenderer();
-   private static boolean taken;
-   private GpuTextureView colorAttachment;
-   private GpuTextureView depthAttachment;
-   private Color clearColor;
-   private RenderPipeline pipeline;
-   @Nullable
-   private MeshBuilder mesh;
-   @Nullable
-   private GpuBuffer vertexBuffer;
-   @Nullable
-   private GpuBuffer indexBuffer;
-   private Matrix4f matrix;
-   private final HashMap<String, GpuBufferSlice> uniforms = new HashMap<>();
-   private final HashMap<String, Tuple<GpuTextureView, GpuSampler>> samplers = new HashMap<>();
+    private static final MeshRenderer INSTANCE = new MeshRenderer();
 
-   private MeshRenderer() {
-   }
+    private static boolean taken;
 
-   public static MeshRenderer begin() {
-      if (taken) {
-         throw new IllegalStateException("Previous instance of MeshRenderer was not ended");
-      } else {
-         taken = true;
-         return INSTANCE;
-      }
-   }
+    private GpuTextureView colorAttachment;
+    private GpuTextureView depthAttachment;
+    private @Nullable Color clearColor;
+    private RenderPipeline pipeline;
+    private @Nullable MeshBuilder mesh;
+    private @Nullable GpuBufferSlice vertexBuffer;
+    private @Nullable GpuBufferSlice indexBuffer;
+    private IndexType indexType = IndexType.INT;
+    private Matrix4f matrix;
+    private final Map<String, GpuBufferSlice> uniforms = new Object2ObjectOpenHashMap<>();
+    private final Map<String, TextureViewAndSampler> samplers = new Object2ObjectOpenHashMap<>();
 
-   public MeshRenderer attachments(GpuTextureView color, GpuTextureView depth) {
-      this.colorAttachment = color;
-      this.depthAttachment = depth;
-      return this;
-   }
+    private record TextureViewAndSampler(GpuTextureView textureView, GpuSampler sampler) {
+    }
 
-   public MeshRenderer attachments(RenderTarget framebuffer) {
-      this.colorAttachment = framebuffer.getColorTextureView();
-      this.depthAttachment = framebuffer.getDepthTextureView();
-      return this;
-   }
+    private MeshRenderer() {
+    }
 
-   public MeshRenderer clearColor(Color color) {
-      this.clearColor = color;
-      return this;
-   }
+    public static MeshRenderer begin() {
+        if (taken)
+            throw new IllegalStateException("Previous instance of MeshRenderer was not ended");
 
-   public MeshRenderer pipeline(RenderPipeline pipeline) {
-      this.pipeline = pipeline;
-      return this;
-   }
+        taken = true;
+        return INSTANCE;
+    }
 
-   public MeshRenderer mesh(GpuBuffer vertices, GpuBuffer indices) {
-      this.vertexBuffer = vertices;
-      this.indexBuffer = indices;
-      return this;
-   }
+    public MeshRenderer attachments(GpuTextureView color, GpuTextureView depth) {
+        colorAttachment = color;
+        depthAttachment = depth;
+        return this;
+    }
 
-   public MeshRenderer mesh(MeshBuilder mesh) {
-      this.mesh = mesh;
-      return this;
-   }
+    public MeshRenderer attachments(RenderTarget framebuffer) {
+        colorAttachment = framebuffer.getColorTextureView();
+        depthAttachment = framebuffer.getDepthTextureView();
+        return this;
+    }
 
-   public MeshRenderer mesh(MeshBuilder mesh, Matrix4f matrix) {
-      this.mesh = mesh;
-      return this.transform(matrix);
-   }
+    public MeshRenderer clearColor(Color color) {
+        clearColor = color;
+        return this;
+    }
 
-   public MeshRenderer mesh(MeshBuilder mesh, PoseStack matrices) {
-      this.mesh = mesh;
-      return this.transform(matrices);
-   }
+    public MeshRenderer pipeline(RenderPipeline pipeline) {
+        this.pipeline = pipeline;
+        return this;
+    }
 
-   public MeshRenderer transform(Matrix4f matrix) {
-      this.matrix = matrix;
-      return this;
-   }
+    public MeshRenderer mesh(GpuBufferSlice vertices, GpuBufferSlice indices) {
+        return mesh(vertices, indices, IndexType.INT);
+    }
 
-   public MeshRenderer transform(PoseStack matrices) {
-      this.matrix = matrices.last().pose();
-      return this;
-   }
+    public MeshRenderer mesh(GpuBufferSlice vertices, GpuBufferSlice indices, IndexType indexType) {
+        this.vertexBuffer = vertices;
+        this.indexBuffer = indices;
+        this.indexType = indexType;
+        return this;
+    }
 
-   public MeshRenderer fullscreen() {
-      return this.mesh(FullScreenRenderer.vbo, FullScreenRenderer.ibo);
-   }
+    public MeshRenderer mesh(MeshBuilder mesh) {
+        this.mesh = mesh;
+        this.indexType = mesh.getIndexType();
+        return this;
+    }
 
-   public MeshRenderer uniform(String name, GpuBufferSlice slice) {
-      this.uniforms.put(name, slice);
-      return this;
-   }
+    public MeshRenderer mesh(MeshBuilder mesh, Matrix4f matrix) {
+        this.mesh = mesh;
+        return this.transform(matrix);
+    }
 
-   public MeshRenderer sampler(String name, GpuTextureView view, GpuSampler sampler) {
-      if (name != null && view != null && sampler != null) {
-         this.samplers.put(name, new Tuple<>(view, sampler));
-      }
+    public MeshRenderer mesh(MeshBuilder mesh, PoseStack matrices) {
+        this.mesh = mesh;
+        return this.transform(matrices);
+    }
 
-      return this;
-   }
+    public MeshRenderer transform(Matrix4f matrix) {
+        this.matrix = matrix;
+        return this;
+    }
 
-   public void end() {
-      if (this.mesh != null && this.mesh.isBuilding()) {
-         this.mesh.end();
-      }
+    public MeshRenderer transform(PoseStack matrices) {
+        this.matrix = matrices.last().pose();
+        return this;
+    }
 
-      int indexCount = this.mesh != null ? this.mesh.getIndicesCount() : (int)(this.indexBuffer != null ? this.indexBuffer.size() / 4L : -1L);
-      if (indexCount > 0) {
-         if (Utils.rendering3D || this.matrix != null) {
-            RenderSystem.getModelViewStack().pushMatrix();
-         }
+    public MeshRenderer fullscreen() {
+        return this.mesh(FullScreenRenderer.vbo.slice(), FullScreenRenderer.ibo.slice());
+    }
 
-         if (this.matrix != null) {
-            RenderSystem.getModelViewStack().mul(this.matrix);
-         }
+    public MeshRenderer uniform(String name, GpuBufferSlice slice) {
+        uniforms.put(name, slice);
+        return this;
+    }
 
-         if (Utils.rendering3D) {
-            applyCameraPos();
-         }
+    public MeshRenderer sampler(String name, GpuTextureView view, GpuSampler sampler) {
+        if (name != null && view != null && sampler != null) {
+            samplers.put(name, new TextureViewAndSampler(view, sampler));
+        }
 
-         GpuBuffer vertexBuffer = this.mesh != null ? this.mesh.getVertexBuffer() : this.vertexBuffer;
-         GpuBuffer indexBuffer = this.mesh != null ? this.mesh.getIndexBuffer() : this.indexBuffer;
-         OptionalInt clearColor = this.clearColor != null
-            ? OptionalInt.of(ARGB.color(this.clearColor.a, this.clearColor.r, this.clearColor.g, this.clearColor.b))
-            : OptionalInt.empty();
-         GpuBufferSlice meshData = MeshUniforms.write(RenderUtils.projection, RenderSystem.getModelViewStack());
-         RenderPass pass = this.depthAttachment != null && this.pipeline.wantsDepthTexture()
-            ? RenderSystem.getDevice()
-               .createCommandEncoder()
-               .createRenderPass(() -> "Meteor MeshRenderer", this.colorAttachment, clearColor, this.depthAttachment, OptionalDouble.empty())
-            : RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "Meteor MeshRenderer", this.colorAttachment, clearColor);
-         pass.setPipeline(this.pipeline);
-         pass.setUniform("MeshData", meshData);
+        return this;
+    }
 
-         for (String name : this.uniforms.keySet()) {
-            pass.setUniform(name, this.uniforms.get(name));
-         }
+    public void end() {
+        if (mesh != null && mesh.isBuilding()) {
+            mesh.end();
+        }
 
-         for (String name : this.samplers.keySet()) {
-            pass.bindTexture(name, this.samplers.get(name).getA(), this.samplers.get(name).getB());
-         }
+        int indexCount = mesh != null ? mesh.getIndicesCount()
+            : (int) (indexBuffer != null ? indexBuffer.length() / indexType.bytes : -1);
 
-         pass.setVertexBuffer(0, vertexBuffer);
-         pass.setIndexBuffer(indexBuffer, IndexType.INT);
-         pass.drawIndexed(0, 0, indexCount, 1);
-         pass.close();
-         if (Utils.rendering3D || this.matrix != null) {
-            RenderSystem.getModelViewStack().popMatrix();
-         }
-      }
+        if (indexCount > 0) {
+            if (Utils.rendering3D || matrix != null) {
+                RenderSystem.getModelViewStack().pushMatrix();
+            }
 
-      this.colorAttachment = null;
-      this.depthAttachment = null;
-      this.clearColor = null;
-      this.pipeline = null;
-      this.mesh = null;
-      this.vertexBuffer = null;
-      this.indexBuffer = null;
-      this.matrix = null;
-      this.uniforms.clear();
-      this.samplers.clear();
-      taken = false;
-   }
+            if (matrix != null) {
+                RenderSystem.getModelViewStack().mul(matrix);
+            }
 
-   private static void applyCameraPos() {
-      Vec3 cameraPos = SpecterCore.mc.gameRenderer.getMainCamera().position();
-      RenderSystem.getModelViewStack().translate(0.0F, (float)(-cameraPos.y), 0.0F);
-   }
+            if (Utils.rendering3D) {
+                applyCameraPos();
+            }
+
+            Optional<Vector4fc> clearColor = this.clearColor != null
+                ? Optional.of(this.clearColor.getVec4f())
+                : Optional.empty();
+
+            CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
+
+            GpuBufferSlice vertexBuffer = mesh != null ? mesh.uploadVertexBuffer(encoder) : Objects.requireNonNull(this.vertexBuffer);
+            GpuBufferSlice indexBuffer = mesh != null ? mesh.uploadIndexBuffer(encoder) : Objects.requireNonNull(this.indexBuffer);
+
+            int firstIndex = getFirstIndex(indexBuffer);
+
+            GpuBufferSlice meshData = MeshUniforms.write(RenderUtils.projection, RenderSystem.getModelViewStack());
+
+            try (RenderPass pass = (depthAttachment != null && pipeline.wantsDepthTexture()) ?
+                encoder.createRenderPass(() -> "Meteor MeshRenderer", colorAttachment, clearColor, depthAttachment, OptionalDouble.empty()) :
+                encoder.createRenderPass(() -> "Meteor MeshRenderer", colorAttachment, clearColor)) {
+
+                pass.setPipeline(RenderSystem.getCompiledPipeline(pipeline));
+                pass.setUniform("MeshData", meshData);
+
+                for (var entry : uniforms.entrySet()) {
+                    pass.setUniform(entry.getKey(), entry.getValue());
+                }
+
+                for (var entry : samplers.entrySet()) {
+                    pass.setUniform(entry.getKey(), entry.getValue().textureView, entry.getValue().sampler);
+                }
+
+                pass.setVertexBuffer(0, vertexBuffer);
+                pass.setIndexBuffer(indexBuffer.buffer(), indexType);
+                pass.drawIndexed(indexCount, 1, firstIndex, 0, 0);
+            }
+
+            if (Utils.rendering3D || matrix != null) {
+                RenderSystem.getModelViewStack().popMatrix();
+            }
+        }
+
+        colorAttachment = null;
+        depthAttachment = null;
+        clearColor = null;
+        pipeline = null;
+        mesh = null;
+        vertexBuffer = null;
+        indexBuffer = null;
+        indexType = IndexType.INT;
+        matrix = null;
+        uniforms.clear();
+        samplers.clear();
+
+        taken = false;
+    }
+
+    private int getFirstIndex(GpuBufferSlice indexBuffer) {
+        if (indexBuffer.offset() % indexType.bytes != 0) {
+            throw new IllegalArgumentException("Index buffer offset must be aligned to " + indexType.bytes + " bytes.");
+        }
+
+        return Math.toIntExact(indexBuffer.offset() / indexType.bytes);
+    }
+
+    private static void applyCameraPos() {
+        Vec3 cameraPos = mc.gameRenderer.mainCamera().position();
+        RenderSystem.getModelViewStack().translate(0, (float) -cameraPos.y, 0);
+    }
 }

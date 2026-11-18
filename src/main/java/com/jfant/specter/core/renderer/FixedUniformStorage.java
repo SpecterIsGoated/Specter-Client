@@ -1,78 +1,91 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.renderer;
 
-import com.mojang.blaze3d.buffers.GpuBuffer;
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
-import com.mojang.blaze3d.buffers.GpuBuffer.MappedView;
-import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
-import java.nio.ByteBuffer;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+import com.mojang.renderpearl.api.device.GpuDevice;
+import net.minecraft.client.renderer.DynamicGpuDataStorage;
 import net.minecraft.client.renderer.MappableRingBuffer;
-import net.minecraft.client.renderer.DynamicUniformStorage.DynamicUniform;
 import net.minecraft.util.Mth;
 
-public class FixedUniformStorage<T extends DynamicUniform> {
-   private final MappableRingBuffer buffer;
-   private final int blockSize;
-   private final int capacity;
-   private int size;
+import java.nio.ByteBuffer;
 
-   public FixedUniformStorage(String name, int blockSize, int capacity) {
-      GpuDevice gpuDevice = RenderSystem.getDevice();
-      this.blockSize = Mth.roundToward(blockSize, gpuDevice.getUniformOffsetAlignment());
-      this.capacity = capacity;
-      int alignedCapacity = Mth.smallestEncompassingPowerOfTwo(capacity);
-      this.size = 0;
-      this.buffer = new MappableRingBuffer(() -> name + " x" + this.blockSize, 130, this.blockSize * alignedCapacity);
-   }
+/**
+ * UBO storage with a constant size. Exceeding this size causes an {@link IndexOutOfBoundsException} to be thrown.
+ *
+ * @author Crosby
+ * @see DynamicGpuDataStorage
+ */
+public class FixedUniformStorage<T extends DynamicGpuDataStorage.DynamicGpuData> {
+    private final MappableRingBuffer buffer;
+    private final int blockSize;
+    private final int capacity;
+    private int size;
 
-   public GpuBufferSlice write(T value) {
-      if (this.size >= this.capacity) {
-         throw new IndexOutOfBoundsException(String.format("Index %s out of bounds for length %s", this.size, this.capacity));
-      } else {
-         int i = this.size * this.blockSize;
-         GpuBufferSlice slice = this.buffer.currentBuffer().slice(i, this.blockSize);
+    public FixedUniformStorage(String name, int blockSize, int capacity) {
+        GpuDevice gpuDevice = RenderSystem.getDevice();
+        int uniformAlignment = gpuDevice.getDeviceInfo().limits().minUniformOffsetAlignment();
+        this.blockSize = Mth.roundToward(blockSize, uniformAlignment);
+        this.capacity = capacity;
+        int alignedCapacity = Mth.smallestEncompassingPowerOfTwo(capacity);
+        this.size = 0;
+        this.buffer = new MappableRingBuffer(() -> name + " x" + this.blockSize, 130, this.blockSize * alignedCapacity);
+    }
 
-         try (MappedView mappedView = RenderSystem.getDevice().createCommandEncoder().mapBuffer(slice, false, true)) {
-            value.write(mappedView.data());
-         }
+    public GpuBufferSlice write(T value) {
+        if (this.size >= this.capacity) {
+            throw new IndexOutOfBoundsException(String.format("Index %s out of bounds for length %s", this.size, this.capacity));
+        } else {
+            int i = this.size * this.blockSize;
+            GpuBufferSlice slice = this.buffer.currentBuffer().slice(i, this.blockSize);
 
-         this.size++;
-         return slice;
-      }
-   }
-
-   public GpuBufferSlice[] writeAll(T[] values) {
-      if (values.length == 0) {
-         return new GpuBufferSlice[0];
-      } else if (this.size + values.length > this.capacity) {
-         throw new IndexOutOfBoundsException(String.format("Index %s out of bounds for length %s", this.size + values.length - 1, this.capacity));
-      } else {
-         int i = this.size * this.blockSize;
-         GpuBufferSlice[] gpuBufferSlices = new GpuBufferSlice[values.length];
-         GpuBuffer ubo = this.buffer.currentBuffer();
-
-         try (MappedView mappedView = RenderSystem.getDevice().createCommandEncoder().mapBuffer(ubo.slice(i, values.length * this.blockSize), false, true)) {
-            ByteBuffer byteBuffer = mappedView.data();
-
-            for (int j = 0; j < values.length; j++) {
-               T uploadable = values[j];
-               gpuBufferSlices[j] = ubo.slice(i + j * this.blockSize, this.blockSize);
-               byteBuffer.position(j * this.blockSize);
-               uploadable.write(byteBuffer);
+            try (GpuBufferSlice.MappedView mappedView = slice.map(false, true)) {
+                value.write(mappedView.data());
             }
-         }
 
-         this.size += values.length;
-         return gpuBufferSlices;
-      }
-   }
+            this.size++;
+            return slice;
+        }
+    }
 
-   public void clear() {
-      this.size = 0;
-      this.buffer.rotate();
-   }
+    public GpuBufferSlice[] writeAll(T[] values) {
+        if (values.length == 0) {
+            return new GpuBufferSlice[0];
+        } else if (this.size + values.length > this.capacity) {
+            throw new IndexOutOfBoundsException(String.format("Index %s out of bounds for length %s", this.size + values.length - 1, this.capacity));
+        } else {
+            int i = this.size * this.blockSize;
+            GpuBufferSlice[] gpuBufferSlices = new GpuBufferSlice[values.length];
+            GpuBuffer ubo = this.buffer.currentBuffer();
+            GpuBufferSlice slice = ubo.slice(i, values.length * this.blockSize);
 
-   public void close() {
-      this.buffer.close();
-   }
+            try (GpuBufferSlice.MappedView mappedView = slice.map(false, true)) {
+                ByteBuffer byteBuffer = mappedView.data();
+
+                for (int j = 0; j < values.length; j++) {
+                    T uploadable = values[j];
+                    gpuBufferSlices[j] = ubo.slice(i + j * this.blockSize, this.blockSize);
+                    byteBuffer.position(j * this.blockSize);
+                    uploadable.write(byteBuffer);
+                }
+            }
+
+            this.size += values.length;
+            return gpuBufferSlices;
+        }
+    }
+
+    public void clear() {
+        this.size = 0;
+        this.buffer.rotate();
+    }
+
+    public void close() {
+        this.buffer.close();
+    }
 }

@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.systems.hud;
 
 import com.jfant.specter.core.gui.GuiTheme;
@@ -10,120 +15,133 @@ import com.jfant.specter.core.utils.other.Snapper;
 import net.minecraft.nbt.CompoundTag;
 
 public abstract class HudElement implements Snapper.Element, ISerializable<HudElement> {
-   public final HudElementInfo<?> info;
-   private boolean active;
-   public final Settings settings = new Settings();
-   public final HudBox box = new HudBox(this);
-   public boolean autoAnchors = true;
-   public int x;
-   public int y;
+    public final HudElementInfo<?> info;
+    private boolean active;
 
-   public HudElement(HudElementInfo<?> info) {
-      this.info = info;
-      this.active = true;
-   }
+    public final Settings settings = new Settings();
+    public final HudBox box = new HudBox(this);
 
-   public boolean isActive() {
-      return this.active;
-   }
+    public boolean autoAnchors = true;
+    public int x, y;
 
-   public void toggle() {
-      this.active = !this.active;
-   }
+    public HudElement(HudElementInfo<?> info) {
+        this.info = info;
+        this.active = true;
+    }
 
-   public void setSize(double width, double height) {
-      this.box.setSize(width, height);
-   }
+    public boolean isActive() {
+        return active;
+    }
 
-   @Override
-   public void setPos(int x, int y) {
-      if (this.autoAnchors) {
-         this.box.setPos(x, y);
-         this.box.xAnchor = XAnchor.Left;
-         this.box.yAnchor = YAnchor.Top;
-         this.box.updateAnchors();
-      } else {
-         this.box.setPos(this.box.x + (x - this.x), this.box.y + (y - this.y));
-      }
+    public void toggle() {
+        active = !active;
+    }
 
-      this.updatePos();
-   }
+    public void setSize(double width, double height) {
+        box.setSize(width, height);
+    }
 
-   @Override
-   public void move(int deltaX, int deltaY) {
-      this.box.move(deltaX, deltaY);
-      this.updatePos();
-   }
+    @Override
+    public void setPos(int x, int y) {
+        if (autoAnchors) {
+            box.setPos(x, y);
+            box.xAnchor = XAnchor.Left;
+            box.yAnchor = YAnchor.Top;
+            box.updateAnchors();
+        } else {
+            box.setPos(box.x + (x - this.x), box.y + (y - this.y));
+        }
 
-   public void updatePos() {
-      this.x = this.box.getRenderX();
-      this.y = this.box.getRenderY();
-   }
+        updatePos();
+    }
 
-   protected double alignX(double width, Alignment alignment) {
-      return this.box.alignX(this.getWidth(), width, alignment);
-   }
+    @Override
+    public void move(int deltaX, int deltaY) {
+        box.move(deltaX, deltaY);
+        updatePos();
+    }
 
-   @Override
-   public int getX() {
-      return this.x;
-   }
+    public void updatePos() {
+        x = box.getRenderX();
+        y = box.getRenderY();
+    }
 
-   @Override
-   public int getY() {
-      return this.y;
-   }
+    protected double alignX(double width, Alignment alignment) {
+        return box.alignX(getWidth(), width, alignment);
+    }
 
-   @Override
-   public int getWidth() {
-      return this.box.width;
-   }
+    @Override
+    public int getX() {
+        return x;
+    }
 
-   @Override
-   public int getHeight() {
-      return this.box.height;
-   }
+    @Override
+    public int getY() {
+        return y;
+    }
 
-   protected boolean isInEditor() {
-      return !Utils.canUpdate() || HudEditorScreen.isOpen();
-   }
+    @Override
+    public int getWidth() {
+        return box.width;
+    }
 
-   public void remove() {
-      Hud.get().remove(this);
-   }
+    @Override
+    public int getHeight() {
+        return box.height;
+    }
 
-   public void tick(HudRenderer renderer) {
-   }
+    protected boolean isInEditor() {
+        return !Utils.canUpdate() || HudEditorScreen.isOpen();
+    }
 
-   public void render(HudRenderer renderer) {
-   }
+    public void remove() {
+        Hud.get().remove(this);
+    }
 
-   public void onFontChanged() {
-   }
+    public void tick(HudRenderer renderer) {
+    }
 
-   public WWidget getWidget(GuiTheme theme) {
-      return null;
-   }
+    public void render(HudRenderer renderer) {
+    }
 
-   @Override
-   public CompoundTag toTag() {
-      CompoundTag tag = new CompoundTag();
-      tag.putString("name", this.info.name);
-      tag.putBoolean("active", this.active);
-      tag.put("settings", this.settings.toTag());
-      tag.put("box", this.box.toTag());
-      tag.putBoolean("autoAnchors", this.autoAnchors);
-      return tag;
-   }
+    public void onFontChanged() {
+    }
 
-   public HudElement fromTag(CompoundTag tag) {
-      this.settings.reset();
-      tag.getBoolean("active").ifPresent(active1 -> this.active = active1);
-      this.settings.fromTag(tag.getCompoundOrEmpty("settings"));
-      this.box.fromTag(tag.getCompoundOrEmpty("box"));
-      tag.getBoolean("autoAnchors").ifPresent(autoAnchors1 -> this.autoAnchors = autoAnchors1);
-      this.x = this.box.getRenderX();
-      this.y = this.box.getRenderY();
-      return this;
-   }
+    public WWidget getWidget(GuiTheme theme) {
+        return null;
+    }
+
+    // Serialization
+
+    @Override
+    public CompoundTag toTag() {
+        CompoundTag tag = new CompoundTag();
+
+        tag.putString("name", info.name);
+        tag.putBoolean("active", active);
+
+        tag.put("settings", settings.toTag());
+        tag.put("box", box.toTag());
+
+        tag.putBoolean("autoAnchors", autoAnchors);
+
+        return tag;
+    }
+
+    @Override
+    public HudElement fromTag(CompoundTag tag) {
+        settings.reset();
+
+        tag.getBoolean("active").ifPresent(active1 -> active = active1);
+
+        settings.fromTag(tag.getCompoundOrEmpty("settings"));
+        box.fromTag(tag.getCompoundOrEmpty("box"));
+
+        tag.getBoolean("autoAnchors").ifPresent(autoAnchors1 -> autoAnchors = autoAnchors1);
+
+        x = box.getRenderX();
+        y = box.getRenderY();
+
+        return this;
+    }
 }

@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.screens.settings;
 
 import com.jfant.specter.core.gui.GuiTheme;
@@ -8,49 +13,57 @@ import com.jfant.specter.core.gui.widgets.input.WTextBox;
 import com.jfant.specter.core.gui.widgets.pressable.WButton;
 import com.jfant.specter.core.settings.ItemSetting;
 import com.jfant.specter.core.utils.misc.Names;
+import com.jfant.specter.core.utils.render.DisplayItemUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import org.apache.commons.lang3.Strings;
 
 public class ItemSettingScreen extends WindowScreen {
-   private final ItemSetting setting;
-   private WTable table;
-   private WTextBox filter;
-   private String filterText = "";
+    private final ItemSetting setting;
 
-   public ItemSettingScreen(GuiTheme theme, ItemSetting setting) {
-      super(theme, "Select item");
-      this.setting = setting;
-   }
+    private WTable table;
 
-   @Override
-   public void initWidgets() {
-      this.filter = this.add(this.theme.textBox("")).minWidth(400.0).expandX().widget();
-      this.filter.setFocused(true);
-      this.filter.action = () -> {
-         this.filterText = this.filter.get().trim();
-         this.table.clear();
-         this.initTable();
-      };
-      this.table = this.add(this.theme.table()).expandX().widget();
-      this.initTable();
-   }
+    private WTextBox filter;
+    private String filterText = "";
 
-   public void initTable() {
-      for (Item item : BuiltInRegistries.ITEM) {
-         if ((this.setting.filter == null || this.setting.filter.test(item)) && item != Items.AIR) {
-            WItemWithLabel itemLabel = this.theme.itemWithLabel(item.getDefaultInstance(), Names.get(item));
-            if (this.filterText.isEmpty() || Strings.CI.contains(itemLabel.getLabelText(), this.filterText)) {
-               this.table.add(itemLabel);
-               WButton select = this.table.add(this.theme.button("Select")).expandCellX().right().widget();
-               select.action = () -> {
-                  this.setting.set(item);
-                  this.onClose();
-               };
-               this.table.row();
-            }
-         }
-      }
-   }
+    public ItemSettingScreen(GuiTheme theme, ItemSetting setting) {
+        super(theme, "Select item");
+
+        this.setting = setting;
+    }
+
+    @Override
+    public void initWidgets() {
+        filter = add(theme.textBox("")).minWidth(400).expandX().widget();
+        filter.setFocused(true);
+        filter.action = () -> {
+            filterText = filter.get().trim();
+
+            table.clear();
+            initTable();
+        };
+
+        table = add(theme.table()).expandX().widget();
+        initTable();
+    }
+
+    public void initTable() {
+        for (Item item : BuiltInRegistries.ITEM) {
+            if (setting.filter != null && !setting.filter.test(item)) continue;
+            if (item == Items.AIR) continue;
+
+            WItemWithLabel itemLabel = theme.itemWithLabel(DisplayItemUtils.toStack(item), Names.get(item));
+            if (!filterText.isEmpty() && !Strings.CI.contains(itemLabel.getLabelText(), filterText)) continue;
+            table.add(itemLabel);
+
+            WButton select = table.add(theme.button("Select")).expandCellX().right().widget();
+            select.action = () -> {
+                setting.set(item);
+                onClose();
+            };
+
+            table.row();
+        }
+    }
 }

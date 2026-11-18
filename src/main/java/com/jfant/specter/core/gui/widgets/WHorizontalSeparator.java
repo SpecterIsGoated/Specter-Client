@@ -1,20 +1,23 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets;
 
 public abstract class WHorizontalSeparator extends WWidget {
-   protected String text;
-   protected double textWidth;
+    protected String text;
+    protected double textWidth;
 
-   public WHorizontalSeparator(String text) {
-      this.text = text;
-   }
+    public WHorizontalSeparator(String text) {
+        this.text = text;
+    }
 
-   @Override
-   protected void onCalculateSize() {
-      if (this.text != null) {
-         this.textWidth = this.theme.textWidth(this.text);
-      }
+    @Override
+    protected void onCalculateSize() {
+        if (text != null) textWidth = theme.textWidth(text);
 
-      this.width = 1.0;
-      this.height = this.text != null ? this.theme.textHeight() : this.theme.scale(3.0);
-   }
+        width = 1;
+        height = text != null ? theme.textHeight() : theme.scale(3);
+    }
 }

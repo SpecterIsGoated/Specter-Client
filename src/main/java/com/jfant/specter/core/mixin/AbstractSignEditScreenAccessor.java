@@ -1,12 +1,17 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.mixin;
 
-import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin({AbstractSignEditScreen.class})
+@Mixin(AbstractSignEditScreen.class)
 public interface AbstractSignEditScreenAccessor {
-   @Accessor("sign")
-   SignBlockEntity meteor$getSign();
+    @Accessor("sign")
+    SignBlockEntity meteor$getSign();
 }

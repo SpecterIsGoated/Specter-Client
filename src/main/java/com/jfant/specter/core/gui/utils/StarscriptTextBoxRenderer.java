@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.utils;
 
 import com.jfant.specter.core.gui.GuiTheme;
@@ -6,124 +11,108 @@ import com.jfant.specter.core.gui.widgets.input.WTextBox;
 import com.jfant.specter.core.systems.hud.Hud;
 import com.jfant.specter.core.utils.misc.MeteorStarscript;
 import com.jfant.specter.core.utils.render.color.Color;
-import java.util.ArrayList;
-import java.util.List;
 import org.meteordev.starscript.utils.SemanticToken;
 import org.meteordev.starscript.utils.SemanticTokenProvider;
 import org.meteordev.starscript.utils.SemanticTokenType;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class StarscriptTextBoxRenderer implements WTextBox.Renderer {
-   private static final Color RED = new Color(225, 25, 25);
-   private final List<SemanticToken> tokens = new ArrayList<>();
-   private final List<StarscriptTextBoxRenderer.Section> sections = new ArrayList<>();
-   private String lastText;
+    private static final Color RED = new Color(225, 25, 25);
 
-   @Override
-   public void render(GuiRenderer renderer, double x, double y, String text, Color color) {
-      if (this.lastText == null || !this.lastText.equals(text)) {
-         this.lastText = text;
-         SemanticTokenProvider.get(text, this.tokens);
-         this.convertTokensToSections(renderer.theme);
-      }
+    private final List<SemanticToken> tokens = new ArrayList<>();
+    private final List<Section> sections = new ArrayList<>();
 
-      for (StarscriptTextBoxRenderer.Section section : this.sections) {
-         renderer.text(section.text, x, y, section.color, false);
-         x += renderer.theme.textWidth(section.text);
-      }
-   }
+    private String lastText;
 
-   @Override
-   public List<String> getCompletions(String text, int position) {
-      List<String> completions = new ArrayList<>();
-      MeteorStarscript.ss.getCompletions(text, position, (completion, function) -> completions.add(function ? completion + "(" : completion));
-      completions.sort(String::compareToIgnoreCase);
-      return completions;
-   }
+    @Override
+    public void render(GuiRenderer renderer, double x, double y, String text, Color color) {
+        // Generate
+        if (lastText == null || !lastText.equals(text)) {
+            lastText = text;
 
-   private void convertTokensToSections(GuiTheme theme) {
-      this.sections.clear();
-      int start = 0;
+            SemanticTokenProvider.get(text, tokens);
+            convertTokensToSections(renderer.theme);
+        }
 
-      for (SemanticToken token : this.tokens) {
-         if (start != token.start) {
-            this.sections.add(new StarscriptTextBoxRenderer.Section(this.lastText.substring(start, token.start), theme.starscriptTextColor()));
-         }
+        // Render
+        for (Section section : sections) {
+            renderer.text(section.text, x, y, section.color, false);
+            x += renderer.theme.textWidth(section.text);
+        }
+    }
 
-         String text = this.lastText.substring(token.start, token.end);
-         this.sections.add(new StarscriptTextBoxRenderer.Section(text, getColorForToken(theme, token.type, text)));
-         start = token.end;
-      }
+    @Override
+    public List<String> getCompletions(String text, int position) {
+        List<String> completions = new ArrayList<>();
 
-      if (start < this.lastText.length()) {
-         this.sections.add(new StarscriptTextBoxRenderer.Section(this.lastText.substring(start), theme.starscriptTextColor()));
-      }
-   }
+        MeteorStarscript.ss.getCompletions(text, position, (completion, function) -> {
+            completions.add(function ? completion + "(" : completion);
+        });
 
-   private static Color getColorForToken(GuiTheme theme, SemanticTokenType type, String text) {
-      return switch (type) {
-         case Dot -> {
-            Color var17 = theme.starscriptDotColor();
-            yield var17;
-         }
-         case Comma -> {
-            Color var16 = theme.starscriptCommaColor();
-            yield var16;
-         }
-         case Operator -> {
-            Color var15 = theme.starscriptOperatorColor();
-            yield var15;
-         }
-         case String -> {
-            Color var14 = theme.starscriptStringColor();
-            yield var14;
-         }
-         case Number -> {
-            Color var13 = theme.starscriptNumberColor();
-            yield var13;
-         }
-         case Keyword -> {
-            Color var12 = theme.starscriptKeywordColor();
-            yield var12;
-         }
-         case Paren -> {
-            Color var11 = theme.starscriptParenthesisColor();
-            yield var11;
-         }
-         case Brace -> {
-            Color var10 = theme.starscriptBraceColor();
-            yield var10;
-         }
-         case Identifier -> {
-            Color var9 = theme.starscriptTextColor();
-            yield var9;
-         }
-         case Map -> {
-            Color var8 = theme.starscriptAccessedObjectColor();
-            yield var8;
-         }
-         case Section -> {
-            if (text.startsWith("#")) {
-               text = text.substring(1);
+        completions.sort(String::compareToIgnoreCase);
+
+        return completions;
+    }
+
+    private void convertTokensToSections(GuiTheme theme) {
+        sections.clear();
+
+        int start = 0;
+
+        for (SemanticToken token : tokens) {
+            if (start != token.start) {
+                sections.add(new Section(
+                    lastText.substring(start, token.start),
+                    theme.starscriptTextColor()
+                ));
             }
 
-            Color var7;
-            try {
-               var7 = Hud.getSectionColor(Integer.parseInt(text));
-            } catch (NumberFormatException var5) {
-               var7 = theme.starscriptTextColor();
-               yield var7;
+            String text = lastText.substring(token.start, token.end);
+
+            sections.add(new Section(
+                text,
+                getColorForToken(theme, token.type, text)
+            ));
+
+            start = token.end;
+        }
+
+        if (start < lastText.length()) {
+            sections.add(new Section(
+                lastText.substring(start),
+                theme.starscriptTextColor()
+            ));
+        }
+    }
+
+    private static Color getColorForToken(GuiTheme theme, SemanticTokenType type, String text) {
+        return switch (type) {
+            case Dot -> theme.starscriptDotColor();
+            case Comma -> theme.starscriptCommaColor();
+            case Operator -> theme.starscriptOperatorColor();
+            case String -> theme.starscriptStringColor();
+            case Number -> theme.starscriptNumberColor();
+            case Keyword -> theme.starscriptKeywordColor();
+            case Paren -> theme.starscriptParenthesisColor();
+            case Brace -> theme.starscriptBraceColor();
+            case Identifier -> theme.starscriptTextColor();
+            case Map -> theme.starscriptAccessedObjectColor();
+            case Section -> {
+                if (text.startsWith("#")) {
+                    text = text.substring(1);
+                }
+
+                try {
+                    yield Hud.getSectionColor(Integer.parseInt(text));
+                } catch (NumberFormatException _) {}
+
+                yield theme.starscriptTextColor();
             }
+            case Error -> RED;
+        };
+    }
 
-            yield var7;
-         }
-         case Error -> {
-            Color var3 = RED;
-            yield var3;
-         }
-         default -> throw new MatchException(null, null);
-      };
-   }
-
-   private record Section(String text, Color color) {
-   }
+    private record Section(String text, Color color) {}
 }

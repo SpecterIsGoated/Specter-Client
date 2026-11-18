@@ -1,51 +1,57 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.world;
 
-import com.jfant.specter.core.SpecterCore;
-import com.jfant.specter.core.mixin.ClientChunkManagerAccessor;
+import com.jfant.specter.core.mixin.ClientChunkCacheAccessor;
 import com.jfant.specter.core.mixin.ClientChunkMapAccessor;
-import java.util.Iterator;
 import net.minecraft.world.level.chunk.ChunkAccess;
 
+import java.util.Iterator;
+
+import static com.jfant.specter.core.SpecterCore.mc;
+
 public class ChunkIterator implements Iterator<ChunkAccess> {
-   private final ClientChunkMapAccessor map = (ClientChunkMapAccessor)((ClientChunkManagerAccessor)SpecterCore.mc.level.getChunkSource()).meteor$getChunks();
-   private final boolean onlyWithLoadedNeighbours;
-   private int i = 0;
-   private ChunkAccess chunk;
+    private final ClientChunkMapAccessor map = (ClientChunkMapAccessor) (Object) ((ClientChunkCacheAccessor) mc.level.getChunkSource()).meteor$getStorage();
+    private final boolean onlyWithLoadedNeighbours;
 
-   public ChunkIterator(boolean onlyWithLoadedNeighbours) {
-      this.onlyWithLoadedNeighbours = onlyWithLoadedNeighbours;
-      this.getNext();
-   }
+    private int i = 0;
+    private ChunkAccess chunk;
 
-   private ChunkAccess getNext() {
-      ChunkAccess prev = this.chunk;
-      this.chunk = null;
+    public ChunkIterator(boolean onlyWithLoadedNeighbours) {
+        this.onlyWithLoadedNeighbours = onlyWithLoadedNeighbours;
 
-      while (this.i < this.map.meteor$getChunks().length()) {
-         this.chunk = this.map.meteor$getChunks().get(this.i++);
-         if (this.chunk != null && (!this.onlyWithLoadedNeighbours || this.isInRadius(this.chunk))) {
-            break;
-         }
-      }
+        getNext();
+    }
 
-      return prev;
-   }
+    private ChunkAccess getNext() {
+        ChunkAccess prev = chunk;
+        chunk = null;
 
-   private boolean isInRadius(ChunkAccess chunk) {
-      int x = chunk.getPos().x;
-      int z = chunk.getPos().z;
-      return SpecterCore.mc.level.getChunkSource().hasChunk(x + 1, z)
-         && SpecterCore.mc.level.getChunkSource().hasChunk(x - 1, z)
-         && SpecterCore.mc.level.getChunkSource().hasChunk(x, z + 1)
-         && SpecterCore.mc.level.getChunkSource().hasChunk(x, z - 1);
-   }
+        while (i < map.meteor$getChunks().length()) {
+            chunk = map.meteor$getChunks().get(i++);
+            if (chunk != null && (!onlyWithLoadedNeighbours || isInRadius(chunk))) break;
+        }
 
-   @Override
-   public boolean hasNext() {
-      return this.chunk != null;
-   }
+        return prev;
+    }
 
-   public ChunkAccess next() {
-      return this.getNext();
-   }
+    private boolean isInRadius(ChunkAccess chunk) {
+        int x = chunk.getPos().x();
+        int z = chunk.getPos().z();
+
+        return mc.level.getChunkSource().hasChunk(x + 1, z) && mc.level.getChunkSource().hasChunk(x - 1, z) && mc.level.getChunkSource().hasChunk(x, z + 1) && mc.level.getChunkSource().hasChunk(x, z - 1);
+    }
+
+    @Override
+    public boolean hasNext() {
+        return chunk != null;
+    }
+
+    @Override
+    public ChunkAccess next() {
+        return getNext();
+    }
 }

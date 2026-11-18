@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets.input;
 
 import com.jfant.specter.core.gui.renderer.GuiRenderer;
@@ -6,185 +11,205 @@ import com.jfant.specter.core.gui.widgets.WRoot;
 import com.jfant.specter.core.gui.widgets.containers.WVerticalList;
 import com.jfant.specter.core.gui.widgets.containers.WView;
 import com.jfant.specter.core.gui.widgets.pressable.WPressable;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.util.Mth;
 
+import static com.jfant.specter.core.utils.Utils.getWindowHeight;
+
 public abstract class WDropdown<T> extends WPressable {
-   public Runnable action;
-   protected T[] values;
-   protected T value;
-   protected double maxValueWidth;
-   protected WDropdown.WDropdownRoot root;
-   protected boolean expanded;
-   protected double animProgress;
+    public Runnable action;
 
-   public WDropdown(T[] values, T value) {
-      this.values = values;
-      this.set(value);
-   }
+    protected T[] values;
+    protected T value;
 
-   @Override
-   public void init() {
-      this.root = this.createRootWidget();
-      this.root.theme = this.theme;
-      this.root.spacing = 0.0;
+    protected double maxValueWidth;
 
-      for (int i = 0; i < this.values.length; i++) {
-         WDropdown<T>.WDropdownValue widget = this.createValueWidget();
-         widget.theme = this.theme;
-         widget.value = this.values[i];
-         Cell<?> cell = this.root.add(widget).padHorizontal(2.0).expandWidgetX();
-         if (i >= this.values.length - 1) {
-            cell.padBottom(2.0);
-         }
-      }
-   }
+    protected WDropdownRoot root;
+    protected boolean expanded;
+    protected double animProgress;
 
-   protected abstract WDropdown.WDropdownRoot createRootWidget();
+    public WDropdown(T[] values, T value) {
+        this.values = values;
 
-   protected abstract WDropdown<T>.WDropdownValue createValueWidget();
+        set(value);
+    }
 
-   @Override
-   protected void onCalculateSize() {
-      double pad = this.pad();
-      this.maxValueWidth = 0.0;
+    @Override
+    public void init() {
+        root = createRootWidget();
+        root.theme = theme;
+        root.spacing = 0;
 
-      for (T value : this.values) {
-         double valueWidth = this.theme.textWidth(value.toString());
-         this.maxValueWidth = Math.max(this.maxValueWidth, valueWidth);
-      }
+        for (int i = 0; i < values.length; i++) {
+            WDropdownValue widget = createValueWidget();
+            widget.theme = theme;
+            widget.value = values[i];
 
-      this.root.calculateSize();
-      this.width = pad + this.maxValueWidth + pad + this.theme.textHeight() + pad;
-      this.height = pad + this.theme.textHeight() + pad;
-      this.root.width = this.width;
-   }
+            Cell<?> cell = root.add(widget).padHorizontal(2).expandWidgetX();
+            if (i >= values.length - 1) cell.padBottom(2);
+        }
+    }
 
-   @Override
-   protected void onCalculateWidgetPositions() {
-      super.onCalculateWidgetPositions();
-      this.root.x = this.x;
-      this.root.y = this.y + this.height;
-      this.root.calculateWidgetPositions();
-   }
+    protected abstract WDropdownRoot createRootWidget();
 
-   @Override
-   protected void onPressed(int button) {
-      this.expanded = !this.expanded;
-      this.root.setFocused(this.expanded);
-      this.setFocused(this.expanded);
-   }
+    protected abstract WDropdownValue createValueWidget();
 
-   public T get() {
-      return this.value;
-   }
+    @Override
+    protected void onCalculateSize() {
+        double pad = pad();
 
-   public void set(T value) {
-      this.value = value;
-   }
+        maxValueWidth = 0;
+        for (T value : values) {
+            double valueWidth = theme.textWidth(value.toString());
+            maxValueWidth = Math.max(maxValueWidth, valueWidth);
+        }
 
-   @Override
-   public void move(double deltaX, double deltaY) {
-      super.move(deltaX, deltaY);
-      this.root.move(deltaX, deltaY);
-   }
+        root.calculateSize();
 
-   @Override
-   public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-      boolean render = super.render(renderer, mouseX, mouseY, delta);
-      this.animProgress = this.animProgress + (this.expanded ? 1 : -1) * delta * 14.0;
-      this.animProgress = Mth.clamp(this.animProgress, 0.0, 1.0);
-      WView view = this.getView();
-      boolean rootInView = view == null || view.isWidgetInView(this.root);
-      if (!render && this.animProgress > 0.0 && rootInView) {
-         renderer.absolutePost(() -> {
-            renderer.scissorStart(this.x, this.y + this.height, this.width, this.root.height * this.animProgress);
-            this.root.render(renderer, mouseX, mouseY, delta);
-            renderer.scissorEnd();
-         });
-      }
+        width = pad + maxValueWidth + pad + theme.textHeight() + pad;
+        height = pad + theme.textHeight() + pad;
 
-      if (this.expanded && this.root.mouseOver) {
-         this.theme.disableHoverColor = true;
-      }
+        root.width = width;
+    }
 
-      return render;
-   }
+    @Override
+    protected void onCalculateWidgetPositions() {
+        super.onCalculateWidgetPositions();
 
-   @Override
-   public boolean onMouseClicked(MouseButtonEvent click, boolean doubled) {
-      boolean used = false;
-      if (!this.mouseOver && !this.root.mouseOver) {
-         this.expanded = false;
-      }
+        root.x = x;
+        root.y = y + height;
 
-      if (super.onMouseClicked(click, doubled)) {
-         used = true;
-      }
+        root.calculateWidgetPositions();
+    }
 
-      if (this.expanded && this.root.mouseClicked(click, doubled)) {
-         used = true;
-      }
+    @Override
+    protected void onPressed(int button) {
+        expanded = !expanded;
+        root.setFocused(expanded);
+        setFocused(expanded);
+    }
 
-      return used;
-   }
+    public T get() {
+        return value;
+    }
 
-   @Override
-   public boolean onMouseReleased(MouseButtonEvent click) {
-      return super.onMouseReleased(click) ? true : this.expanded && this.root.mouseReleased(click);
-   }
+    public void set(T value) {
+        this.value = value;
+    }
 
-   @Override
-   public void onMouseMoved(double mouseX, double mouseY, double lastMouseX, double lastMouseY) {
-      super.onMouseMoved(mouseX, mouseY, lastMouseX, lastMouseY);
-      if (this.expanded) {
-         this.root.mouseMoved(mouseX, mouseY, lastMouseX, lastMouseY);
-      }
-   }
+    @Override
+    public void move(double deltaX, double deltaY) {
+        super.move(deltaX, deltaY);
 
-   @Override
-   public boolean onMouseScrolled(double amount) {
-      if (super.onMouseScrolled(amount)) {
-         return true;
-      } else {
-         return this.expanded ? this.root.mouseScrolled(amount) : false;
-      }
-   }
+        root.move(deltaX, deltaY);
+    }
 
-   @Override
-   public boolean onKeyPressed(KeyEvent input) {
-      return super.onKeyPressed(input) ? true : this.expanded && this.root.keyPressed(input);
-   }
+    @Override
+    public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+        boolean render = super.render(renderer, mouseX, mouseY, delta);
 
-   @Override
-   public boolean onKeyRepeated(KeyEvent input) {
-      return super.onKeyRepeated(input) ? true : this.expanded && this.root.keyRepeated(input);
-   }
+        animProgress += (expanded ? 1 : -1) * delta * 14;
+        animProgress = Mth.clamp(animProgress, 0, 1);
 
-   @Override
-   public boolean onCharTyped(CharacterEvent input) {
-      return super.onCharTyped(input) ? true : this.expanded && this.root.charTyped(input);
-   }
+        WView view = getView();
+        boolean rootInView = view == null || view.isWidgetInView(this);
 
-   protected abstract static class WDropdownRoot extends WVerticalList implements WRoot {
-      @Override
-      public void invalidate() {
-      }
-   }
+        if (!render && animProgress > 0 && rootInView) {
+            double dropdownY = y + height;
+            double scissorHeight = Math.min(root.height * animProgress, getWindowHeight() - dropdownY);
 
-   protected abstract class WDropdownValue extends WPressable {
-      protected T value;
+            renderer.absolutePost(() -> {
+                renderer.scissorStart(x, dropdownY, width, scissorHeight);
+                root.render(renderer, mouseX, mouseY, delta);
+                renderer.scissorEnd();
+            });
+        }
 
-      @Override
-      protected void onPressed(int button) {
-         boolean isNew = !WDropdown.this.value.equals(this.value);
-         WDropdown.this.value = this.value;
-         WDropdown.this.expanded = false;
-         if (isNew && WDropdown.this.action != null) {
-            WDropdown.this.action.run();
-         }
-      }
-   }
+        if (expanded && root.mouseOver) theme.disableHoverColor = true;
+
+        return render;
+    }
+
+    // Events
+
+    @Override
+    public boolean onMouseClicked(MouseButtonEvent click, boolean doubled) {
+        boolean used = false;
+        if (!mouseOver && !root.mouseOver) expanded = false;
+
+        if (super.onMouseClicked(click, doubled)) used = true;
+        if (expanded && root.mouseClicked(click, doubled)) used = true;
+
+        return used;
+    }
+
+    @Override
+    public boolean onMouseReleased(MouseButtonEvent click) {
+        if (super.onMouseReleased(click)) return true;
+
+        return expanded && root.mouseReleased(click);
+    }
+
+    @Override
+    public void onMouseMoved(double mouseX, double mouseY, double lastMouseX, double lastMouseY) {
+        super.onMouseMoved(mouseX, mouseY, lastMouseX, lastMouseY);
+
+        if (expanded) root.mouseMoved(mouseX, mouseY, lastMouseX, lastMouseY);
+    }
+
+    @Override
+    public boolean onMouseScrolled(double amount) {
+        if (super.onMouseScrolled(amount)) return true;
+
+        if (expanded) {
+            return root.mouseScrolled(amount);
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean onKeyPressed(KeyEvent input) {
+        if (super.onKeyPressed(input)) return true;
+
+        return expanded && root.keyPressed(input);
+    }
+
+    @Override
+    public boolean onKeyRepeated(KeyEvent input) {
+        if (super.onKeyRepeated(input)) return true;
+
+        return expanded && root.keyRepeated(input);
+    }
+
+    @Override
+    public boolean onCharTyped(CharacterEvent input) {
+        if (super.onCharTyped(input)) return true;
+
+        return expanded && root.charTyped(input);
+    }
+
+    // Widgets
+
+    protected abstract static class WDropdownRoot extends WVerticalList implements WRoot {
+        @Override
+        public void invalidate() {
+        }
+    }
+
+    protected abstract class WDropdownValue extends WPressable {
+        protected T value;
+
+        @Override
+        protected void onPressed(int button) {
+            boolean isNew = !WDropdown.this.value.equals(value);
+
+            WDropdown.this.value = value;
+            expanded = false;
+
+            if (isNew && WDropdown.this.action != null) WDropdown.this.action.run();
+        }
+    }
 }

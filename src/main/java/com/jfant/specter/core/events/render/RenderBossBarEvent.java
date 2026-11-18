@@ -1,39 +1,48 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.events.render;
 
-import java.util.Iterator;
 import net.minecraft.client.gui.components.LerpingBossEvent;
 import net.minecraft.network.chat.Component;
 
+import java.util.Iterator;
+
 public class RenderBossBarEvent {
-   public static class BossIterator {
-      private static final RenderBossBarEvent.BossIterator INSTANCE = new RenderBossBarEvent.BossIterator();
-      public Iterator<LerpingBossEvent> iterator;
+    public static class BossText {
+        private static final BossText INSTANCE = new BossText();
 
-      public static RenderBossBarEvent.BossIterator get(Iterator<LerpingBossEvent> iterator) {
-         INSTANCE.iterator = iterator;
-         return INSTANCE;
-      }
-   }
+        public LerpingBossEvent bossBar;
+        public Component name;
 
-   public static class BossSpacing {
-      private static final RenderBossBarEvent.BossSpacing INSTANCE = new RenderBossBarEvent.BossSpacing();
-      public int spacing;
+        public static BossText get(LerpingBossEvent bossBar, Component name) {
+            INSTANCE.bossBar = bossBar;
+            INSTANCE.name = name;
+            return INSTANCE;
+        }
+    }
 
-      public static RenderBossBarEvent.BossSpacing get(int spacing) {
-         INSTANCE.spacing = spacing;
-         return INSTANCE;
-      }
-   }
+    public static class BossSpacing {
+        private static final BossSpacing INSTANCE = new BossSpacing();
 
-   public static class BossText {
-      private static final RenderBossBarEvent.BossText INSTANCE = new RenderBossBarEvent.BossText();
-      public LerpingBossEvent bossBar;
-      public Component name;
+        public int spacing;
 
-      public static RenderBossBarEvent.BossText get(LerpingBossEvent bossBar, Component name) {
-         INSTANCE.bossBar = bossBar;
-         INSTANCE.name = name;
-         return INSTANCE;
-      }
-   }
+        public static BossSpacing get(int spacing) {
+            INSTANCE.spacing = spacing;
+            return INSTANCE;
+        }
+    }
+
+    public static class BossIterator {
+        private static final BossIterator INSTANCE = new BossIterator();
+
+        public Iterator<LerpingBossEvent> iterator;
+
+        public static BossIterator get(Iterator<LerpingBossEvent> iterator) {
+            INSTANCE.iterator = iterator;
+            return INSTANCE;
+        }
+    }
 }

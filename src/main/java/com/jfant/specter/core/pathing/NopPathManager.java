@@ -1,104 +1,110 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.pathing;
 
 import com.jfant.specter.core.settings.BoolSetting;
 import com.jfant.specter.core.settings.Setting;
 import com.jfant.specter.core.settings.Settings;
-import java.util.function.Predicate;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.core.BlockPos;
+
+import java.util.function.Predicate;
 
 public class NopPathManager implements IPathManager {
-   private final NopPathManager.NopSettings settings = new NopPathManager.NopSettings();
+    private final NopSettings settings = new NopSettings();
 
-   @Override
-   public String getName() {
-      return "none";
-   }
+    @Override
+    public String getName() {
+        return "none";
+    }
 
-   @Override
-   public boolean isPathing() {
-      return false;
-   }
+    @Override
+    public boolean isPathing() {
+        return false;
+    }
 
-   @Override
-   public void pause() {
-   }
+    @Override
+    public void pause() {
+    }
 
-   @Override
-   public void resume() {
-   }
+    @Override
+    public void resume() {
+    }
 
-   @Override
-   public void stop() {
-   }
+    @Override
+    public void stop() {
+    }
 
-   @Override
-   public void moveTo(BlockPos pos, boolean ignoreY) {
-   }
+    @Override
+    public void moveTo(BlockPos pos, boolean ignoreY) {
+    }
 
-   @Override
-   public void moveInDirection(float yaw) {
-   }
+    @Override
+    public void moveInDirection(float yaw) {
+    }
 
-   @Override
-   public void mine(Block... blocks) {
-   }
+    @Override
+    public void mine(Block... blocks) {
+    }
 
-   @Override
-   public void follow(Predicate<Entity> entity) {
-   }
+    @Override
+    public void follow(Predicate<Entity> entity) {
+    }
 
-   @Override
-   public float getTargetYaw() {
-      return 0.0F;
-   }
+    @Override
+    public float getTargetYaw() {
+        return 0;
+    }
 
-   @Override
-   public float getTargetPitch() {
-      return 0.0F;
-   }
+    @Override
+    public float getTargetPitch() {
+        return 0;
+    }
 
-   @Override
-   public IPathManager.ISettings getSettings() {
-      return this.settings;
-   }
+    @Override
+    public ISettings getSettings() {
+        return settings;
+    }
 
-   private static class NopSettings implements IPathManager.ISettings {
-      private final Settings settings = new Settings();
-      private final Setting<Boolean> setting = new BoolSetting.Builder().build();
+    private static class NopSettings implements ISettings {
+        private final Settings settings = new Settings();
+        private final Setting<Boolean> setting = new BoolSetting.Builder().build();
 
-      @Override
-      public Settings get() {
-         return this.settings;
-      }
+        @Override
+        public Settings get() {
+            return settings;
+        }
 
-      @Override
-      public Setting<Boolean> getWalkOnWater() {
-         this.setting.reset();
-         return this.setting;
-      }
+        @Override
+        public Setting<Boolean> getWalkOnWater() {
+            setting.reset();
+            return setting;
+        }
 
-      @Override
-      public Setting<Boolean> getWalkOnLava() {
-         this.setting.reset();
-         return this.setting;
-      }
+        @Override
+        public Setting<Boolean> getWalkOnLava() {
+            setting.reset();
+            return setting;
+        }
 
-      @Override
-      public Setting<Boolean> getStep() {
-         this.setting.reset();
-         return this.setting;
-      }
+        @Override
+        public Setting<Boolean> getStep() {
+            setting.reset();
+            return setting;
+        }
 
-      @Override
-      public Setting<Boolean> getNoFall() {
-         this.setting.reset();
-         return this.setting;
-      }
+        @Override
+        public Setting<Boolean> getNoFall() {
+            setting.reset();
+            return setting;
+        }
 
-      @Override
-      public void save() {
-      }
-   }
+        @Override
+        public void save() {
+        }
+    }
 }

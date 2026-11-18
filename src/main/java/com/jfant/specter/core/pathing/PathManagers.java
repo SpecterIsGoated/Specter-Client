@@ -1,42 +1,49 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.pathing;
 
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.utils.PreInit;
+
 import java.lang.reflect.InvocationTargetException;
 
 public class PathManagers {
-   private static IPathManager INSTANCE = new NopPathManager();
+    private static IPathManager INSTANCE = new NopPathManager();
 
-   public static IPathManager get() {
-      return INSTANCE;
-   }
+    public static IPathManager get() {
+        return INSTANCE;
+    }
 
-   @PreInit
-   public static void init() {
-      if (exists("meteordevelopment.voyager.PathManager")) {
-         try {
-            INSTANCE = (IPathManager)Class.forName("meteordevelopment.voyager.PathManager").getConstructor().newInstance();
-         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException | InstantiationException var1) {
-            throw new RuntimeException(var1);
-         }
-      }
+    @PreInit
+    public static void init() {
+        if (exists("meteordevelopment.voyager.PathManager")) {
+            try {
+                INSTANCE = (IPathManager) Class.forName("meteordevelopment.voyager.PathManager").getConstructor().newInstance();
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
+                     NoSuchMethodException | ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
-      if (exists("baritone.api.BaritoneAPI")) {
-         BaritoneUtils.IS_AVAILABLE = true;
-         if (INSTANCE instanceof NopPathManager) {
-            INSTANCE = new BaritonePathManager();
-         }
-      }
+        if (exists("baritone.api.BaritoneAPI")) {
+            BaritoneUtils.IS_AVAILABLE = true;
 
-      SpecterCore.LOG.info("Path Manager: {}", INSTANCE.getName());
-   }
+            if (INSTANCE instanceof NopPathManager)
+                INSTANCE = new BaritonePathManager();
+        }
 
-   private static boolean exists(String name) {
-      try {
-         Class.forName(name);
-         return true;
-      } catch (ClassNotFoundException var2) {
-         return false;
-      }
-   }
+        SpecterCore.LOG.info("Path Manager: {}", INSTANCE.getName());
+    }
+
+    private static boolean exists(String name) {
+        try {
+            Class.forName(name);
+            return true;
+        } catch (ClassNotFoundException _) {
+            return false;
+        }
+    }
 }

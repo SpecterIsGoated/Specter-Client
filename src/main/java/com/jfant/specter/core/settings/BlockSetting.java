@@ -1,75 +1,80 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.settings;
 
-import java.util.function.Consumer;
-import java.util.function.Predicate;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
 public class BlockSetting extends Setting<Block> {
-   public final Predicate<Block> filter;
+    public final Predicate<Block> filter;
 
-   public BlockSetting(
-      String name,
-      String description,
-      Block defaultValue,
-      Consumer<Block> onChanged,
-      Consumer<Setting<Block>> onModuleActivated,
-      IVisible visible,
-      Predicate<Block> filter
-   ) {
-      super(name, description, defaultValue, onChanged, onModuleActivated, visible);
-      this.filter = filter;
-   }
+    public BlockSetting(String name, String description, Block defaultValue, Consumer<Block> onChanged, Consumer<Setting<Block>> onModuleActivated, IVisible visible, Predicate<Block> filter) {
+        super(name, description, defaultValue, onChanged, onModuleActivated, visible);
 
-   protected Block parseImpl(String str) {
-      return parseId(BuiltInRegistries.BLOCK, str);
-   }
+        this.filter = filter;
+    }
 
-   protected boolean isValueValid(Block value) {
-      return this.filter == null || this.filter.test(value);
-   }
+    @Override
+    protected Block parseImpl(String str) {
+        return parseId(BuiltInRegistries.BLOCK, str);
+    }
 
-   @Override
-   public Iterable<Identifier> getIdentifierSuggestions() {
-      return BuiltInRegistries.BLOCK.keySet();
-   }
+    @Override
+    protected boolean isValueValid(Block value) {
+        return filter == null || filter.test(value);
+    }
 
-   @Override
-   protected CompoundTag save(CompoundTag tag) {
-      tag.putString("value", BuiltInRegistries.BLOCK.getKey(this.get()).toString());
-      return tag;
-   }
+    @Override
+    public Iterable<Identifier> getIdentifierSuggestions() {
+        return BuiltInRegistries.BLOCK.keySet();
+    }
 
-   protected Block load(CompoundTag tag) {
-      this.value = BuiltInRegistries.BLOCK.getValue(Identifier.parse(tag.getStringOr("value", "")));
-      if (this.filter != null && !this.filter.test(this.value)) {
-         for (Block block : BuiltInRegistries.BLOCK) {
-            if (this.filter.test(block)) {
-               this.value = block;
-               break;
+    @Override
+    protected CompoundTag save(CompoundTag tag) {
+        tag.putString("value", BuiltInRegistries.BLOCK.getKey(get()).toString());
+
+        return tag;
+    }
+
+    @Override
+    protected Block load(CompoundTag tag) {
+        value = BuiltInRegistries.BLOCK.getValue(Identifier.parse(tag.getStringOr("value", "")));
+
+        if (filter != null && !filter.test(value)) {
+            for (Block block : BuiltInRegistries.BLOCK) {
+                if (filter.test(block)) {
+                    value = block;
+                    break;
+                }
             }
-         }
-      }
+        }
 
-      return this.get();
-   }
+        return get();
+    }
 
-   public static class Builder extends Setting.SettingBuilder<BlockSetting.Builder, Block, BlockSetting> {
-      private Predicate<Block> filter;
+    public static class Builder extends SettingBuilder<Builder, Block, BlockSetting> {
+        private Predicate<Block> filter;
 
-      public Builder() {
-         super(null);
-      }
+        public Builder() {
+            super(null);
+        }
 
-      public BlockSetting.Builder filter(Predicate<Block> filter) {
-         this.filter = filter;
-         return this;
-      }
+        public Builder filter(Predicate<Block> filter) {
+            this.filter = filter;
+            return this;
+        }
 
-      public BlockSetting build() {
-         return new BlockSetting(this.name, this.description, this.defaultValue, this.onChanged, this.onModuleActivated, this.visible, this.filter);
-      }
-   }
+        @Override
+        public BlockSetting build() {
+            return new BlockSetting(name, description, defaultValue, onChanged, onModuleActivated, visible, filter);
+        }
+    }
 }

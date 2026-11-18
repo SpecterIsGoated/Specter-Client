@@ -1,81 +1,85 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.settings;
 
 import com.jfant.specter.core.utils.render.color.Color;
 import com.jfant.specter.core.utils.render.color.SettingColor;
-import java.util.List;
-import java.util.function.Consumer;
 import net.minecraft.nbt.CompoundTag;
 
+import java.util.List;
+import java.util.function.Consumer;
+
 public class ColorSetting extends Setting<SettingColor> {
-   private static final List<String> SUGGESTIONS = List.of("0 0 0 255", "225 25 25 255", "25 225 25 255", "25 25 225 255", "255 255 255 255");
+    private static final List<String> SUGGESTIONS = List.of("0 0 0 255", "225 25 25 255", "25 225 25 255", "25 25 225 255", "255 255 255 255");
 
-   public ColorSetting(
-      String name,
-      String description,
-      SettingColor defaultValue,
-      Consumer<SettingColor> onChanged,
-      Consumer<Setting<SettingColor>> onModuleActivated,
-      IVisible visible
-   ) {
-      super(name, description, defaultValue, onChanged, onModuleActivated, visible);
-   }
+    public ColorSetting(String name, String description, SettingColor defaultValue, Consumer<SettingColor> onChanged, Consumer<Setting<SettingColor>> onModuleActivated, IVisible visible) {
+        super(name, description, defaultValue, onChanged, onModuleActivated, visible);
+    }
 
-   protected SettingColor parseImpl(String str) {
-      try {
-         String[] strs = str.split(" ");
-         return new SettingColor(Integer.parseInt(strs[0]), Integer.parseInt(strs[1]), Integer.parseInt(strs[2]), Integer.parseInt(strs[3]));
-      } catch (NumberFormatException | IndexOutOfBoundsException var3) {
-         return null;
-      }
-   }
+    @Override
+    protected SettingColor parseImpl(String str) {
+        try {
+            String[] strs = str.split(" ");
+            return new SettingColor(Integer.parseInt(strs[0]), Integer.parseInt(strs[1]), Integer.parseInt(strs[2]), Integer.parseInt(strs[3]));
+        } catch (IndexOutOfBoundsException | NumberFormatException _) {
+            return null;
+        }
+    }
 
-   @Override
-   public void resetImpl() {
-      if (this.value == null) {
-         this.value = new SettingColor(this.defaultValue);
-      } else {
-         this.value.set(this.defaultValue);
-      }
-   }
+    @Override
+    public void resetImpl() {
+        if (value == null) value = new SettingColor(defaultValue);
+        else value.set(defaultValue);
+    }
 
-   protected boolean isValueValid(SettingColor value) {
-      value.validate();
-      return true;
-   }
+    @Override
+    protected boolean isValueValid(SettingColor value) {
+        value.validate();
 
-   @Override
-   public List<String> getSuggestions() {
-      return SUGGESTIONS;
-   }
+        return true;
+    }
 
-   @Override
-   protected CompoundTag save(CompoundTag tag) {
-      tag.put("value", this.get().toTag());
-      return tag;
-   }
+    @Override
+    public Iterable<String> getSuggestions() {
+        return SUGGESTIONS;
+    }
 
-   public SettingColor load(CompoundTag tag) {
-      this.get().fromTag(tag.getCompoundOrEmpty("value"));
-      return this.get();
-   }
+    @Override
+    protected CompoundTag save(CompoundTag tag) {
+        tag.put("value", get().toTag());
 
-   public static class Builder extends Setting.SettingBuilder<ColorSetting.Builder, SettingColor, ColorSetting> {
-      public Builder() {
-         super(new SettingColor());
-      }
+        return tag;
+    }
 
-      public ColorSetting build() {
-         return new ColorSetting(this.name, this.description, this.defaultValue, this.onChanged, this.onModuleActivated, this.visible);
-      }
+    @Override
+    public SettingColor load(CompoundTag tag) {
+        get().fromTag(tag.getCompoundOrEmpty("value"));
 
-      public ColorSetting.Builder defaultValue(SettingColor defaultValue) {
-         this.defaultValue.set((Color)defaultValue);
-         return this;
-      }
+        return get();
+    }
 
-      public ColorSetting.Builder defaultValue(Color defaultValue) {
-         this.defaultValue.set(defaultValue);
-         return this;
-      }
-   }
+    public static class Builder extends SettingBuilder<Builder, SettingColor, ColorSetting> {
+        public Builder() {
+            super(new SettingColor());
+        }
+
+        @Override
+        public ColorSetting build() {
+            return new ColorSetting(name, description, defaultValue, onChanged, onModuleActivated, visible);
+        }
+
+        @Override
+        public Builder defaultValue(SettingColor defaultValue) {
+            this.defaultValue.set(defaultValue);
+            return this;
+        }
+
+        public Builder defaultValue(Color defaultValue) {
+            this.defaultValue.set(defaultValue);
+            return this;
+        }
+    }
 }

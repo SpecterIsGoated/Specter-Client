@@ -1,11 +1,16 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.mixin;
 
-import net.minecraft.client.ResourceLoadStateTracker.ReloadState;
+import net.minecraft.client.ResourceLoadStateTracker;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin({ReloadState.class})
+@Mixin(ResourceLoadStateTracker.ReloadState.class)
 public interface ReloadStateAccessor {
-   @Accessor("finished")
-   boolean meteor$isFinished();
+    @Accessor("finished")
+    boolean meteor$isFinished();
 }

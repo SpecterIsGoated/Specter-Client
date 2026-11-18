@@ -1,720 +1,761 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets.input;
 
-import com.jfant.specter.core.SpecterCore;
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.doubles.DoubleList;
 import com.jfant.specter.core.gui.GuiKeyEvents;
 import com.jfant.specter.core.gui.renderer.GuiRenderer;
 import com.jfant.specter.core.gui.utils.Cell;
 import com.jfant.specter.core.gui.utils.CharFilter;
 import com.jfant.specter.core.gui.widgets.WWidget;
 import com.jfant.specter.core.gui.widgets.containers.WContainer;
+import com.jfant.specter.core.utils.misc.input.Input;
 import com.jfant.specter.core.utils.render.color.Color;
-import com.mojang.blaze3d.platform.MacosUtil;
-import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
-import it.unimi.dsi.fastutil.doubles.DoubleList;
-import java.lang.reflect.InvocationTargetException;
-import java.util.List;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.util.Mth;
 import org.apache.commons.lang3.SystemUtils;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.List;
+
+import static com.mojang.blaze3d.platform.InputConstants.*;
+import static com.jfant.specter.core.SpecterCore.mc;
+
 public abstract class WTextBox extends WWidget {
-   private static final WTextBox.Renderer DEFAULT_RENDERER = (renderer, x, y, text, color) -> renderer.text(text, x, y, color, false);
-   public Runnable action;
-   public Runnable actionOnUnfocused;
-   protected String text;
-   protected String placeholder;
-   protected CharFilter filter;
-   protected final WTextBox.Renderer renderer;
-   protected DoubleList textWidths = new DoubleArrayList();
-   protected int cursor;
-   protected double textStart;
-   protected boolean selecting;
-   protected boolean doubleClick;
-   protected int selectionStart;
-   protected int selectionEnd;
-   private int preSelectionCursor;
-   private List<String> completions;
-   private int completionsStart;
-   private WContainer completionsW;
+    private static final Renderer DEFAULT_RENDERER = (renderer, x, y, text, color) -> renderer.text(text, x, y, color, false);
 
-   public WTextBox(String text, CharFilter filter, Class<? extends WTextBox.Renderer> renderer) {
-      this(text, null, filter, renderer);
-   }
+    public Runnable action;
+    public Runnable actionOnUnfocused;
 
-   public WTextBox(String text, String placeholder, CharFilter filter, Class<? extends WTextBox.Renderer> renderer) {
-      this.text = text;
-      this.placeholder = placeholder;
-      this.filter = filter;
+    protected String text;
+    protected String placeholder;
+    protected CharFilter filter;
 
-      try {
-         this.renderer = renderer != null ? renderer.getDeclaredConstructor().newInstance() : DEFAULT_RENDERER;
-      } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException | InstantiationException var6) {
-         throw new RuntimeException(var6);
-      }
-   }
+    protected final Renderer renderer;
 
-   protected abstract WContainer createCompletionsRootWidget();
+    protected DoubleList textWidths = new DoubleArrayList();
 
-   protected abstract <T extends WWidget & WTextBox.ICompletionItem> T createCompletionsValueWidth(String var1, boolean var2);
+    protected int cursor;
+    protected double textStart;
 
-   @Override
-   protected void onCalculateSize() {
-      double pad = this.pad();
-      double s = this.theme.textHeight();
-      this.width = pad + s + pad;
-      this.height = pad + s + pad;
-      this.calculateTextWidths();
-      if (this.completionsW != null) {
-         this.completionsW.calculateSize();
-      }
-   }
+    protected boolean selecting, doubleClick;
+    protected int selectionStart, selectionEnd;
+    private int preSelectionCursor;
 
-   @Override
-   public void calculateWidgetPositions() {
-      super.calculateWidgetPositions();
-      if (this.completionsW != null) {
-         this.completionsW.x = this.x;
-         this.completionsW.y = this.y + this.height;
-         this.completionsW.calculateWidgetPositions();
-      }
-   }
+    private List<String> completions;
+    private int completionsStart;
+    private WContainer completionsW;
 
-   @Override
-   public void move(double deltaX, double deltaY) {
-      super.move(deltaX, deltaY);
-      if (this.completionsW != null) {
-         this.completionsW.move(deltaX, deltaY);
-      }
-   }
+    public WTextBox(String text, CharFilter filter, Class<? extends Renderer> renderer) {
+        this(text, null, filter, renderer);
+    }
 
-   protected double maxTextWidth() {
-      return this.width - this.pad() * 2.0;
-   }
+    public WTextBox(String text, String placeholder, CharFilter filter, Class<? extends Renderer> renderer) {
+        this.text = text;
+        this.placeholder = placeholder;
+        this.filter = filter;
 
-   @Override
-   public boolean onMouseClicked(MouseButtonEvent click, boolean doubled) {
-      if (!this.mouseOver) {
-         if (this.focused) {
-            this.setFocused(false);
-         }
+        try {
+            this.renderer = renderer != null ? renderer.getDeclaredConstructor().newInstance() : DEFAULT_RENDERER;
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
+                 NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-         return false;
-      } else {
-         if (click.button() == 1) {
-            if (!this.text.isEmpty()) {
-               this.text = "";
-               this.cursor = 0;
-               this.selectionStart = 0;
-               this.selectionEnd = 0;
-               this.runAction();
+    protected abstract WContainer createCompletionsRootWidget();
+
+    protected abstract <T extends WWidget & ICompletionItem> T createCompletionsValueWidth(String completion, boolean selected);
+
+    @Override
+    protected void onCalculateSize() {
+        double pad = pad();
+        double s = theme.textHeight();
+
+        width = pad + s + pad;
+        height = pad + s + pad;
+
+        calculateTextWidths();
+
+        if (completionsW != null) completionsW.calculateSize();
+    }
+
+    @Override
+    public void calculateWidgetPositions() {
+        super.calculateWidgetPositions();
+
+        if (completionsW != null) {
+            completionsW.x = x;
+            completionsW.y = y + height;
+            completionsW.calculateWidgetPositions();
+        }
+    }
+
+    @Override
+    public void move(double deltaX, double deltaY) {
+        super.move(deltaX, deltaY);
+        if (completionsW != null) completionsW.move(deltaX, deltaY);
+    }
+
+    protected double maxTextWidth() {
+        return width - pad() * 2;
+    }
+
+    @Override
+    public boolean onMouseClicked(MouseButtonEvent click, boolean doubled) {
+        if (mouseOver) {
+            if (click.button() == MOUSE_BUTTON_RIGHT) {
+                if (!text.isEmpty()) {
+                    text = "";
+                    cursor = 0;
+                    selectionStart = 0;
+                    selectionEnd = 0;
+
+                    runAction();
+                }
+            } else if (click.button() == MOUSE_BUTTON_LEFT) {
+                selecting = true;
+
+                double overflowWidth = getOverflowWidthForRender();
+                double relativeMouseX = click.x() - x + overflowWidth;
+                double pad = pad();
+
+                double smallestDifference = Double.MAX_VALUE;
+
+                cursor = text.length();
+
+                for (int i = 0; i < textWidths.size(); i++) {
+                    double difference = Math.abs(textWidths.getDouble(i) + pad - relativeMouseX);
+
+                    if (difference < smallestDifference) {
+                        smallestDifference = difference;
+                        cursor = i;
+                    }
+                }
+
+                if (doubled && cursor == preSelectionCursor) {
+                    doubleClick = true;
+                    resetSelection();
+
+                    selectionStart = (cursor - countToNextSpace(true));
+                    selectionEnd = cursor = (cursor + countToNextSpace(false));
+
+                    return true;
+                }
+
+                preSelectionCursor = cursor;
+                resetSelection();
+                cursorChanged();
             }
-         } else if (click.button() == 0) {
-            this.selecting = true;
-            double overflowWidth = this.getOverflowWidthForRender();
-            double relativeMouseX = click.x() - this.x + overflowWidth;
-            double pad = this.pad();
-            double smallestDifference = 1.7976931348623157E308;
-            this.cursor = this.text.length();
 
-            for (int i = 0; i < this.textWidths.size(); i++) {
-               double difference = Math.abs(this.textWidths.getDouble(i) + pad - relativeMouseX);
-               if (difference < smallestDifference) {
-                  smallestDifference = difference;
-                  this.cursor = i;
-               }
-            }
+            setFocused(true);
+            return true;
+        }
 
-            if (doubled && this.cursor == this.preSelectionCursor) {
-               this.doubleClick = true;
-               this.resetSelection();
-               this.selectionStart = this.cursor - this.countToNextSpace(true);
-               this.selectionEnd = this.cursor = this.cursor + this.countToNextSpace(false);
-               return true;
-            }
+        if (focused) setFocused(false);
 
-            this.preSelectionCursor = this.cursor;
-            this.resetSelection();
-            this.cursorChanged();
-         }
+        return false;
+    }
 
-         this.setFocused(true);
-         return true;
-      }
-   }
+    @Override
+    public void onMouseMoved(double mouseX, double mouseY, double lastMouseX, double lastMouseY) {
+        if (!selecting) return;
 
-   @Override
-   public void onMouseMoved(double mouseX, double mouseY, double lastMouseX, double lastMouseY) {
-      if (this.selecting) {
-         double overflowWidth = this.getOverflowWidthForRender();
-         double relativeMouseX = mouseX - this.x + overflowWidth;
-         double pad = this.pad();
-         double smallestDifference = 1.7976931348623157E308;
-         int best = 0;
+        double overflowWidth = getOverflowWidthForRender();
+        double relativeMouseX = mouseX - x + overflowWidth;
+        double pad = pad();
 
-         for (int i = 0; i < this.textWidths.size(); i++) {
-            double difference = Math.abs(this.textWidths.getDouble(i) + pad - relativeMouseX);
+        double smallestDifference = Double.MAX_VALUE;
+
+        int best = 0;
+        for (int i = 0; i < textWidths.size(); i++) {
+            double difference = Math.abs(textWidths.getDouble(i) + pad - relativeMouseX);
+
             if (difference < smallestDifference) {
-               best = i;
-               smallestDifference = difference;
-               if (!this.doubleClick) {
-                  if (i < this.preSelectionCursor) {
-                     this.selectionStart = i;
-                     this.cursor = i;
-                  } else if (i > this.preSelectionCursor) {
-                     this.selectionEnd = i;
-                     this.cursor = i;
-                  } else {
-                     this.cursor = this.preSelectionCursor;
-                     this.resetSelection();
-                  }
-               }
+                best = i;
+                smallestDifference = difference;
+                if (!doubleClick) {
+                    if (i < preSelectionCursor) {
+                        selectionStart = i;
+                        cursor = i;
+                    } else if (i > preSelectionCursor) {
+                        selectionEnd = i;
+                        cursor = i;
+                    } else {
+                        cursor = preSelectionCursor;
+                        resetSelection();
+                    }
+                }
             }
-         }
+        }
 
-         if (this.doubleClick) {
-            if (best < this.selectionStart) {
-               this.selectionStart = best - this.countToNextSpace(true, best);
-               this.cursor = this.selectionStart;
-            } else if (best > this.selectionEnd) {
-               this.selectionEnd = best + this.countToNextSpace(false, best);
-               this.cursor = this.selectionEnd;
-            } else if (this.cursor == this.selectionStart) {
-               int nextRight = this.countToNextSpace(false);
-               if (best > this.cursor + nextRight) {
-                  this.selectionStart = this.cursor = this.cursor + nextRight + 1;
-                  if (this.selectionStart <= this.preSelectionCursor && this.selectionStart + this.countToNextSpace(false) >= this.preSelectionCursor) {
-                     this.cursor = this.selectionEnd;
-                  }
-               }
-            } else if (this.cursor == this.selectionEnd) {
-               int nextLeft = this.countToNextSpace(true);
-               if (best < this.cursor - nextLeft) {
-                  this.selectionEnd = this.cursor = this.cursor - nextLeft - 1;
-               }
-            }
-         }
-      }
-   }
-
-   @Override
-   public boolean onMouseReleased(MouseButtonEvent click) {
-      this.selecting = false;
-      this.doubleClick = false;
-      if (this.selectionStart < this.preSelectionCursor && this.preSelectionCursor == this.selectionEnd) {
-         this.cursor = this.selectionStart;
-      } else if (this.selectionEnd > this.preSelectionCursor && this.preSelectionCursor == this.selectionStart) {
-         this.cursor = this.selectionEnd;
-      }
-
-      return false;
-   }
-
-   @Override
-   public boolean onKeyPressed(KeyEvent input) {
-      if (!this.focused) {
-         return false;
-      } else {
-         boolean control = MacosUtil.IS_MACOS ? input.modifiers() == 8 : input.modifiers() == 2;
-         if (control && input.key() == 67) {
-            if (this.cursor != this.selectionStart || this.cursor != this.selectionEnd) {
-               SpecterCore.mc.keyboardHandler.setClipboard(this.text.substring(this.selectionStart, this.selectionEnd));
-            }
-
-            return true;
-         } else if (control && input.key() == 88) {
-            if (this.cursor != this.selectionStart || this.cursor != this.selectionEnd) {
-               SpecterCore.mc.keyboardHandler.setClipboard(this.text.substring(this.selectionStart, this.selectionEnd));
-               this.clearSelection();
-            }
-
-            return true;
-         } else {
-            if (control && input.key() == 65) {
-               this.cursor = this.text.length();
-               this.selectionStart = 0;
-               this.selectionEnd = this.cursor;
-            } else if (input.modifiers() == ((MacosUtil.IS_MACOS ? 8 : 2) | 1) && input.key() == 65) {
-               this.resetSelection();
+        // double click selection will select by whole words
+        if (doubleClick) {
+            if (best < selectionStart) {
+                selectionStart = best - countToNextSpace(true, best);
+                cursor = selectionStart;
+            } else if (best > selectionEnd) {
+                selectionEnd = best + countToNextSpace(false, best);
+                cursor = selectionEnd;
             } else {
-               if (input.key() == 257 || input.key() == 335) {
-                  this.setFocused(false);
-                  if (this.actionOnUnfocused != null) {
-                     this.actionOnUnfocused.run();
-                  }
+                if (cursor == selectionStart) {
+                    int nextRight = countToNextSpace(false);
+                    if (best > cursor + nextRight) {
+                        selectionStart = cursor = cursor + nextRight + 1;
+                        if (selectionStart <= preSelectionCursor && selectionStart + countToNextSpace(false) >= preSelectionCursor) {
+                            cursor = selectionEnd;
+                        }
+                    }
+                } else if (cursor == selectionEnd) {
+                    int nextLeft = countToNextSpace(true);
+                    if (best < cursor - nextLeft) {
+                        selectionEnd = cursor = cursor - nextLeft - 1;
+                    }
+                }
+            }
+        }
+    }
 
-                  return true;
-               }
+    @Override
+    public boolean onMouseReleased(MouseButtonEvent click) {
+        selecting = false;
+        doubleClick = false;
 
-               if (input.key() == 258 && this.completionsW != null) {
-                  String completion = ((WTextBox.ICompletionItem)this.completionsW.cells.get(this.getSelectedCompletion()).widget()).getCompletion();
-                  StringBuilder sb = new StringBuilder(this.text.length() + completion.length() + 1);
-                  String a = this.text.substring(0, this.cursor);
-                  sb.append(a);
+        if (selectionStart < preSelectionCursor && preSelectionCursor == selectionEnd) {
+            cursor = selectionStart;
+        } else if (selectionEnd > preSelectionCursor && preSelectionCursor == selectionStart) {
+            cursor = selectionEnd;
+        }
 
-                  for (int i = 0; i < completion.length() - 1; i++) {
-                     if (a.endsWith(completion.substring(0, completion.length() - i - 1))) {
-                        completion = completion.substring(completion.length() - i - 1);
-                        break;
-                     }
-                  }
+        return false;
+    }
 
-                  sb.append(completion);
-                  if (completion.endsWith("(")) {
-                     sb.append(')');
-                  }
+    @Override
+    public boolean onKeyPressed(KeyEvent input) {
+        if (!focused) return false;
 
-                  sb.append(this.text, this.cursor, this.text.length());
-                  this.text = sb.toString();
-                  this.cursor = this.cursor + completion.length();
-                  this.resetSelection();
-                  this.runAction();
-                  return true;
-               }
+        boolean ctrl = SystemUtils.IS_OS_MAC
+            ? Input.modsMatch(input.modifiers(), MOD_SUPER)
+            : Input.modsMatch(input.modifiers(), MOD_CONTROL);
+
+        boolean ctrlShift = SystemUtils.IS_OS_MAC
+            ? Input.modsMatch(input.modifiers(), MOD_SUPER, MOD_SHIFT)
+            : Input.modsMatch(input.modifiers(), MOD_CONTROL, MOD_SHIFT);
+
+        if (ctrl && input.key() == KEY_C) {
+            if (cursor != selectionStart || cursor != selectionEnd) {
+                mc.keyboardHandler.setClipboard(text.substring(selectionStart, selectionEnd));
+            }
+            return true;
+        } else if (ctrl && input.key() == KEY_X) {
+            if (cursor != selectionStart || cursor != selectionEnd) {
+                mc.keyboardHandler.setClipboard(text.substring(selectionStart, selectionEnd));
+                clearSelection();
             }
 
-            return this.onKeyRepeated(input);
-         }
-      }
-   }
+            return true;
+        } else if (ctrl && input.key() == KEY_A) {
+            cursor = text.length();
+            selectionStart = 0;
+            selectionEnd = cursor;
+        } else if (ctrlShift && input.key() == KEY_A) {
+            resetSelection();
+        } else if (input.key() == KEY_RETURN || input.key() == KEY_NUMPADENTER) {
+            setFocused(false);
 
-   @Override
-   public boolean onKeyRepeated(KeyEvent input) {
-      if (!this.focused) {
-         return false;
-      } else {
-         boolean control = MacosUtil.IS_MACOS ? input.modifiers() == 8 : input.modifiers() == 2;
-         boolean shift = input.modifiers() == 1;
-         boolean controlShift = input.modifiers() == ((SystemUtils.IS_OS_WINDOWS ? 4 : (MacosUtil.IS_MACOS ? 8 : 2)) | 1);
-         boolean altShift = input.modifiers() == ((SystemUtils.IS_OS_WINDOWS ? 2 : 4) | 1);
-         if (control && input.key() == 86) {
-            this.clearSelection();
-            String preText = this.text;
-            String clipboard = SpecterCore.mc.keyboardHandler.getClipboard();
+            if (actionOnUnfocused != null) actionOnUnfocused.run();
+            return true;
+        } else if (input.key() == KEY_TAB && completionsW != null) {
+            String completion = ((ICompletionItem) completionsW.cells.get(getSelectedCompletion()).widget()).getCompletion();
+
+            StringBuilder sb = new StringBuilder(text.length() + completion.length() + 1);
+            String a = text.substring(0, cursor);
+            sb.append(a);
+
+            for (int i = 0; i < completion.length() - 1; i++) {
+                if (a.endsWith(completion.substring(0, completion.length() - i - 1))) {
+                    completion = completion.substring(completion.length() - i - 1);
+                    break;
+                }
+            }
+
+            sb.append(completion);
+            if (completion.endsWith("(")) sb.append(')');
+
+            sb.append(text, cursor, text.length());
+
+            text = sb.toString();
+            cursor += completion.length();
+            resetSelection();
+            runAction();
+
+            return true;
+        }
+
+        return onKeyRepeated(input);
+    }
+
+    @Override
+    public boolean onKeyRepeated(KeyEvent input) {
+        if (!focused) return false;
+
+        boolean ctrl = SystemUtils.IS_OS_MAC
+            ? Input.modsMatch(input.modifiers(), MOD_SUPER)
+            : Input.modsMatch(input.modifiers(), MOD_CONTROL);
+
+        boolean shift = Input.modsMatch(input.modifiers(), MOD_SHIFT);
+
+        // modifier for jumping to the start/end of the text box, and the one for jumping by word
+        int lineMod = SystemUtils.IS_OS_WINDOWS ? MOD_ALT : SystemUtils.IS_OS_MAC ? MOD_SUPER : MOD_CONTROL;
+        int wordMod = SystemUtils.IS_OS_WINDOWS ? MOD_CONTROL : MOD_ALT;
+
+        boolean line = Input.modsMatch(input.modifiers(), lineMod);
+        boolean word = Input.modsMatch(input.modifiers(), wordMod);
+        boolean ctrlShift = Input.modsMatch(input.modifiers(), lineMod, MOD_SHIFT);
+        boolean altShift = Input.modsMatch(input.modifiers(), wordMod, MOD_SHIFT);
+        boolean noMods = Input.modsMatch(input.modifiers());
+
+        if (ctrl && input.key() == KEY_V) {
+            clearSelection();
+
+            String preText = text;
+            String clipboard = mc.keyboardHandler.getClipboard();
             int addedChars = 0;
-            StringBuilder sb = new StringBuilder(this.text.length() + clipboard.length());
-            sb.append(this.text);
+
+            StringBuilder sb = new StringBuilder(text.length() + clipboard.length());
+            sb.append(text);
 
             for (int i = 0; i < clipboard.length(); i++) {
-               char c = clipboard.charAt(i);
-               if (this.filter.filter(sb.toString(), c)) {
-                  sb.insert(this.cursor + addedChars, c);
-                  addedChars++;
-               }
+                char c = clipboard.charAt(i);
+                if (filter.filter(sb.toString(), c)) {
+                    sb.insert(cursor + addedChars, c);
+                    addedChars++;
+                }
             }
 
-            this.text = sb.toString();
-            this.cursor += addedChars;
-            this.resetSelection();
-            if (!this.text.equals(preText)) {
-               this.runAction();
+            text = sb.toString();
+            cursor += addedChars;
+            resetSelection();
+
+            if (!text.equals(preText)) runAction();
+            return true;
+        } else if (input.key() == KEY_BACKSPACE) {
+            if (cursor > 0 && cursor == selectionStart && cursor == selectionEnd) {
+                String preText = text;
+
+                int count = line
+                    ? cursor
+                    : word
+                      ? countToNextSpace(true)
+                      : 1;
+
+                text = text.substring(0, cursor - count) + text.substring(cursor);
+                cursor -= count;
+                resetSelection();
+
+                if (!text.equals(preText)) runAction();
+            } else if (cursor != selectionStart || cursor != selectionEnd) {
+                clearSelection();
             }
 
             return true;
-         } else if (input.key() == 259) {
-            if (this.cursor > 0 && this.cursor == this.selectionStart && this.cursor == this.selectionEnd) {
-               String preText = this.text;
-               int count = input.modifiers() == (SystemUtils.IS_OS_WINDOWS ? 4 : (MacosUtil.IS_MACOS ? 8 : 2))
-                  ? this.cursor
-                  : (input.modifiers() == (SystemUtils.IS_OS_WINDOWS ? 2 : 4) ? this.countToNextSpace(true) : 1);
-               this.text = this.text.substring(0, this.cursor - count) + this.text.substring(this.cursor);
-               this.cursor -= count;
-               this.resetSelection();
-               if (!this.text.equals(preText)) {
-                  this.runAction();
-               }
-            } else if (this.cursor != this.selectionStart || this.cursor != this.selectionEnd) {
-               this.clearSelection();
-            }
+        } else if (input.key() == KEY_DELETE) {
+            if (cursor == selectionStart && cursor == selectionEnd) {
+                if (cursor < text.length()) {
+                    String preText = text;
 
-            return true;
-         } else if (input.key() == 261) {
-            if (this.cursor == this.selectionStart && this.cursor == this.selectionEnd) {
-               if (this.cursor < this.text.length()) {
-                  String preText = this.text;
-                  int count = input.modifiers() == (SystemUtils.IS_OS_WINDOWS ? 4 : (MacosUtil.IS_MACOS ? 8 : 2))
-                     ? this.text.length() - this.cursor
-                     : (input.modifiers() == (SystemUtils.IS_OS_WINDOWS ? 2 : 4) ? this.countToNextSpace(false) : 1);
-                  this.text = this.text.substring(0, this.cursor) + this.text.substring(this.cursor + count);
-                  if (!this.text.equals(preText)) {
-                     this.runAction();
-                  }
-               }
+                    int count = line
+                        ? text.length() - cursor
+                        : word
+                          ? countToNextSpace(false)
+                          : 1;
+
+                    text = text.substring(0, cursor) + text.substring(cursor + count);
+
+                    if (!text.equals(preText)) runAction();
+                }
             } else {
-               this.clearSelection();
+                clearSelection();
+            }
+            return true;
+        } else if (input.key() == KEY_LEFT) {
+            if (cursor > 0) {
+                // sets the cursor to just after the next leftmost space
+                if (word) {
+                    cursor -= countToNextSpace(true);
+                    resetSelection();
+                }
+                // sets the cursor to the beginning of the text box
+                else if (line) {
+                    cursor = 0;
+                    resetSelection();
+                }
+                // sets the selection to just after the next leftmost space
+                else if (altShift) {
+                    if (cursor == selectionEnd && cursor != selectionStart) {
+                        cursor -= countToNextSpace(true);
+                        if (cursor >= selectionStart) selectionEnd = cursor;
+                        else {
+                            selectionEnd = selectionStart;
+                            selectionStart = cursor;
+                        }
+                    } else {
+                        cursor -= countToNextSpace(true);
+                        selectionStart = cursor;
+                    }
+                }
+                // sets the selection to the beginning of the text box
+                else if (ctrlShift) {
+                    if (cursor == selectionEnd && cursor != selectionStart) {
+                        selectionEnd = selectionStart;
+                    }
+                    selectionStart = 0;
+
+                    cursor = 0;
+                }
+                // moves the selection one character to the left
+                else if (shift) {
+                    if (cursor == selectionEnd && cursor != selectionStart) {
+                        selectionEnd = cursor - 1;
+                    } else {
+                        selectionStart = cursor - 1;
+                    }
+
+                    cursor--;
+                }
+                // moves the cursor one character to the left
+                else {
+                    if (cursor == selectionEnd && cursor != selectionStart) {
+                        cursor = selectionStart;
+                    } else if (!(cursor == selectionStart && cursor != selectionEnd)) {
+                        cursor--;
+                    }
+
+                    resetSelection();
+                }
+
+                cursorChanged();
+            } else if (selectionStart != selectionEnd && selectionStart == 0 && noMods) {
+                cursor = 0;
+                resetSelection();
+                cursorChanged();
             }
 
             return true;
-         } else if (input.key() == 263) {
-            if (this.cursor > 0) {
-               if (input.modifiers() == (SystemUtils.IS_OS_WINDOWS ? 2 : 4)) {
-                  this.cursor = this.cursor - this.countToNextSpace(true);
-                  this.resetSelection();
-               } else if (input.modifiers() == (SystemUtils.IS_OS_WINDOWS ? 4 : (MacosUtil.IS_MACOS ? 8 : 2))) {
-                  this.cursor = 0;
-                  this.resetSelection();
-               } else if (altShift) {
-                  if (this.cursor == this.selectionEnd && this.cursor != this.selectionStart) {
-                     this.cursor = this.cursor - this.countToNextSpace(true);
-                     if (this.cursor >= this.selectionStart) {
-                        this.selectionEnd = this.cursor;
-                     } else {
-                        this.selectionEnd = this.selectionStart;
-                        this.selectionStart = this.cursor;
-                     }
-                  } else {
-                     this.cursor = this.cursor - this.countToNextSpace(true);
-                     this.selectionStart = this.cursor;
-                  }
-               } else if (controlShift) {
-                  if (this.cursor == this.selectionEnd && this.cursor != this.selectionStart) {
-                     this.selectionEnd = this.selectionStart;
-                  }
+        } else if (input.key() == KEY_RIGHT) {
+            if (cursor < text.length()) {
+                // sets the cursor to just before the next rightmost space
+                if (word) {
+                    cursor += countToNextSpace(false);
+                    resetSelection();
+                }
+                // sets the cursor to the end of the text box
+                else if (line) {
+                    cursor = text.length();
+                    resetSelection();
+                }
+                // sets the selection to just before the next rightmost space
+                else if (altShift) {
+                    if (cursor == selectionStart && cursor != selectionEnd) {
+                        cursor += countToNextSpace(false);
+                        if (cursor <= selectionEnd) selectionStart = cursor;
+                        else {
+                            selectionStart = selectionEnd;
+                            selectionEnd = cursor;
+                        }
+                    } else {
+                        cursor += countToNextSpace(false);
+                        selectionEnd = cursor;
+                    }
+                }
+                // sets the selection to the end of the text box
+                else if (ctrlShift) {
+                    if (cursor == selectionStart && cursor != selectionEnd) {
+                        selectionStart = selectionEnd;
+                    }
+                    cursor = text.length();
+                    selectionEnd = cursor;
+                }
+                // moves the selection one character to the right
+                else if (shift) {
+                    if (cursor == selectionStart && cursor != selectionEnd) {
+                        selectionStart = cursor + 1;
+                    } else {
+                        selectionEnd = cursor + 1;
+                    }
 
-                  this.selectionStart = 0;
-                  this.cursor = 0;
-               } else if (shift) {
-                  if (this.cursor == this.selectionEnd && this.cursor != this.selectionStart) {
-                     this.selectionEnd = this.cursor - 1;
-                  } else {
-                     this.selectionStart = this.cursor - 1;
-                  }
+                    cursor++;
+                }
+                // moves the cursor one character to the right
+                else {
+                    if (cursor == selectionStart && cursor != selectionEnd) {
+                        cursor = selectionEnd;
+                    } else if (!(cursor == selectionEnd && cursor != selectionStart)) {
+                        cursor++;
+                    }
 
-                  this.cursor--;
-               } else {
-                  if (this.cursor == this.selectionEnd && this.cursor != this.selectionStart) {
-                     this.cursor = this.selectionStart;
-                  } else {
-                     this.cursor--;
-                  }
+                    resetSelection();
+                }
 
-                  this.resetSelection();
-               }
-
-               this.cursorChanged();
-            } else if (this.selectionStart != this.selectionEnd && this.selectionStart == 0 && input.modifiers() == 0) {
-               this.cursor = 0;
-               this.resetSelection();
-               this.cursorChanged();
+                cursorChanged();
+            } else if (selectionStart != selectionEnd && selectionEnd == text.length() && noMods) {
+                cursor = text.length();
+                resetSelection();
+                cursorChanged();
             }
 
             return true;
-         } else if (input.key() != 262) {
-            if (input.key() == 264 && this.completionsW != null) {
-               int currentI = this.getSelectedCompletion();
-               if (currentI == Math.min(5, this.completions.size() - 1)) {
-                  if (this.completionsStart + 6 < this.completions.size()) {
-                     this.completionsStart++;
-                     this.createCompletions(this.completionsStart + currentI);
-                  }
-               } else {
-                  ((WTextBox.ICompletionItem)this.completionsW.cells.get(currentI).widget()).setSelected(false);
-                  ((WTextBox.ICompletionItem)this.completionsW.cells.get(currentI + 1).widget()).setSelected(true);
-               }
+        } else if (input.key() == KEY_DOWN && completionsW != null) {
+            int currentI = getSelectedCompletion();
 
-               return true;
-            } else if (input.key() == 265 && this.completionsW != null) {
-               int currentI = this.getSelectedCompletion();
-               if (currentI == 0) {
-                  if (this.completionsStart > 0) {
-                     this.completionsStart--;
-                     this.createCompletions(this.completionsStart + currentI);
-                  }
-               } else {
-                  ((WTextBox.ICompletionItem)this.completionsW.cells.get(currentI).widget()).setSelected(false);
-                  ((WTextBox.ICompletionItem)this.completionsW.cells.get(currentI - 1).widget()).setSelected(true);
-               }
-
-               return true;
+            if (currentI == Math.min(5, completions.size() - 1)) {
+                if (completionsStart + 6 < completions.size()) {
+                    completionsStart++;
+                    createCompletions(completionsStart + currentI);
+                }
             } else {
-               return false;
-            }
-         } else {
-            if (this.cursor < this.text.length()) {
-               if (input.modifiers() == (SystemUtils.IS_OS_WINDOWS ? 2 : 4)) {
-                  this.cursor = this.cursor + this.countToNextSpace(false);
-                  this.resetSelection();
-               } else if (input.modifiers() == (SystemUtils.IS_OS_WINDOWS ? 4 : (MacosUtil.IS_MACOS ? 8 : 2))) {
-                  this.cursor = this.text.length();
-                  this.resetSelection();
-               } else if (altShift) {
-                  if (this.cursor == this.selectionStart && this.cursor != this.selectionEnd) {
-                     this.cursor = this.cursor + this.countToNextSpace(false);
-                     if (this.cursor <= this.selectionEnd) {
-                        this.selectionStart = this.cursor;
-                     } else {
-                        this.selectionStart = this.selectionEnd;
-                        this.selectionEnd = this.cursor;
-                     }
-                  } else {
-                     this.cursor = this.cursor + this.countToNextSpace(false);
-                     this.selectionEnd = this.cursor;
-                  }
-               } else if (controlShift) {
-                  if (this.cursor == this.selectionStart && this.cursor != this.selectionEnd) {
-                     this.selectionStart = this.selectionEnd;
-                  }
-
-                  this.cursor = this.text.length();
-                  this.selectionEnd = this.cursor;
-               } else if (shift) {
-                  if (this.cursor == this.selectionStart && this.cursor != this.selectionEnd) {
-                     this.selectionStart = this.cursor + 1;
-                  } else {
-                     this.selectionEnd = this.cursor + 1;
-                  }
-
-                  this.cursor++;
-               } else {
-                  if (this.cursor == this.selectionStart && this.cursor != this.selectionEnd) {
-                     this.cursor = this.selectionEnd;
-                  } else {
-                     this.cursor++;
-                  }
-
-                  this.resetSelection();
-               }
-
-               this.cursorChanged();
-            } else if (this.selectionStart != this.selectionEnd && this.selectionEnd == this.text.length() && input.modifiers() == 0) {
-               this.cursor = this.text.length();
-               this.resetSelection();
-               this.cursorChanged();
+                ((ICompletionItem) completionsW.cells.get(currentI).widget()).setSelected(false);
+                ((ICompletionItem) completionsW.cells.get(currentI + 1).widget()).setSelected(true);
             }
 
             return true;
-         }
-      }
-   }
+        } else if (input.key() == KEY_UP && completionsW != null) {
+            int currentI = getSelectedCompletion();
 
-   private int getSelectedCompletion() {
-      for (int i = 0; i < this.completionsW.cells.size(); i++) {
-         WTextBox.ICompletionItem item = (WTextBox.ICompletionItem)this.completionsW.cells.get(i).widget();
-         if (item.isSelected()) {
+            if (currentI == 0) {
+                if (completionsStart > 0) {
+                    completionsStart--;
+                    createCompletions(completionsStart + currentI);
+                }
+            } else {
+                ((ICompletionItem) completionsW.cells.get(currentI).widget()).setSelected(false);
+                ((ICompletionItem) completionsW.cells.get(currentI - 1).widget()).setSelected(true);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private int getSelectedCompletion() {
+        for (int i = 0; i < completionsW.cells.size(); i++) {
+            ICompletionItem item = (ICompletionItem) completionsW.cells.get(i).widget();
+            if (!item.isSelected()) continue;
+
             return i;
-         }
-      }
+        }
 
-      return -1;
-   }
+        return -1;
+    }
 
-   @Override
-   public boolean onCharTyped(CharacterEvent input) {
-      if (!this.focused) {
-         return false;
-      } else if (this.filter.filter(this.text, input.codepoint())) {
-         this.clearSelection();
-         this.text = this.text.substring(0, this.cursor) + input.codepointAsString() + this.text.substring(this.cursor);
-         this.cursor++;
-         this.resetSelection();
-         this.runAction();
-         return true;
-      } else {
-         return false;
-      }
-   }
+    @Override
+    public boolean onCharTyped(CharacterEvent input) {
+        if (!focused) return false;
 
-   @Override
-   public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-      if (this.isFocused()) {
-         GuiKeyEvents.canUseKeys = false;
-      }
+        if (filter.filter(text, input.codepoint())) {
+            clearSelection();
 
-      if (this.completionsW != null && this.focused) {
-         renderer.absolutePost(() -> {
-            renderer.beginRender();
-            this.completionsW.render(renderer, mouseX, mouseY, delta);
-            renderer.endRender();
-         });
-      }
+            text = text.substring(0, cursor) + input.codepointAsString() + text.substring(cursor);
 
-      return super.render(renderer, mouseX, mouseY, delta);
-   }
+            cursor++;
+            resetSelection();
 
-   private void clearSelection() {
-      if (this.selectionStart != this.selectionEnd) {
-         String preText = this.text;
-         this.text = this.text.substring(0, this.selectionStart) + this.text.substring(this.selectionEnd);
-         this.cursor = this.selectionStart;
-         this.selectionEnd = this.cursor;
-         if (!this.text.equals(preText)) {
-            this.runAction();
-         }
-      }
-   }
+            runAction();
+            return true;
+        }
 
-   private void resetSelection() {
-      this.selectionStart = this.cursor;
-      this.selectionEnd = this.cursor;
-   }
+        return false;
+    }
 
-   private int countToNextSpace(boolean toLeft) {
-      return this.countToNextSpace(toLeft, this.cursor);
-   }
+    @Override
+    public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+        if (isFocused()) GuiKeyEvents.canUseKeys = false;
 
-   private int countToNextSpace(boolean toLeft, int startPos) {
-      int count = 0;
-      boolean hadNonSpace = false;
-      int i = startPos;
+        if (completionsW != null && focused) {
+            renderer.absolutePost(() -> {
+                renderer.beginRender();
+                completionsW.render(renderer, mouseX, mouseY, delta);
+                renderer.endRender();
+            });
+        }
 
-      while (toLeft ? i >= 0 : i < this.text.length()) {
-         int j = i;
-         if (toLeft) {
-            j = i - 1;
-         }
+        return super.render(renderer, mouseX, mouseY, delta);
+    }
 
-         if (j < this.text.length()) {
-            if (j < 0 || hadNonSpace && Character.isWhitespace(this.text.charAt(j))) {
-               break;
-            }
+    private void clearSelection() {
+        if (selectionStart == selectionEnd) return;
 
-            if (!Character.isWhitespace(this.text.charAt(j))) {
-               hadNonSpace = true;
-            }
+        String preText = text;
+
+        text = text.substring(0, selectionStart) + text.substring(selectionEnd);
+
+        cursor = selectionStart;
+        selectionEnd = cursor;
+
+        if (!text.equals(preText)) runAction();
+    }
+
+    private void resetSelection() {
+        selectionStart = cursor;
+        selectionEnd = cursor;
+    }
+
+    private int countToNextSpace(boolean toLeft) {
+        return countToNextSpace(toLeft, cursor);
+    }
+
+    private int countToNextSpace(boolean toLeft, int startPos) {
+        int count = 0;
+        boolean hadNonSpace = false;
+
+        for (int i = startPos; toLeft ? i >= 0 : i < text.length(); i += toLeft ? -1 : 1) {
+            int j = i;
+            if (toLeft) j--;
+
+            if (j >= text.length()) continue;
+            if (j < 0) break;
+
+            if (hadNonSpace && Character.isWhitespace(text.charAt(j))) break;
+            else if (!Character.isWhitespace(text.charAt(j))) hadNonSpace = true;
 
             count++;
-         }
+        }
 
-         i += toLeft ? -1 : 1;
-      }
+        return count;
+    }
 
-      return count;
-   }
+    private void calculateTextWidths() {
+        textWidths.clear();
 
-   private void calculateTextWidths() {
-      this.textWidths.clear();
+        for (int i = 0; i <= text.length(); i++) {
+            textWidths.add(theme.textWidth(text, i, false));
+        }
+    }
 
-      for (int i = 0; i <= this.text.length(); i++) {
-         this.textWidths.add(this.theme.textWidth(this.text, i, false));
-      }
-   }
+    private void runAction() {
+        calculateTextWidths();
+        cursorChanged();
 
-   private void runAction() {
-      this.calculateTextWidths();
-      this.cursorChanged();
-      if (this.action != null) {
-         this.action.run();
-      }
-   }
+        if (action != null) action.run();
+    }
 
-   private double textWidth() {
-      return this.textWidths.isEmpty() ? 0.0 : this.textWidths.getDouble(this.textWidths.size() - 1);
-   }
+    private double textWidth() {
+        return textWidths.isEmpty() ? 0 : textWidths.getDouble(textWidths.size() - 1);
+    }
 
-   private void cursorChanged() {
-      double cursor = this.getCursorTextWidth(-2);
-      if (cursor < this.textStart) {
-         this.textStart = this.textStart - (this.textStart - cursor);
-      }
+    private void cursorChanged() {
+        double cursor = getCursorTextWidth(-2);
+        if (cursor < textStart) {
+            textStart -= textStart - cursor;
+        }
 
-      cursor = this.getCursorTextWidth(2);
-      if (cursor > this.textStart + this.maxTextWidth()) {
-         this.textStart = this.textStart + (cursor - (this.textStart + this.maxTextWidth()));
-      }
+        cursor = getCursorTextWidth(2);
+        if (cursor > textStart + maxTextWidth()) {
+            textStart += cursor - (textStart + maxTextWidth());
+        }
 
-      this.textStart = Mth.clamp(this.textStart, 0.0, Math.max(this.textWidth() - this.maxTextWidth(), 0.0));
-      this.onCursorChanged();
-      this.completions = this.renderer.getCompletions(this.text, this.cursor);
-      this.completionsStart = 0;
-      this.completionsW = null;
-      if (this.completions != null && !this.completions.isEmpty()) {
-         this.createCompletions(0);
-      }
-   }
+        textStart = Mth.clamp(textStart, 0, Math.max(textWidth() - maxTextWidth(), 0));
 
-   protected void onCursorChanged() {
-   }
+        onCursorChanged();
 
-   private void createCompletions(int selected) {
-      this.completionsW = this.createCompletionsRootWidget();
-      this.completionsW.theme = this.theme;
-      int max = Math.min(this.completions.size(), this.completionsStart + 6);
+        // Completions
+        completions = renderer.getCompletions(text, this.cursor);
+        completionsStart = 0;
+        completionsW = null;
+        if (completions != null && !completions.isEmpty()) createCompletions(0);
+    }
 
-      for (int i = this.completionsStart; i < max; i++) {
-         WWidget widget = this.createCompletionsValueWidth(this.completions.get(i), i == selected);
-         widget.theme = this.theme;
-         Cell<?> cell = this.completionsW.add(widget).expandX().padHorizontal(4.0);
-         if (i == max - 1) {
-            cell.padBottom(4.0);
-         }
-      }
+    protected void onCursorChanged() {
+    }
 
-      this.completionsW.calculateSize();
-      this.completionsW.x = Math.min(
-         Math.max(this.x - this.pad() * 2.0 + this.getTextWidth(this.cursor) - this.getOverflowWidthForRender(), this.x),
-         this.x + this.width - this.completionsW.width
-      );
-      this.completionsW.y = this.y + this.height;
-      this.completionsW.calculateWidgetPositions();
-   }
+    private void createCompletions(int selected) {
+        completionsW = createCompletionsRootWidget();
+        completionsW.theme = theme;
 
-   protected double getTextWidth(int pos) {
-      if (this.textWidths.isEmpty()) {
-         return 0.0;
-      } else {
-         if (pos < 0) {
-            pos = 0;
-         } else if (pos >= this.textWidths.size()) {
-            pos = this.textWidths.size() - 1;
-         }
+        int max = Math.min(completions.size(), completionsStart + 6);
+        for (int i = completionsStart; i < max; i++) {
+            WWidget widget = createCompletionsValueWidth(completions.get(i), i == selected);
+            widget.theme = theme;
 
-         return this.textWidths.getDouble(pos);
-      }
-   }
+            Cell<?> cell = completionsW.add(widget).expandX().padHorizontal(4);
+            if (i == max - 1) cell.padBottom(4);
+        }
 
-   protected double getCursorTextWidth(int offset) {
-      return this.getTextWidth(this.cursor + offset);
-   }
+        completionsW.calculateSize();
+        completionsW.x = Math.clamp(x - pad() * 2 + getTextWidth(cursor) - getOverflowWidthForRender(), x, x + width - completionsW.width);
+        completionsW.y = y + height;
+        completionsW.calculateWidgetPositions();
+    }
 
-   protected double getOverflowWidthForRender() {
-      return this.textStart;
-   }
+    protected double getTextWidth(int pos) {
+        if (textWidths.isEmpty()) return 0;
 
-   public String get() {
-      return this.text;
-   }
+        if (pos < 0) pos = 0;
+        else if (pos >= textWidths.size()) pos = textWidths.size() - 1;
 
-   public void set(String text) {
-      this.text = text;
-      this.cursor = Mth.clamp(this.cursor, 0, text.length());
-      this.selectionStart = this.cursor;
-      this.selectionEnd = this.cursor;
-      this.calculateTextWidths();
-      this.cursorChanged();
-   }
+        return textWidths.getDouble(pos);
+    }
 
-   @Override
-   public void setFocused(boolean focused) {
-      if (this.focused && !focused && this.actionOnUnfocused != null) {
-         this.actionOnUnfocused.run();
-      }
+    protected double getCursorTextWidth(int offset) {
+        return getTextWidth(cursor + offset);
+    }
 
-      boolean wasJustFocused = focused && !this.focused;
-      this.focused = focused;
-      this.resetSelection();
-      if (wasJustFocused) {
-         this.onCursorChanged();
-      }
-   }
+    protected double getOverflowWidthForRender() {
+        return textStart;
+    }
 
-   public void setCursorMax() {
-      this.cursor = this.text.length();
-   }
+    public String get() {
+        return text;
+    }
 
-   public interface ICompletionItem {
-      boolean isSelected();
+    public void set(String text) {
+        this.text = text;
 
-      void setSelected(boolean var1);
+        cursor = Mth.clamp(cursor, 0, text.length());
+        selectionStart = cursor;
+        selectionEnd = cursor;
 
-      String getCompletion();
-   }
+        calculateTextWidths();
+        cursorChanged();
+    }
 
-   public interface Renderer {
-      void render(GuiRenderer var1, double var2, double var4, String var6, Color var7);
+    @Override
+    public void setFocused(boolean focused) {
+        if (this.focused && !focused && actionOnUnfocused != null) actionOnUnfocused.run();
 
-      default List<String> getCompletions(String text, int position) {
-         return null;
-      }
-   }
+        boolean wasJustFocused = focused && !this.focused;
+
+        this.focused = focused;
+
+        resetSelection();
+
+        if (wasJustFocused) onCursorChanged();
+    }
+
+    public void setCursorMax() {
+        cursor = text.length();
+    }
+
+    public interface Renderer {
+        void render(GuiRenderer renderer, double x, double y, String text, Color color);
+
+        default List<String> getCompletions(String text, int position) {
+            return null;
+        }
+    }
+
+    public interface ICompletionItem {
+        boolean isSelected();
+
+        void setSelected(boolean selected);
+
+        String getCompletion();
+    }
 }

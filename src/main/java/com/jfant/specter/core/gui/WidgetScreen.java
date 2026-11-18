@@ -1,5 +1,11 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui;
 
+import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.gui.renderer.GuiDebugRenderer;
 import com.jfant.specter.core.gui.renderer.GuiRenderer;
@@ -10,379 +16,439 @@ import com.jfant.specter.core.gui.widgets.WWidget;
 import com.jfant.specter.core.gui.widgets.containers.WContainer;
 import com.jfant.specter.core.gui.widgets.input.WTextBox;
 import com.jfant.specter.core.utils.Utils;
-import com.jfant.specter.core.utils.misc.CursorStyle;
 import com.jfant.specter.core.utils.misc.input.Input;
-import com.mojang.blaze3d.platform.MacosUtil;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
+import org.apache.commons.lang3.SystemUtils;
+import org.jspecify.annotations.NonNull;
+import org.lwjgl.sdl.SDLMouse;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
+import static com.mojang.blaze3d.platform.InputConstants.*;
+import static com.jfant.specter.core.SpecterCore.mc;
+import static com.jfant.specter.core.utils.Utils.getWindowHeight;
+import static com.jfant.specter.core.utils.Utils.getWindowWidth;
 
 public abstract class WidgetScreen extends Screen {
-   private static final GuiRenderer RENDERER = new GuiRenderer();
-   private static final GuiDebugRenderer DEBUG_RENDERER = new GuiDebugRenderer();
-   public Runnable taskAfterRender;
-   protected Runnable enterAction;
-   public Screen parent;
-   private final WContainer root;
-   protected final GuiTheme theme;
-   public boolean locked;
-   public boolean lockedAllowClose;
-   private boolean closed;
-   private boolean onClose;
-   private boolean debug;
-   private boolean closing;
-   private double lastMouseX;
-   private double lastMouseY;
-   public double animProgress;
-   private List<Runnable> onClosed;
-   protected boolean firstInit = true;
+    private static final GuiRenderer RENDERER = new GuiRenderer();
+    private static final GuiDebugRenderer DEBUG_RENDERER = new GuiDebugRenderer();
 
-   public WidgetScreen(GuiTheme theme, String title) {
-      super(Component.literal(title));
-      this.parent = SpecterCore.mc.screen;
-      this.root = new WidgetScreen.WFullScreenRoot();
-      this.theme = theme;
-      this.root.theme = theme;
-      if (this.parent != null) {
-         this.animProgress = 1.0;
-         if (this instanceof TabScreen && this.parent instanceof TabScreen) {
-            this.parent = ((TabScreen)this.parent).parent;
-         }
-      }
-   }
+    public Runnable taskAfterRender;
+    protected Runnable enterAction;
 
-   public <W extends WWidget> Cell<W> add(W widget) {
-      return this.root.add(widget);
-   }
+    public Screen parent;
+    private final WContainer root;
 
-   public void clear() {
-      this.root.clear();
-   }
+    protected final GuiTheme theme;
 
-   public void invalidate() {
-      this.root.invalidate();
-   }
+    public boolean locked, lockedAllowClose;
+    private boolean closed;
+    private boolean onClose;
+    private boolean debug;
 
-   @Override
-   protected void init() {
-      SpecterCore.EVENT_BUS.subscribe(this);
-      this.closed = false;
-      if (this.firstInit) {
-         this.firstInit = false;
-         this.initWidgets();
-      }
-   }
+    private boolean closing;
 
-   public abstract void initWidgets();
+    private double lastMouseX, lastMouseY;
 
-   public void reload() {
-      this.clear();
-      this.initWidgets();
-   }
+    public double animProgress;
 
-   public void onClosed(Runnable action) {
-      if (this.onClosed == null) {
-         this.onClosed = new ArrayList<>(2);
-      }
+    private List<Runnable> onClosed;
 
-      this.onClosed.add(action);
-   }
+    protected boolean firstInit = true;
 
-   @Override
-   public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
-      if (this.locked) {
-         return false;
-      } else {
-         double mouseX = click.x();
-         double mouseY = click.y();
-         double s = SpecterCore.mc.getWindow().getGuiScale();
-         mouseX *= s;
-         mouseY *= s;
-         return this.root.mouseClicked(new MouseButtonEvent(mouseX, mouseY, click.buttonInfo()), doubled);
-      }
-   }
+    public WidgetScreen(GuiTheme theme, String title) {
+        super(Component.literal(title));
 
-   @Override
-   public boolean mouseReleased(MouseButtonEvent click) {
-      if (this.locked) {
-         return false;
-      } else {
-         double mouseX = click.x();
-         double mouseY = click.y();
-         double s = SpecterCore.mc.getWindow().getGuiScale();
-         mouseX *= s;
-         mouseY *= s;
-         if (this.debug && click.button() == 1) {
-            DEBUG_RENDERER.mouseReleased(this.root, new MouseButtonEvent(mouseX, mouseY, click.buttonInfo()), 0);
-         }
+        this.parent = mc.gui.screen();
+        this.root = new WFullScreenRoot();
+        this.theme = theme;
 
-         return this.root.mouseReleased(new MouseButtonEvent(mouseX, mouseY, click.buttonInfo()));
-      }
-   }
+        root.theme = theme;
 
-   @Override
-   public void mouseMoved(double mouseX, double mouseY) {
-      if (!this.locked) {
-         double s = SpecterCore.mc.getWindow().getGuiScale();
-         mouseX *= s;
-         mouseY *= s;
-         this.root.mouseMoved(mouseX, mouseY, this.lastMouseX, this.lastMouseY);
-         this.lastMouseX = mouseX;
-         this.lastMouseY = mouseY;
-      }
-   }
+        if (parent != null) {
+            animProgress = 1;
 
-   @Override
-   public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-      if (this.locked) {
-         return false;
-      } else {
-         this.root.mouseScrolled(verticalAmount);
-         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
-      }
-   }
+            if (this instanceof TabScreen && parent instanceof TabScreen) {
+                parent = ((TabScreen) parent).parent;
+            }
+        }
+    }
 
-   @Override
-   public boolean keyReleased(KeyEvent input) {
-      if (this.locked) {
-         return false;
-      } else if ((input.modifiers() == 2 || input.modifiers() == 8) && input.key() == 57) {
-         this.debug = !this.debug;
-         return true;
-      } else if ((input.key() == 257 || input.key() == 335) && this.enterAction != null) {
-         this.enterAction.run();
-         return true;
-      } else {
-         return super.keyReleased(input);
-      }
-   }
+    public <W extends WWidget> Cell<W> add(W widget) {
+        return root.add(widget);
+    }
 
-   @Override
-   public boolean keyPressed(KeyEvent input) {
-      if (this.locked) {
-         return false;
-      } else {
-         boolean shouldReturn = this.root.keyPressed(input) || super.keyPressed(input);
-         if (shouldReturn) {
+    public void clear() {
+        root.clear();
+    }
+
+    public void invalidate() {
+        root.invalidate();
+    }
+
+    @Override
+    protected void init() {
+        SpecterCore.EVENT_BUS.subscribe(this);
+
+        closed = false;
+
+        if (firstInit) {
+            firstInit = false;
+            initWidgets();
+        }
+
+        mc.textInputManager().startTextInput(this);
+    }
+
+    public abstract void initWidgets();
+
+    public void reload() {
+        clear();
+        initWidgets();
+    }
+
+    public void onClosed(Runnable action) {
+        if (onClosed == null) onClosed = new ArrayList<>(2);
+        onClosed.add(action);
+    }
+
+    @Override
+    public boolean mouseClicked(@NonNull MouseButtonEvent click, boolean doubled) {
+        if (locked) return false;
+
+        double mouseX = click.x();
+        double mouseY = click.y();
+        double s = mc.getWindow().getGuiScale();
+
+        mouseX *= s;
+        mouseY *= s;
+
+        // Unfocus all text boxes that are not under the mouse cursor
+        loopWidgets(root, widget -> {
+            if (widget instanceof WTextBox textBox && textBox.isFocused() && !textBox.mouseOver) {
+                textBox.setFocused(false);
+            }
+        });
+
+        return root.mouseClicked(new MouseButtonEvent(mouseX, mouseY, click.buttonInfo()), doubled);
+    }
+
+    @Override
+    public boolean mouseReleased(@NonNull MouseButtonEvent click) {
+        if (locked) return false;
+
+        double mouseX = click.x();
+        double mouseY = click.y();
+        double s = mc.getWindow().getGuiScale();
+
+        mouseX *= s;
+        mouseY *= s;
+
+        if (debug && click.button() == MOUSE_BUTTON_RIGHT)
+            DEBUG_RENDERER.mouseReleased(root, new MouseButtonEvent(mouseX, mouseY, click.buttonInfo()), 0);
+
+        return root.mouseReleased(new MouseButtonEvent(mouseX, mouseY, click.buttonInfo()));
+    }
+
+    @Override
+    public void mouseMoved(double mouseX, double mouseY) {
+        if (locked) return;
+
+        double s = mc.getWindow().getGuiScale();
+        mouseX *= s;
+        mouseY *= s;
+
+        root.mouseMoved(mouseX, mouseY, lastMouseX, lastMouseY);
+
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (locked) return false;
+
+        root.mouseScrolled(verticalAmount);
+
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+
+    @Override
+    public boolean keyReleased(@NonNull KeyEvent event) {
+        if (locked) return false;
+
+        boolean ctrl = SystemUtils.IS_OS_MAC
+            ? Input.modsMatch(event.modifiers(), MOD_SUPER)
+            : Input.modsMatch(event.modifiers(), MOD_CONTROL);
+
+        if (ctrl && event.key() == KEY_9) {
+            debug = !debug;
             return true;
-         } else if (input.key() == 258) {
+        }
+
+        if ((event.key() == KEY_RETURN || event.key() == KEY_NUMPADENTER) && enterAction != null) {
+            enterAction.run();
+            return true;
+        }
+
+        return super.keyReleased(event);
+    }
+
+    @Override
+    public boolean keyPressed(@NonNull KeyEvent input) {
+        if (locked) return false;
+
+        boolean shouldReturn = root.keyPressed(input) || super.keyPressed(input);
+        if (shouldReturn) return true;
+
+        // Select next text box if TAB was pressed
+        if (input.key() == KEY_TAB) {
             AtomicReference<WTextBox> firstTextBox = new AtomicReference<>(null);
             AtomicBoolean done = new AtomicBoolean(false);
             AtomicBoolean foundFocused = new AtomicBoolean(false);
-            this.loopWidgets(this.root, wWidget -> {
-               if (!done.get() && wWidget instanceof WTextBox textBox) {
-                  if (foundFocused.get()) {
-                     textBox.setFocused(true);
-                     textBox.setCursorMax();
-                     done.set(true);
-                  } else if (textBox.isFocused()) {
-                     textBox.setFocused(false);
-                     foundFocused.set(true);
-                  }
 
-                  if (firstTextBox.get() == null) {
-                     firstTextBox.set(textBox);
-                  }
-               }
+            loopWidgets(root, wWidget -> {
+                if (done.get() || !(wWidget instanceof WTextBox textBox)) return;
+
+                if (foundFocused.get()) {
+                    textBox.setFocused(true);
+                    textBox.setCursorMax();
+
+                    done.set(true);
+                } else {
+                    if (textBox.isFocused()) {
+                        textBox.setFocused(false);
+                        foundFocused.set(true);
+                    }
+                }
+
+                if (firstTextBox.get() == null) firstTextBox.set(textBox);
             });
+
             if (!done.get() && firstTextBox.get() != null) {
-               firstTextBox.get().setFocused(true);
-               firstTextBox.get().setCursorMax();
+                firstTextBox.get().setFocused(true);
+                firstTextBox.get().setCursorMax();
             }
 
             return true;
-         } else {
-            boolean control = MacosUtil.IS_MACOS ? input.modifiers() == 8 : input.modifiers() == 2;
-            return control && input.key() == 67 && this.toClipboard() || control && input.key() == 86 && this.fromClipboard();
-         }
-      }
-   }
+        }
 
-   public void keyRepeated(KeyEvent input) {
-      if (!this.locked) {
-         this.root.keyRepeated(input);
-      }
-   }
+        boolean ctrl = SystemUtils.IS_OS_MAC
+            ? Input.modsMatch(input.modifiers(), MOD_SUPER)
+            : Input.modsMatch(input.modifiers(), MOD_CONTROL);
 
-   @Override
-   public boolean charTyped(CharacterEvent input) {
-      return this.locked ? false : this.root.charTyped(input);
-   }
+        return (ctrl && input.key() == KEY_C && toClipboard())
+            || (ctrl && input.key() == KEY_V && fromClipboard());
+    }
 
-   @Override
-   public void renderBackground(GuiGraphics context, int mouseX, int mouseY, float deltaTicks) {
-      if (this.minecraft.level == null) {
-         this.renderPanorama(context, deltaTicks);
-      }
-   }
+    public void keyRepeated(KeyEvent input) {
+        if (locked) return;
 
-   public void renderCustom(GuiGraphics context, int mouseX, int mouseY, float delta) {
-      int s = SpecterCore.mc.getWindow().getGuiScale();
-      mouseX *= s;
-      mouseY *= s;
-      this.animProgress = this.animProgress + delta / 20.0F * 14.0F * (this.closing ? -1 : 1);
-      this.animProgress = Mth.clamp(this.animProgress, 0.0, 1.0);
-      if (this.closing && (this.animProgress == 0.0 || this.parent != null)) {
-         this.closeInternal();
-      }
+        root.keyRepeated(input);
+    }
 
-      GuiKeyEvents.canUseKeys = true;
-      Utils.unscaledProjection();
-      this.onRenderBefore(context, delta);
-      RENDERER.theme = this.theme;
-      this.theme.beforeRender();
-      RENDERER.begin(context);
-      RENDERER.setAlpha(this.animProgress);
-      this.root.render(RENDERER, mouseX, mouseY, delta / 20.0F);
-      RENDERER.setAlpha(1.0);
-      RENDERER.end();
-      boolean tooltip = RENDERER.renderTooltip(context, mouseX, mouseY, delta / 20.0F);
-      if (this.debug) {
-         DEBUG_RENDERER.render(this.root);
-         if (tooltip) {
-            DEBUG_RENDERER.render(RENDERER.tooltipWidget);
-         }
-      }
+    @Override
+    public boolean charTyped(@NonNull CharacterEvent input) {
+        if (locked) return false;
 
-      Utils.scaledProjection();
-      this.runAfterRenderTasks();
-   }
+        return root.charTyped(input);
+    }
 
-   protected void runAfterRenderTasks() {
-      if (this.taskAfterRender != null) {
-         this.taskAfterRender.run();
-         this.taskAfterRender = null;
-      }
-   }
+    @Override
+    public void extractBackground(@NonNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float deltaTicks) {
+        if (this.minecraft.level == null) {
+            this.extractPanorama(graphics, deltaTicks);
+        }
+    }
 
-   protected void onRenderBefore(GuiGraphics drawContext, float delta) {
-   }
+    public void renderCustom(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        int s = mc.getWindow().getGuiScale();
+        mouseX *= s;
+        mouseY *= s;
 
-   @Override
-   public void resize(int width, int height) {
-      super.resize(width, height);
-      this.root.invalidate();
-   }
+        animProgress += (delta / 20 * 14) * (closing ? -1 : 1);
+        animProgress = Mth.clamp(animProgress, 0, 1);
 
-   @Override
-   public void onClose() {
-      if (!this.locked || this.lockedAllowClose) {
-         this.closing = true;
-      }
-   }
+        if (closing && (animProgress == 0 || parent != null)) {
+            closeInternal();
+        }
 
-   @Override
-   public void removed() {
-      if (!this.closed || this.lockedAllowClose) {
-         this.closed = true;
-         this.onClosed();
-         Input.setCursorStyle(CursorStyle.Default);
-         this.loopWidgets(this.root, widget -> {
-            if (widget instanceof WTextBox textBox && textBox.isFocused()) {
-               textBox.setFocused(false);
+        GuiKeyEvents.canUseKeys = true;
+
+        // Apply projection without scaling
+        Utils.unscaledProjection();
+
+        onRenderBefore(graphics, mouseX, mouseY, delta);
+
+        RENDERER.theme = theme;
+        theme.beforeRender();
+
+        RENDERER.begin(graphics);
+        RENDERER.setAlpha(animProgress);
+        root.render(RENDERER, mouseX, mouseY, delta / 20);
+        RENDERER.setAlpha(1);
+        RENDERER.end();
+
+        boolean tooltip = RENDERER.renderTooltip(graphics, mouseX, mouseY, delta / 20);
+
+        if (debug) {
+            DEBUG_RENDERER.render(root);
+            if (tooltip) DEBUG_RENDERER.render(RENDERER.tooltipWidget);
+        }
+
+        Utils.scaledProjection();
+
+        runAfterRenderTasks();
+    }
+
+    protected void runAfterRenderTasks() {
+        if (taskAfterRender != null) {
+            taskAfterRender.run();
+            taskAfterRender = null;
+        }
+    }
+
+    protected void onRenderBefore(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        super.resize(width, height);
+        root.invalidate();
+    }
+
+    @Override
+    public void onClose() {
+        if (!locked || lockedAllowClose) {
+            closing = true;
+        }
+    }
+
+    @Override
+    public void removed() {
+        if (!closed || lockedAllowClose) {
+            closed = true;
+            onClosed();
+
+            Input.setCursorStyle(CursorTypes.ARROW);
+
+            loopWidgets(root, widget -> {
+                if (widget instanceof WTextBox textBox && textBox.isFocused()) textBox.setFocused(false);
+            });
+
+            SpecterCore.EVENT_BUS.unsubscribe(this);
+            GuiKeyEvents.canUseKeys = true;
+
+            if (onClosed != null) {
+                for (Runnable action : onClosed) action.run();
             }
-         });
-         SpecterCore.EVENT_BUS.unsubscribe(this);
-         GuiKeyEvents.canUseKeys = true;
-         if (this.onClosed != null) {
-            for (Runnable action : this.onClosed) {
-               action.run();
+
+            if (onClose) {
+                double restoreX = mc.mouseHandler.xpos();
+                double restoreY = mc.mouseHandler.ypos();
+
+                taskAfterRender = () -> {
+                    locked = true;
+                    mc.gui.setScreen(parent);
+
+                    // Restore mouse position to where it was when the screen was closed
+                    if (parent != null) {
+                        SDLMouse.SDL_WarpMouseInWindow(mc.getWindow().handle(), (float) restoreX, (float) restoreY);
+                    }
+
+                    mc.textInputManager().stopTextInput(this);
+                };
             }
-         }
+        }
+    }
 
-         if (this.onClose) {
-            this.taskAfterRender = () -> {
-               this.locked = true;
-               SpecterCore.mc.setScreen(this.parent);
-            };
-         }
-      }
-   }
+    private void closeInternal() {
+        boolean preOnClose = onClose;
+        onClose = true;
 
-   private void closeInternal() {
-      boolean preOnClose = this.onClose;
-      this.onClose = true;
-      super.onClose();
-      this.removed();
-      this.onClose = preOnClose;
-   }
+        super.onClose();
+        removed();
 
-   private void loopWidgets(WWidget widget, Consumer<WWidget> action) {
-      action.accept(widget);
-      if (widget instanceof WContainer) {
-         for (Cell<?> cell : ((WContainer)widget).cells) {
-            this.loopWidgets(cell.widget(), action);
-         }
-      }
-   }
+        onClose = preOnClose;
+    }
 
-   protected void onClosed() {
-   }
+    private void loopWidgets(WWidget widget, Consumer<WWidget> action) {
+        action.accept(widget);
 
-   public boolean toClipboard() {
-      return false;
-   }
+        if (widget instanceof WContainer wContainer) {
+            for (Cell<?> cell : wContainer.cells) loopWidgets(cell.widget(), action);
+        }
+    }
 
-   public boolean fromClipboard() {
-      return false;
-   }
+    protected void onClosed() {
+    }
 
-   @Override
-   public boolean shouldCloseOnEsc() {
-      return !this.locked || this.lockedAllowClose;
-   }
+    public boolean toClipboard() {
+        return false;
+    }
 
-   @Override
-   public boolean isPauseScreen() {
-      return false;
-   }
+    public boolean fromClipboard() {
+        return false;
+    }
 
-   private static class WFullScreenRoot extends WContainer implements WRoot {
-      private boolean valid;
+    @Override
+    public boolean shouldCloseOnEsc() {
+        return !locked || lockedAllowClose;
+    }
 
-      @Override
-      public void invalidate() {
-         this.valid = false;
-      }
+    @Override
+    public boolean isPauseScreen() {
+        return false;
+    }
 
-      @Override
-      protected void onCalculateSize() {
-         this.width = Utils.getWindowWidth();
-         this.height = Utils.getWindowHeight();
-      }
+    private static class WFullScreenRoot extends WContainer implements WRoot {
+        private boolean valid;
 
-      @Override
-      protected void onCalculateWidgetPositions() {
-         for (Cell<?> cell : this.cells) {
-            cell.x = 0.0;
-            cell.y = 0.0;
-            cell.width = this.width;
-            cell.height = this.height;
-            cell.alignWidget();
-         }
-      }
+        @Override
+        public void invalidate() {
+            valid = false;
+        }
 
-      @Override
-      public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-         if (!this.valid) {
-            this.calculateSize();
-            this.calculateWidgetPositions();
-            this.valid = true;
-            this.mouseMoved(
-               SpecterCore.mc.mouseHandler.xpos(), SpecterCore.mc.mouseHandler.ypos(), SpecterCore.mc.mouseHandler.xpos(), SpecterCore.mc.mouseHandler.ypos()
-            );
-         }
+        @Override
+        protected void onCalculateSize() {
+            width = getWindowWidth();
+            height = getWindowHeight();
+        }
 
-         return super.render(renderer, mouseX, mouseY, delta);
-      }
-   }
+        @Override
+        protected void onCalculateWidgetPositions() {
+            for (Cell<?> cell : cells) {
+                cell.x = 0;
+                cell.y = 0;
+
+                cell.width = width;
+                cell.height = height;
+
+                cell.alignWidget();
+            }
+        }
+
+        @Override
+        public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+            if (!valid) {
+                calculateSize();
+                calculateWidgetPositions();
+
+                valid = true;
+                mouseMoved(mc.mouseHandler.xpos(), mc.mouseHandler.ypos(), mc.mouseHandler.xpos(), mc.mouseHandler.ypos());
+            }
+
+            return super.render(renderer, mouseX, mouseY, delta);
+        }
+    }
 }

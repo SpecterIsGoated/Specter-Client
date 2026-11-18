@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.events.meteor;
 
 import com.jfant.specter.core.events.Cancellable;
@@ -6,20 +11,21 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
 
 public class MouseClickEvent extends Cancellable {
-   private static final MouseClickEvent INSTANCE = new MouseClickEvent();
-   public MouseButtonEvent click;
-   public MouseButtonInfo input;
-   public KeyAction action;
+    private static final MouseClickEvent INSTANCE = new MouseClickEvent();
 
-   public static MouseClickEvent get(MouseButtonEvent click, KeyAction action) {
-      INSTANCE.setCancelled(false);
-      INSTANCE.click = click;
-      INSTANCE.input = click.buttonInfo();
-      INSTANCE.action = action;
-      return INSTANCE;
-   }
+    public MouseButtonEvent click;
+    public MouseButtonInfo input;
+    public KeyAction action;
 
-   public int button() {
-      return INSTANCE.input.button();
-   }
+    public static MouseClickEvent get(MouseButtonEvent click, KeyAction action) {
+        INSTANCE.setCancelled(false);
+        INSTANCE.click = click;
+        INSTANCE.input = click.buttonInfo();
+        INSTANCE.action = action;
+        return INSTANCE;
+    }
+
+    public int button() {
+        return INSTANCE.input.button();
+    }
 }

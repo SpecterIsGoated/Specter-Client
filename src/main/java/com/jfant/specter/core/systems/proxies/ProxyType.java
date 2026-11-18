@@ -1,19 +1,23 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.systems.proxies;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public enum ProxyType {
-   Socks4,
-   Socks5;
+    Socks4,
+    Socks5;
 
-   @Nullable
-   public static ProxyType parse(String group) {
-      for (ProxyType type : values()) {
-         if (type.name().equalsIgnoreCase(group)) {
-            return type;
-         }
-      }
-
-      return null;
-   }
+    @Nullable
+    public static ProxyType parse(String group) {
+        for (ProxyType type : values()) {
+            if (type.name().equalsIgnoreCase(group)) {
+                return type;
+            }
+        }
+        return null;
+    }
 }

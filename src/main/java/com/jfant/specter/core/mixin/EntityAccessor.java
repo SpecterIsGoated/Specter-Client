@@ -1,11 +1,22 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.mixin;
 
 import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin({Entity.class})
+@Mixin(Entity.class)
 public interface EntityAccessor {
-   @Accessor("wasTouchingWater")
-   void meteor$setInWater(boolean var1);
+    @Accessor("wasTouchingWater")
+    void meteor$setInWater(boolean touchingWater);
+
+    @Accessor("id")
+    int meteor$getId();
+
+    @Accessor("id")
+    void meteor$setId(int id);
 }

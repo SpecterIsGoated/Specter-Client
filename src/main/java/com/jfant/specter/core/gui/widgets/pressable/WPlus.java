@@ -1,11 +1,17 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets.pressable;
 
 public abstract class WPlus extends WPressable {
-   @Override
-   protected void onCalculateSize() {
-      double pad = this.pad();
-      double s = this.theme.textHeight();
-      this.width = pad + s + pad;
-      this.height = pad + s + pad;
-   }
+    @Override
+    protected void onCalculateSize() {
+        double pad = pad();
+        double s = theme.textHeight();
+
+        width = pad + s + pad;
+        height = pad + s + pad;
+    }
 }

@@ -1,12 +1,17 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.mixin;
 
-import net.minecraft.client.renderer.block.model.ItemTransform;
-import net.minecraft.client.renderer.item.ItemStackRenderState.LayerRenderState;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.resources.model.cuboid.ItemTransform;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin({LayerRenderState.class})
+@Mixin(ItemStackRenderState.LayerRenderState.class)
 public interface LayerRenderStateAccessor {
-   @Accessor("transform")
-   ItemTransform meteor$getTransform();
+    @Accessor("itemTransform")
+    ItemTransform meteor$getTransform();
 }

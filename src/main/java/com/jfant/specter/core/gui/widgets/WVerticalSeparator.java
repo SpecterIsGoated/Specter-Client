@@ -1,9 +1,14 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets;
 
 public class WVerticalSeparator extends WWidget {
-   @Override
-   protected void onCalculateSize() {
-      this.width = this.theme.scale(3.0);
-      this.height = 1.0;
-   }
+    @Override
+    protected void onCalculateSize() {
+        width = theme.scale(3);
+        height = 1;
+    }
 }

@@ -1,484 +1,460 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.entity.simulator;
 
-import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.mixin.CrossbowItemAccessor;
 import com.jfant.specter.core.mixin.ProjectileInGroundAccessor;
-import com.jfant.specter.core.mixininterface.IVec3d;
+import com.jfant.specter.core.mixininterface.IVec3;
+import com.jfant.specter.core.systems.modules.Modules;
 import com.jfant.specter.core.utils.Utils;
 import com.jfant.specter.core.utils.player.Rotations;
-import java.util.ArrayList;
-import java.util.Collection;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
-import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityDimensions;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.monster.breeze.Breeze;
-import net.minecraft.world.entity.projectile.LlamaSpit;
-import net.minecraft.world.entity.projectile.Projectile;
-import net.minecraft.world.entity.projectile.ProjectileDeflection;
-import net.minecraft.world.entity.projectile.ProjectileUtil;
-import net.minecraft.world.entity.projectile.ThrowableProjectile;
+import net.minecraft.world.entity.projectile.*;
 import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
 import net.minecraft.world.entity.projectile.arrow.Arrow;
 import net.minecraft.world.entity.projectile.arrow.SpectralArrow;
 import net.minecraft.world.entity.projectile.arrow.ThrownTrident;
 import net.minecraft.world.entity.projectile.hurtingprojectile.AbstractHurtingProjectile;
 import net.minecraft.world.entity.projectile.hurtingprojectile.windcharge.AbstractWindCharge;
-import net.minecraft.world.entity.projectile.throwableitemprojectile.Snowball;
-import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEgg;
-import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
-import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownExperienceBottle;
-import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownLingeringPotion;
-import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownSplashPotion;
-import net.minecraft.world.item.BowItem;
-import net.minecraft.world.item.CrossbowItem;
-import net.minecraft.world.item.EggItem;
-import net.minecraft.world.item.EnderpearlItem;
-import net.minecraft.world.item.ExperienceBottleItem;
-import net.minecraft.world.item.FishingRodItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.LingeringPotionItem;
-import net.minecraft.world.item.SnowballItem;
-import net.minecraft.world.item.SplashPotionItem;
-import net.minecraft.world.item.TridentItem;
-import net.minecraft.world.item.WindChargeItem;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.*;
+import net.minecraft.world.item.*;
 import net.minecraft.world.item.component.ChargedProjectiles;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.level.ClipContext.Block;
-import net.minecraft.world.level.ClipContext.Fluid;
 import net.minecraft.world.level.material.FluidState;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.EntityHitResult;
-import net.minecraft.world.phys.HitResult;
-import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.HitResult.Type;
+import net.minecraft.world.phys.*;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 
+import java.util.ArrayList;
+import java.util.Collection;
+
+import static com.jfant.specter.core.SpecterCore.mc;
+
 public class ProjectileEntitySimulator {
-   private final MutableBlockPos blockPos = new MutableBlockPos();
-   private final Vec3 pos3d = new Vec3(0.0, 0.0, 0.0);
-   private final Vec3 prevPos3d = new Vec3(0.0, 0.0, 0.0);
-   public final Vector3d pos = new Vector3d();
-   private final Vector3d velocity = new Vector3d();
-   private Projectile simulatingEntity;
-   private EntityDimensions dimensions;
-   private int age;
-   private int pierceLevel;
-   private double gravity;
-   private float airDrag;
-   private float waterDrag;
-   private boolean isTouchingWater;
-   private static final ProjectileEntitySimulator.MotionData EGG = new ProjectileEntitySimulator.MotionData(1.5F, 0.0F, 0.03, 0.99F, 0.8F, EntityType.EGG);
-   private static final ProjectileEntitySimulator.MotionData ENDER_PEARL = new ProjectileEntitySimulator.MotionData(
-      1.5F, 0.0F, 0.03, 0.99F, 0.8F, EntityType.ENDER_PEARL
-   );
-   private static final ProjectileEntitySimulator.MotionData SNOWBALL = new ProjectileEntitySimulator.MotionData(
-      1.5F, 0.0F, 0.03, 0.99F, 0.8F, EntityType.SNOWBALL
-   );
-   private static final ProjectileEntitySimulator.MotionData EXPERIENCE_BOTTLE = new ProjectileEntitySimulator.MotionData(
-      0.7F, -20.0F, 0.07, 0.99F, 0.8F, EntityType.EXPERIENCE_BOTTLE
-   );
-   private static final ProjectileEntitySimulator.MotionData LINGERING_POTION = new ProjectileEntitySimulator.MotionData(
-      0.5F, -20.0F, 0.05, 0.99F, 0.8F, EntityType.LINGERING_POTION
-   );
-   private static final ProjectileEntitySimulator.MotionData SPLASH_POTION = new ProjectileEntitySimulator.MotionData(
-      0.5F, -20.0F, 0.05, 0.99F, 0.8F, EntityType.SPLASH_POTION
-   );
-   private static final ProjectileEntitySimulator.MotionData EXPLOSIVE = new ProjectileEntitySimulator.MotionData(0.0F, 0.0F, 0.0, 1.0F, 1.0F, null);
-   private static final ProjectileEntitySimulator.MotionData WIND_CHARGE = new ProjectileEntitySimulator.MotionData(
-      1.5F, 0.0F, 0.0, 1.0F, 1.0F, EntityType.WIND_CHARGE
-   );
-   private static final ProjectileEntitySimulator.MotionData ARROW = new ProjectileEntitySimulator.MotionData(0.0F, 0.0F, 0.05, 0.99F, 0.6F, EntityType.ARROW);
-   private static final ProjectileEntitySimulator.MotionData TRIDENT = new ProjectileEntitySimulator.MotionData(
-      2.5F, 0.0F, 0.05, 0.99F, 0.99F, EntityType.TRIDENT
-   );
-   private static final ProjectileEntitySimulator.MotionData FIREWORK_ROCKET = new ProjectileEntitySimulator.MotionData(
-      0.0F, 0.0F, 0.0, 1.0F, 1.0F, EntityType.FIREWORK_ROCKET
-   );
-   private static final ProjectileEntitySimulator.MotionData FISHING_BOBBER = new ProjectileEntitySimulator.MotionData(
-      0.0F, 0.0F, 0.03, 0.92F, 0.0F, EntityType.FISHING_BOBBER
-   );
-   private static final ProjectileEntitySimulator.MotionData LLAMA_SPIT = new ProjectileEntitySimulator.MotionData(
-      1.5F, 0.0F, 0.06, 0.99F, 0.0F, EntityType.LLAMA_SPIT
-   );
+    private final BlockPos.MutableBlockPos blockPos = new BlockPos.MutableBlockPos();
 
-   public boolean set(Entity user, ItemStack itemStack, double angleOffset, boolean accurate, float tickDelta) {
-      Item item = itemStack.getItem();
-      switch (item) {
-         case BowItem ignored:
-            if (!(user instanceof LivingEntity livingEntity)) {
-               return false;
+    private final Vec3 pos3d = new Vec3(0, 0, 0);
+    private final Vec3 prevPos3d = new Vec3(0, 0, 0);
+
+    public final Vector3d pos = new Vector3d();
+    private final Vector3d velocity = new Vector3d();
+
+    private Projectile simulatingEntity;
+    private EntityDimensions dimensions;
+    private int tickCount, pierceLevel;
+    private double gravity;
+    private float airDrag, waterDrag;
+    private boolean isInWater;
+
+    public record MotionData(
+        float power,
+        float roll,
+        double gravity,
+        float airDrag,
+        float waterDrag,
+        EntityType<?> entity
+    ) {
+        public MotionData withPower(float power) {
+            return new MotionData(power, this.roll(), this.gravity(), this.airDrag(), this.waterDrag(), this.entity());
+        }
+    }
+
+    // https://minecraft.wiki/w/Projectile
+    // https://minecraft.wiki/w/Entity#Motion
+
+    // ThrowableProjectile
+    private static final MotionData EGG = new MotionData(1.5f, 0, 0.03, 0.99f, 0.8f, EntityTypes.EGG);
+    private static final MotionData ENDER_PEARL = new MotionData(1.5f, 0, 0.03, 0.99f, 0.8f, EntityTypes.ENDER_PEARL);
+    private static final MotionData SNOWBALL = new MotionData(1.5f, 0, 0.03, 0.99f, 0.8f, EntityTypes.SNOWBALL);
+    private static final MotionData EXPERIENCE_BOTTLE = new MotionData(0.7f, -20, 0.07, 0.99f, 0.8f, EntityTypes.EXPERIENCE_BOTTLE);
+    private static final MotionData LINGERING_POTION = new MotionData(0.5f, -20, 0.05, 0.99f, 0.8f, EntityTypes.LINGERING_POTION);
+    private static final MotionData SPLASH_POTION = new MotionData(0.5f, -20, 0.05, 0.99f, 0.8f, EntityTypes.SPLASH_POTION);
+
+    // AbstractHurtingProjectile
+    private static final MotionData EXPLOSIVE = new MotionData(0, 0, 0, 1, 1, null); // fireball, wither skull, etc.
+    private static final MotionData WIND_CHARGE = new MotionData(1.5f, 0, 0, 1, 1, EntityTypes.WIND_CHARGE);
+
+    // AbstractArrow
+    private static final MotionData ARROW = new MotionData(0, 0, 0.05, 0.99f, 0.6f, EntityTypes.ARROW);
+    private static final MotionData TRIDENT = new MotionData(2.5f, 0, 0.05, 0.99f, 0.99f, EntityTypes.TRIDENT);
+
+    // Other
+    private static final MotionData FIREWORK_ROCKET = new MotionData(0, 0, 0, 1, 1, EntityTypes.FIREWORK_ROCKET);
+    private static final MotionData FISHING_BOBBER = new MotionData(0, 0, 0.03, 0.92f, 0, EntityTypes.FISHING_BOBBER);
+    private static final MotionData LLAMA_SPIT = new MotionData(1.5f, 0, 0.06, 0.99f, 0, EntityTypes.LLAMA_SPIT);
+
+
+    // held items
+
+    public boolean set(Entity user, ItemStack itemStack, double angleOffset, boolean accurate, float tickDelta) {
+        Item item = itemStack.getItem();
+
+        switch (item) {
+            case BowItem _ -> {
+                if (!(user instanceof LivingEntity livingEntity)) return false;
+                float charge = BowItem.getPowerForTime(livingEntity.getTicksUsingItem());
+
+                if (charge <= 0.1) {
+                    if (user == mc.player) charge = 1;
+                    else return false;
+                }
+
+                set(user, angleOffset, accurate, tickDelta, ARROW.withPower(charge * 3));
             }
+            case CrossbowItem _ -> {
+                ChargedProjectiles projectilesComponent = itemStack.get(DataComponents.CHARGED_PROJECTILES);
+                if (projectilesComponent == null) return false;
 
-            float charge = BowItem.getPowerForTime(livingEntity.getTicksUsingItem());
-            if (charge <= 0.1) {
-               if (user != SpecterCore.mc.player) {
-                  return false;
-               }
+                float speed = CrossbowItemAccessor.meteor$getSpeed(projectilesComponent);
+                if (projectilesComponent.contains(Items.FIREWORK_ROCKET)) {
+                    set(user, angleOffset, accurate, tickDelta, FIREWORK_ROCKET.withPower(speed));
+                } else set(user, angleOffset, accurate, tickDelta, ARROW.withPower(speed));
 
-               charge = 1.0F;
+                this.pierceLevel = projectilesComponent.contains(Items.FIREWORK_ROCKET) ? 0 : Utils.getEnchantmentLevel(itemStack, Enchantments.PIERCING);
             }
-
-            this.set(user, angleOffset, accurate, tickDelta, ARROW.withPower(charge * 3.0F));
-            break;
-         case CrossbowItem ignoredx:
-            ChargedProjectiles projectilesComponent = itemStack.get(DataComponents.CHARGED_PROJECTILES);
-            if (projectilesComponent == null) {
-               return false;
+            case WindChargeItem _ -> set(user, angleOffset, accurate, tickDelta, WIND_CHARGE);
+            case TridentItem _ -> set(user, angleOffset, accurate, tickDelta, TRIDENT);
+            case SnowballItem _ -> set(user, angleOffset, accurate, tickDelta, SNOWBALL);
+            case EggItem _ -> set(user, angleOffset, accurate, tickDelta, EGG);
+            case EnderpearlItem _ -> set(user, angleOffset, accurate, tickDelta, ENDER_PEARL);
+            case ExperienceBottleItem _ -> set(user, angleOffset, accurate, tickDelta, EXPERIENCE_BOTTLE);
+            case SplashPotionItem _ -> set(user, angleOffset, accurate, tickDelta, SPLASH_POTION);
+            case LingeringPotionItem _ -> set(user, angleOffset, accurate, tickDelta, LINGERING_POTION);
+            case FishingRodItem _ -> setFishingBobber(user, tickDelta, FISHING_BOBBER);
+            default -> {
+                return false;
             }
+        }
 
-            float speed = CrossbowItemAccessor.meteor$getSpeed(projectilesComponent);
-            if (projectilesComponent.contains(Items.FIREWORK_ROCKET)) {
-               this.set(user, angleOffset, accurate, tickDelta, FIREWORK_ROCKET.withPower(speed));
-            } else {
-               this.set(user, angleOffset, accurate, tickDelta, ARROW.withPower(speed));
+        return true;
+    }
+
+    public void set(Entity user, double angleOffset, boolean accurate, float tickDelta, MotionData data) {
+        // I lost my mind for an hour trying to figure out why arrows and tridents were spawning lower than expected,
+        // and it was because no slow air strict was silently causing the player to crouch AAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        Pose pose = user.getPose();
+        Utils.set(pos, user, tickDelta).add(0, user.getEyeHeight(pose) - 0.1f, 0);
+
+        double yaw;
+        double pitch;
+
+        if (user == mc.player && Rotations.rotating) {
+            yaw = Rotations.serverYaw;
+            pitch = Rotations.serverPitch;
+        } else {
+            yaw = user.getYRot(tickDelta);
+            pitch = user.getXRot(tickDelta);
+        }
+
+        double x, y, z;
+
+        if (angleOffset == 0) {
+            x = -Math.sin(yaw * 0.017453292) * Math.cos(pitch * 0.017453292);
+            y = -Math.sin((pitch + data.roll()) * 0.017453292);
+            z = Math.cos(yaw * 0.017453292) * Math.cos(pitch * 0.017453292);
+        } else {
+            Vec3 oppositeRotationVec = user.getUpVector(1.0F);
+            Quaterniond quaternion = new Quaterniond().setAngleAxis(angleOffset, oppositeRotationVec.x, oppositeRotationVec.y, oppositeRotationVec.z);
+            Vec3 rotationVec = user.getViewVector(1.0F);
+            Vector3d vector3d = new Vector3d(rotationVec.x, rotationVec.y, rotationVec.z);
+            vector3d.rotate(quaternion);
+
+            x = vector3d.x;
+            y = vector3d.y;
+            z = vector3d.z;
+        }
+
+        velocity.set(x, y, z).normalize().mul(data.power());
+
+        if (accurate) {
+            Vec3 vel = user.getKnownMovement();
+            velocity.add(vel.x, user.onGround() ? 0.0D : vel.y, vel.z);
+        }
+
+        setSimulationData((Projectile) data.entity().create(mc.level, EntitySpawnReason.NATURAL), data);
+    }
+
+    public void setFishingBobber(Entity user, float tickDelta, MotionData data) {
+        double yaw;
+        double pitch;
+
+        if (user == mc.player && Rotations.rotating) {
+            yaw = Rotations.serverYaw;
+            pitch = Rotations.serverPitch;
+        } else {
+            yaw = user.getYRot(tickDelta);
+            pitch = user.getXRot(tickDelta);
+        }
+
+        double h = Math.cos(-yaw * 0.017453292F - 3.1415927F);
+        double i = Math.sin(-yaw * 0.017453292F - 3.1415927F);
+        double j = -Math.cos(-pitch * 0.017453292F);
+        double k = Math.sin(-pitch * 0.017453292F);
+
+        Pose pose = user.getPose();
+        Utils.set(pos, user, tickDelta).sub(i * 0.3, 0, h * 0.3).add(0, user.getEyeHeight(pose), 0);
+
+        velocity.set(-i, Mth.clamp(-(k / j), -5, 5), -h);
+
+        double l = velocity.length();
+        velocity.mul(0.6 / l + 0.5, 0.6 / l + 0.5, 0.6 / l + 0.5);
+
+        setSimulationData((Projectile) data.entity().create(mc.level, EntitySpawnReason.NATURAL), data);
+    }
+
+
+    // fired projectiles
+
+    public boolean set(Entity entity) {
+        // skip entities in ground
+        if (entity instanceof ProjectileInGroundAccessor ppe && ppe.meteor$invokeIsInGround()) return false;
+
+        switch (entity) {
+            case Arrow e -> set(e, ARROW);
+            case SpectralArrow e -> set(e, ARROW);
+            case ThrownTrident e -> set(e, TRIDENT);
+            case ThrownEnderpearl e -> set(e, ENDER_PEARL);
+            case Snowball e -> set(e, SNOWBALL);
+            case ThrownEgg e -> set(e, EGG);
+            case ThrownExperienceBottle e -> set(e, EXPERIENCE_BOTTLE);
+            case ThrownSplashPotion e -> set(e, SPLASH_POTION);
+            case ThrownLingeringPotion e -> set(e, LINGERING_POTION);
+            case AbstractWindCharge e -> set(e, WIND_CHARGE);
+            case AbstractHurtingProjectile e -> set(e, EXPLOSIVE);
+            case LlamaSpit e -> set(e, LLAMA_SPIT);
+            default -> {
+                return false;
             }
+        }
 
-            this.pierceLevel = projectilesComponent.contains(Items.FIREWORK_ROCKET) ? 0 : Utils.getEnchantmentLevel(itemStack, Enchantments.PIERCING);
-            break;
-         case WindChargeItem ignoredxx:
-            this.set(user, angleOffset, accurate, tickDelta, WIND_CHARGE);
-            break;
-         case TridentItem ignoredxxx:
-            this.set(user, angleOffset, accurate, tickDelta, TRIDENT);
-            break;
-         case SnowballItem ignoredxxxx:
-            this.set(user, angleOffset, accurate, tickDelta, SNOWBALL);
-            break;
-         case EggItem ignoredxxxxx:
-            this.set(user, angleOffset, accurate, tickDelta, EGG);
-            break;
-         case EnderpearlItem ignoredxxxxxx:
-            this.set(user, angleOffset, accurate, tickDelta, ENDER_PEARL);
-            break;
-         case ExperienceBottleItem ignoredxxxxxxx:
-            this.set(user, angleOffset, accurate, tickDelta, EXPERIENCE_BOTTLE);
-            break;
-         case SplashPotionItem ignoredxxxxxxxx:
-            this.set(user, angleOffset, accurate, tickDelta, SPLASH_POTION);
-            break;
-         case LingeringPotionItem ignoredxxxxxxxxx:
-            this.set(user, angleOffset, accurate, tickDelta, LINGERING_POTION);
-            break;
-         case FishingRodItem ignoredxxxxxxxxxx:
-            this.setFishingBobber(user, tickDelta, FISHING_BOBBER);
-            break;
-         default:
-            return false;
-      }
+        if (entity.isNoGravity()) {
+            this.gravity = 0;
+        }
 
-      return true;
-   }
+        return true;
+    }
 
-   public void set(Entity user, double angleOffset, boolean accurate, float tickDelta, ProjectileEntitySimulator.MotionData data) {
-      Pose pose = user.getPose();
-      Utils.set(this.pos, user, tickDelta).add(0.0, user.getEyeHeight(pose) - 0.1F, 0.0);
-      double yaw;
-      double pitch;
-      if (user == SpecterCore.mc.player && Rotations.rotating) {
-         yaw = Rotations.serverYaw;
-         pitch = Rotations.serverPitch;
-      } else {
-         yaw = user.getViewYRot(tickDelta);
-         pitch = user.getViewXRot(tickDelta);
-      }
+    public void set(Projectile entity, MotionData data) {
+        pos.set(entity.getX(), entity.getY(), entity.getZ());
 
-      double x;
-      double y;
-      double z;
-      if (angleOffset == 0.0) {
-         x = -Math.sin(yaw * 0.017453292) * Math.cos(pitch * 0.017453292);
-         y = -Math.sin((pitch + data.roll()) * 0.017453292);
-         z = Math.cos(yaw * 0.017453292) * Math.cos(pitch * 0.017453292);
-      } else {
-         Vec3 oppositeRotationVec = user.getUpVector(1.0F);
-         Quaterniond quaternion = new Quaterniond().setAngleAxis(angleOffset, oppositeRotationVec.x, oppositeRotationVec.y, oppositeRotationVec.z);
-         Vec3 rotationVec = user.getViewVector(1.0F);
-         Vector3d vector3d = new Vector3d(rotationVec.x, rotationVec.y, rotationVec.z);
-         vector3d.rotate(quaternion);
-         x = vector3d.x;
-         y = vector3d.y;
-         z = vector3d.z;
-      }
+        double speed = entity.getDeltaMovement().length();
+        velocity.set(entity.getDeltaMovement().x, entity.getDeltaMovement().y, entity.getDeltaMovement().z).normalize().mul(speed);
 
-      this.velocity.set(x, y, z).normalize().mul(data.power());
-      if (accurate) {
-         Vec3 vel = user.getKnownMovement();
-         this.velocity.add(vel.x, user.onGround() ? 0.0 : vel.y, vel.z);
-      }
+        setSimulationData(entity, data);
+    }
 
-      this.setSimulationData((Projectile)data.entity().create(SpecterCore.mc.level, null), data);
-   }
+    private void setSimulationData(Projectile entity, MotionData data) {
+        this.gravity = data.gravity();
+        this.airDrag = data.airDrag();
+        this.waterDrag = data.waterDrag();
+        this.simulatingEntity = entity;
+        this.dimensions = simulatingEntity.getDimensions(simulatingEntity.getPose());
+        this.isInWater = simulatingEntity.isInWater();
+        this.tickCount = simulatingEntity.tickCount;
+        this.pierceLevel = 0;
+    }
 
-   public void setFishingBobber(Entity user, float tickDelta, ProjectileEntitySimulator.MotionData data) {
-      double yaw;
-      double pitch;
-      if (user == SpecterCore.mc.player && Rotations.rotating) {
-         yaw = Rotations.serverYaw;
-         pitch = Rotations.serverPitch;
-      } else {
-         yaw = user.getViewYRot(tickDelta);
-         pitch = user.getViewXRot(tickDelta);
-      }
+    public SimulationStep tick() {
+        tickCount++;
+        ((IVec3) prevPos3d).meteor$set(pos);
 
-      double h = Math.cos(-yaw * 0.01745329238474369 - 3.1415927410125732);
-      double i = Math.sin(-yaw * 0.01745329238474369 - 3.1415927410125732);
-      double j = -Math.cos(-pitch * 0.01745329238474369);
-      double k = Math.sin(-pitch * 0.01745329238474369);
-      Pose pose = user.getPose();
-      Utils.set(this.pos, user, tickDelta).sub(i * 0.3, 0.0, h * 0.3).add(0.0, user.getEyeHeight(pose), 0.0);
-      this.velocity.set(-i, Mth.clamp(-(k / j), -5.0, 5.0), -h);
-      double l = this.velocity.length();
-      this.velocity.mul(0.6 / l + 0.5, 0.6 / l + 0.5, 0.6 / l + 0.5);
-      this.setSimulationData((Projectile)data.entity().create(SpecterCore.mc.level, null), data);
-   }
+        // gravity -> drag -> position
+        if (simulatingEntity instanceof ThrowableProjectile || simulatingEntity instanceof AbstractHurtingProjectile) {
+            velocity.sub(0, gravity, 0);
+            velocity.mul(isInWater ? waterDrag : airDrag);
+            pos.add(velocity);
+            tickIsTouchingWater();
+        }
+        // position -> drag -> gravity
+        else if (simulatingEntity instanceof AbstractArrow || simulatingEntity instanceof LlamaSpit) {
+            pos.add(velocity);
+            velocity.mul(isInWater ? waterDrag : airDrag);
+            velocity.sub(0, gravity, 0);
+            tickIsTouchingWater();
+        }
+        // gravity -> position > drag
+        // accurate for fishing bobbers and firework rockets, will need to revisit if more projectiles are added
+        else if (simulatingEntity instanceof Projectile) {
+            tickIsTouchingWater();
+            velocity.sub(0, gravity, 0);
+            pos.add(velocity);
+            velocity.mul(isInWater ? waterDrag : airDrag);
+        }
 
-   public boolean set(Entity entity) {
-      if (entity instanceof ProjectileInGroundAccessor ppe && ppe.meteor$invokeIsInGround()) {
-         return false;
-      } else {
-         switch (entity) {
-            case Arrow e:
-               this.set(e, ARROW);
-               break;
-            case SpectralArrow ex:
-               this.set(ex, ARROW);
-               break;
-            case ThrownTrident exx:
-               this.set(exx, TRIDENT);
-               break;
-            case ThrownEnderpearl exxx:
-               this.set(exxx, ENDER_PEARL);
-               break;
-            case Snowball exxxx:
-               this.set(exxxx, SNOWBALL);
-               break;
-            case ThrownEgg exxxxx:
-               this.set(exxxxx, EGG);
-               break;
-            case ThrownExperienceBottle exxxxxx:
-               this.set(exxxxxx, EXPERIENCE_BOTTLE);
-               break;
-            case ThrownSplashPotion exxxxxxx:
-               this.set(exxxxxxx, SPLASH_POTION);
-               break;
-            case ThrownLingeringPotion exxxxxxxx:
-               this.set(exxxxxxxx, LINGERING_POTION);
-               break;
-            case AbstractWindCharge exxxxxxxxx:
-               this.set(exxxxxxxxx, WIND_CHARGE);
-               break;
-            case AbstractHurtingProjectile exxxxxxxxxx:
-               this.set(exxxxxxxxxx, EXPLOSIVE);
-               break;
-            case LlamaSpit exxxxxxxxxxx:
-               this.set(exxxxxxxxxxx, LLAMA_SPIT);
-               break;
-            default:
-               return false;
-         }
+        // Check if below world
+        if (pos.y < mc.level.getMinY()) return SimulationStep.MISS;
 
-         if (entity.isNoGravity()) {
-            this.gravity = 0.0;
-         }
+        // Check if chunk is loaded
+        int chunkX = SectionPos.posToSectionCoord(pos.x);
+        int chunkZ = SectionPos.posToSectionCoord(pos.z);
+        if (!mc.level.getChunkSource().hasChunk(chunkX, chunkZ)) return SimulationStep.MISS;
 
-         return true;
-      }
-   }
+        // Check for collision
+        ((IVec3) pos3d).meteor$set(pos);
+        if (pos3d.equals(prevPos3d)) return SimulationStep.MISS;
 
-   public void set(Projectile entity, ProjectileEntitySimulator.MotionData data) {
-      this.pos.set(entity.getX(), entity.getY(), entity.getZ());
-      double speed = entity.getDeltaMovement().length();
-      this.velocity.set(entity.getDeltaMovement().x, entity.getDeltaMovement().y, entity.getDeltaMovement().z).normalize().mul(speed);
-      this.setSimulationData(entity, data);
-   }
+        return getCollision();
+    }
 
-   private void setSimulationData(Projectile entity, ProjectileEntitySimulator.MotionData data) {
-      this.gravity = data.gravity();
-      this.airDrag = data.airDrag();
-      this.waterDrag = data.waterDrag();
-      this.simulatingEntity = entity;
-      this.dimensions = this.simulatingEntity.getDimensions(this.simulatingEntity.getPose());
-      this.isTouchingWater = this.simulatingEntity.isInWater();
-      this.age = this.simulatingEntity.tickCount;
-      this.pierceLevel = 0;
-   }
+    /**
+     * {@link net.minecraft.world.entity.EntityFluidInteraction#update(Entity, boolean)}
+     */
+    public void tickIsTouchingWater() {
+        AABB box = dimensions.makeBoundingBox(pos.x, pos.y, pos.z).deflate(0.001);
+        int minX = Mth.floor(box.minX);
+        int maxX = Mth.ceil(box.maxX);
+        int minY = Mth.floor(box.minY);
+        int maxY = Mth.ceil(box.maxY);
+        int minZ = Mth.floor(box.minZ);
+        int maxZ = Mth.ceil(box.maxZ);
 
-   public SimulationStep tick() {
-      this.age++;
-      ((IVec3d)this.prevPos3d).meteor$set(this.pos);
-      if (this.simulatingEntity instanceof ThrowableProjectile || this.simulatingEntity instanceof AbstractHurtingProjectile) {
-         this.velocity.sub(0.0, this.gravity, 0.0);
-         this.velocity.mul(this.isTouchingWater ? this.waterDrag : this.airDrag);
-         this.pos.add(this.velocity);
-         this.tickIsTouchingWater();
-      } else if (this.simulatingEntity instanceof AbstractArrow || this.simulatingEntity instanceof LlamaSpit) {
-         this.pos.add(this.velocity);
-         this.velocity.mul(this.isTouchingWater ? this.waterDrag : this.airDrag);
-         this.velocity.sub(0.0, this.gravity, 0.0);
-         this.tickIsTouchingWater();
-      } else if (this.simulatingEntity instanceof Projectile) {
-         this.tickIsTouchingWater();
-         this.velocity.sub(0.0, this.gravity, 0.0);
-         this.pos.add(this.velocity);
-         this.velocity.mul(this.isTouchingWater ? this.waterDrag : this.airDrag);
-      }
-
-      if (this.pos.y < SpecterCore.mc.level.getMinY()) {
-         return SimulationStep.MISS;
-      } else {
-         int chunkX = SectionPos.posToSectionCoord(this.pos.x);
-         int chunkZ = SectionPos.posToSectionCoord(this.pos.z);
-         if (!SpecterCore.mc.level.getChunkSource().hasChunk(chunkX, chunkZ)) {
-            return SimulationStep.MISS;
-         } else {
-            ((IVec3d)this.pos3d).meteor$set(this.pos);
-            return this.pos3d.equals(this.prevPos3d) ? SimulationStep.MISS : this.getCollision();
-         }
-      }
-   }
-
-   public void tickIsTouchingWater() {
-      AABB box = this.dimensions.makeBoundingBox(this.pos.x, this.pos.y, this.pos.z).deflate(0.001);
-      int minX = Mth.floor(box.minX);
-      int maxX = Mth.ceil(box.maxX);
-      int minY = Mth.floor(box.minY);
-      int maxY = Mth.ceil(box.maxY);
-      int minZ = Mth.floor(box.minZ);
-      int maxZ = Mth.ceil(box.maxZ);
-
-      for (int x = minX; x < maxX; x++) {
-         for (int y = minY; y < maxY; y++) {
-            for (int z = minZ; z < maxZ; z++) {
-               this.blockPos.set(x, y, z);
-               FluidState fluidState = SpecterCore.mc.level.getFluidState(this.blockPos);
-               if (fluidState.is(FluidTags.WATER)) {
-                  double fluidY = y + fluidState.getHeight(SpecterCore.mc.level, this.blockPos);
-                  if (fluidY >= box.minY) {
-                     this.isTouchingWater = true;
-                     return;
-                  }
-               }
+        for (int x = minX; x < maxX; x++) {
+            for (int y = minY; y < maxY; y++) {
+                for (int z = minZ; z < maxZ; z++) {
+                    blockPos.set(x, y, z);
+                    FluidState fluidState = mc.level.getFluidState(blockPos);
+                    if (fluidState.is(FluidTags.WATER)) {
+                        double fluidY = y + fluidState.getHeight(mc.level, blockPos);
+                        if (fluidY >= box.minY) {
+                            isInWater = true;
+                            return;
+                        }
+                    }
+                }
             }
-         }
-      }
+        }
 
-      this.isTouchingWater = false;
-   }
+        isInWater = false;
+    }
 
-   private SimulationStep getCollision() {
-      HitResult blockCollision = SpecterCore.mc
-         .level
-         .clipIncludingBorder(
-            new ClipContext(this.prevPos3d, this.pos3d, Block.COLLIDER, this.waterDrag == 0.0F ? Fluid.ANY : Fluid.NONE, this.simulatingEntity)
-         );
-      if (blockCollision.getType() != Type.MISS) {
-         ((IVec3d)this.pos3d).meteor$set(blockCollision.getLocation());
-      }
+    /**
+     * {@link net.minecraft.world.entity.projectile.ProjectileUtil#getHitResult(Vec3, Entity, java.util.function.Predicate, Vec3, net.minecraft.world.level.Level, float, ClipContext.Block)}
+     * <p>
+     * Vanilla checks from the current to the next position, while we check from the previous to the current positions.
+     * This solves the issue of the collision check from the starting position not working properly - otherwise, the
+     * simulated projectile may move from its start position through a block, only running the collision check afterwards.
+     * The vanilla game has other code to deal with this but this is the easiest way for us to fix it.
+     */
+    private SimulationStep getCollision() {
+        HitResult blockCollision = mc.level.clipIncludingBorder(new ClipContext(
+            prevPos3d,
+            pos3d,
+            ClipContext.Block.COLLIDER,
+            waterDrag == 0 ? ClipContext.Fluid.ANY : ClipContext.Fluid.NONE,
+            simulatingEntity
+        ));
+        if (blockCollision.getType() != HitResult.Type.MISS) {
+            ((IVec3) pos3d).meteor$set(blockCollision.getLocation());
+        }
 
-      if (this.simulatingEntity instanceof AbstractArrow) {
-         Collection<EntityHitResult> entityCollisions = ProjectileUtil.getManyEntityHitResult(
-            SpecterCore.mc.level,
-            this.simulatingEntity,
-            this.prevPos3d,
-            this.pos3d,
-            this.dimensions.makeBoundingBox(this.prevPos3d).expandTowards(this.velocity.x, this.velocity.y, this.velocity.z).inflate(1.0),
-            entity -> !entity.isSpectator() && entity.isAlive() && entity.isPickable(),
-            this.getToleranceMargin(),
-            Block.COLLIDER,
-            false
-         );
-         entityCollisions.removeIf(collision -> this.age <= 1 && collision.getEntity() == SpecterCore.mc.player);
-         if (entityCollisions.isEmpty()) {
-            return new SimulationStep(this.hitOrDeflect(blockCollision), blockCollision);
-         } else {
+        /// {@link AbstractArrow#stepMoveAndHit(BlockHitResult)}
+        if (simulatingEntity instanceof AbstractArrow) {
+            Collection<EntityHitResult> entityCollisions = ProjectileUtil.getManyEntityHitResult(
+                mc.level,
+                simulatingEntity,
+                prevPos3d,
+                pos3d,
+                dimensions.makeBoundingBox(prevPos3d).expandTowards(velocity.x, velocity.y, velocity.z).inflate(1.0D),
+                entity -> !entity.isSpectator() && entity.isAlive() && entity.isPickable(),
+                getToleranceMargin(),
+                ClipContext.Block.COLLIDER,
+                false,
+                true
+            );
+
+            // prevent simulating projectiles as colliding with ourselves on the first tick of movement
+            entityCollisions.removeIf(collision -> tickCount <= 1 && collision.getEntity() == mc.player);
+            if (entityCollisions.isEmpty()) return new SimulationStep(hitOrDeflect(blockCollision), blockCollision);
+
             boolean stop = false;
             ArrayList<EntityHitResult> hits = new ArrayList<>();
-
             for (EntityHitResult result : entityCollisions) {
-               boolean hit = this.hitOrDeflect(result);
-               if (!hit) {
-                  break;
-               }
+                boolean hit = hitOrDeflect(result);
+                if (!hit) break;
 
-               hits.add(result);
-               if (this.pierceLevel <= 0) {
-                  stop = true;
-                  break;
-               }
+                hits.add(result);
+                if (pierceLevel <= 0) {
+                    stop = true;
+                    break;
+                }
 
-               this.pierceLevel--;
+                pierceLevel--;
             }
 
-            return new SimulationStep(stop, hits.toArray(new HitResult[0]));
-         }
-      } else {
-         HitResult entityCollision = ProjectileUtil.getEntityHitResult(
-            SpecterCore.mc.level,
-            this.simulatingEntity,
-            this.prevPos3d,
-            this.pos3d,
-            this.dimensions.makeBoundingBox(this.prevPos3d).expandTowards(this.velocity.x, this.velocity.y, this.velocity.z).inflate(1.0),
-            entity -> !entity.isSpectator() && entity.isAlive() && entity.isPickable(),
-            this.getToleranceMargin()
-         );
-         if (entityCollision == null || this.age <= 1 && entityCollision instanceof EntityHitResult ehr && ehr.getEntity() == SpecterCore.mc.player) {
-            return new SimulationStep(this.hitOrDeflect(blockCollision), blockCollision);
-         } else {
-            return this.hitOrDeflect(entityCollision) ? new SimulationStep(true, entityCollision) : new SimulationStep(false);
-         }
-      }
-   }
+            return new SimulationStep(stop, hits.toArray(HitResult[]::new));
+        } else {
+            HitResult entityCollision = ProjectileUtil.getEntityHitResult(
+                mc.level,
+                simulatingEntity,
+                prevPos3d,
+                pos3d,
+                dimensions.makeBoundingBox(prevPos3d).expandTowards(velocity.x, velocity.y, velocity.z).inflate(1.0D),
+                entity -> !entity.isSpectator() && entity.isAlive() && entity.isPickable(),
+                getToleranceMargin()
+            );
 
-   private boolean hitOrDeflect(HitResult hitResult) {
-      if (!(hitResult instanceof EntityHitResult entityHitResult)) {
-         if (hitResult instanceof BlockHitResult bhr) {
-            Utils.set(this.pos, bhr.getLocation());
-            if (this.simulatingEntity.shouldBounceOnWorldBorder() && bhr.isWorldBorderHit()) {
-               this.velocity.mul(-0.5).mul(0.2);
-               return false;
-            } else {
-               return bhr.getType() != Type.MISS;
+            if (entityCollision == null || (tickCount <= 1 && entityCollision instanceof EntityHitResult ehr && ehr.getEntity() == mc.player)) {
+                return new SimulationStep(hitOrDeflect(blockCollision), blockCollision);
             }
-         } else {
-            return false;
-         }
-      } else {
-         Entity entity = entityHitResult.getEntity();
-         Utils.set(this.pos, entityHitResult.getLocation());
-         if ((!(entity instanceof Breeze) || this.simulatingEntity instanceof AbstractWindCharge)
-            && entity.deflection(this.simulatingEntity) != ProjectileDeflection.REVERSE) {
-            if (entity instanceof LivingEntity livingEntity && livingEntity.isBlocking() && this.simulatingEntity instanceof AbstractArrow) {
-               this.velocity.mul(-0.5).mul(0.2);
-               return this.velocity.lengthSquared() < 1.0E-7;
-            } else {
-               return true;
+
+            if (hitOrDeflect(entityCollision)) return new SimulationStep(true, entityCollision);
+            return new SimulationStep(false);
+        }
+    }
+
+    /**
+     * {@link Projectile#hitTargetOrDeflectSelf(HitResult)}
+     * {@link Projectile#onHit(HitResult)}
+     * {@link ProjectileDeflection}
+     */
+    private boolean hitOrDeflect(HitResult hitResult) {
+        if (hitResult instanceof EntityHitResult entityHitResult) {
+            Entity entity = entityHitResult.getEntity();
+            Utils.set(pos, entityHitResult.getLocation());
+
+            if ((entity instanceof Breeze && !(simulatingEntity instanceof AbstractWindCharge)) || entity.deflection(simulatingEntity) == ProjectileDeflection.REVERSE) {
+                velocity.mul(-0.5);
+                return false;
             }
-         } else {
-            this.velocity.mul(-0.5);
-            return false;
-         }
-      }
-   }
 
-   private float getToleranceMargin() {
-      return Math.max(0.0F, Math.min(0.3F, (this.age - 2) / 20.0F));
-   }
+            // if we keep this it makes trajectories look awful when you throw wind charges
+//            if (entity.getType().is(EntityTypeTags.REDIRECTABLE_PROJECTILE) && entity instanceof Projectile projectileEntity) {
+//                Utils.set(velocity, projectileEntity.getRotationVector());
+//                return false;
+//            }
 
-   public record MotionData(float power, float roll, double gravity, float airDrag, float waterDrag, EntityType<?> entity) {
-      public ProjectileEntitySimulator.MotionData withPower(float power) {
-         return new ProjectileEntitySimulator.MotionData(power, this.roll(), this.gravity(), this.airDrag(), this.waterDrag(), this.entity());
-      }
-   }
+            // not perfectly accurate but you would otherwise have to trace significant amounts of the damage stack
+            if (entity instanceof LivingEntity livingEntity && livingEntity.isBlocking() && simulatingEntity instanceof AbstractArrow) {
+                velocity.mul(-0.5).mul(0.2);
+                return velocity.lengthSquared() < 1.0E-7;
+            }
+
+            return true;
+        } else if (hitResult instanceof BlockHitResult bhr) {
+            Utils.set(pos, bhr.getLocation());
+
+            if (simulatingEntity.shouldBounceOnWorldBorder() && bhr.isWorldBorderHit()) {
+                velocity.mul(-0.5).mul(0.2);
+                return false;
+            }
+
+            return bhr.getType() != HitResult.Type.MISS;
+        }
+
+        return false;
+    }
+
+    private float getToleranceMargin() {
+        return Math.clamp((tickCount - 2) / 20.0F, 0.0F, 0.3F);
+    }
 }

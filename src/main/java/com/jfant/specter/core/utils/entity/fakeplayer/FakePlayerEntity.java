@@ -1,61 +1,85 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.entity.fakeplayer;
 
-import com.jfant.specter.core.SpecterCore;
-import com.jfant.specter.core.mixin.AbstractClientPlayerEntityAccessor;
 import com.mojang.authlib.GameProfile;
-import java.util.UUID;
+import com.jfant.specter.core.mixin.AbstractClientPlayerAccessor;
+import com.jfant.specter.core.mixin.EntityAccessor;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.player.RemotePlayer;
-import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.player.Player;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+
+import java.util.UUID;
+
+import static com.jfant.specter.core.SpecterCore.mc;
 
 public class FakePlayerEntity extends RemotePlayer {
-   public boolean doNotPush;
-   public boolean hideWhenInsideCamera;
-   public boolean noHit;
+    /**
+     * Disables entity push with this fake player
+     */
+    public boolean doNotPush;
+    /**
+     * Stops rendering the fake player when you are inside it
+     */
+    public boolean hideWhenInsideCamera;
+    /**
+     * Prevents you from interacting with the fake player; will also prevent TargetUtils selecting it as a target
+     */
+    public boolean noHit;
 
-   public FakePlayerEntity(Player player, String name, float health, boolean copyInv) {
-      super(SpecterCore.mc.level, new GameProfile(UUID.randomUUID(), name));
-      this.copyPosition(player);
-      this.yRotO = this.getYRot();
-      this.xRotO = this.getXRot();
-      this.yHeadRot = player.yHeadRot;
-      this.yHeadRotO = this.yHeadRot;
-      this.yBodyRot = player.yBodyRot;
-      this.yBodyRotO = this.yBodyRot;
-      this.getAttributes().assignAllValues(player.getAttributes());
-      this.setPose(player.getPose());
-      if (health <= 20.0F) {
-         this.setHealth(health);
-      } else {
-         this.setHealth(health);
-         this.setAbsorptionAmount(health - 20.0F);
-      }
+    public FakePlayerEntity(Player player, String name, float health, boolean copyInv) {
+        super(mc.level, new GameProfile(UUID.randomUUID(), name));
 
-      if (copyInv) {
-         this.getInventory().replaceWith(player.getInventory());
-      }
-   }
+        copyPosition(player);
 
-   public void spawn() {
-      this.unsetRemoved();
-      SpecterCore.mc.level.addEntity(this);
-   }
+        yRotO = getYRot();
+        xRotO = getXRot();
+        yHeadRot = player.yHeadRot;
+        yHeadRotO = yHeadRot;
+        yBodyRot = player.yBodyRot;
+        yBodyRotO = yBodyRot;
 
-   public void despawn() {
-      SpecterCore.mc.level.removeEntity(this.getId(), RemovalReason.DISCARDED);
-      this.setRemoved(RemovalReason.DISCARDED);
-   }
+        getAttributes().assignAllValues(player.getAttributes());
+        setPose(player.getPose());
 
-   @Nullable
-   @Override
-   protected PlayerInfo getPlayerInfo() {
-      PlayerInfo entry = super.getPlayerInfo();
-      if (entry == null) {
-         ((AbstractClientPlayerEntityAccessor)this).meteor$setPlayerListEntry(SpecterCore.mc.getConnection().getPlayerInfo(SpecterCore.mc.player.getUUID()));
-      }
+        if (health <= 20) {
+            setHealth(health);
+        } else {
+            setHealth(health);
+            setAbsorptionAmount(health - 20);
+        }
 
-      return entry;
-   }
+        if (copyInv) getInventory().replaceWith(player.getInventory());
+    }
+
+    @Override
+    public int getId() {
+        return ((EntityAccessor) this).meteor$getId();
+    }
+
+    public void spawn() {
+        unsetRemoved();
+        mc.level.addEntity(this);
+    }
+
+    public void despawn() {
+        mc.level.removeEntity(getId(), RemovalReason.DISCARDED);
+        setRemoved(RemovalReason.DISCARDED);
+    }
+
+    @Nullable
+    @Override
+    protected PlayerInfo getPlayerInfo() {
+        PlayerInfo entry = super.getPlayerInfo();
+
+        if (entry == null) {
+            ((AbstractClientPlayerAccessor) this).meteor$setPlayerInfo(mc.getConnection().getPlayerInfo(mc.player.getUUID()));
+        }
+
+        return entry;
+    }
 }

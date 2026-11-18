@@ -1,286 +1,241 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.renderer;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.jfant.specter.core.utils.render.color.Color;
 import com.jfant.specter.core.utils.world.Dir;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
 
 public class Renderer3D {
-   public final MeshBuilder lines;
-   public final MeshBuilder triangles;
-   private final RenderPipeline linesPipeline;
-   private final RenderPipeline trianglesPipeline;
+    public final MeshBuilder lines;
+    public final MeshBuilder triangles;
+    private final RenderPipeline linesPipeline;
+    private final RenderPipeline trianglesPipeline;
 
-   public Renderer3D(RenderPipeline lines, RenderPipeline triangles) {
-      this.lines = new MeshBuilder(lines);
-      this.triangles = new MeshBuilder(triangles);
-      this.linesPipeline = lines;
-      this.trianglesPipeline = triangles;
-   }
+    public Renderer3D(RenderPipeline lines, RenderPipeline triangles) {
+        this.lines = new MeshBuilder(lines);
+        this.triangles = new MeshBuilder(triangles);
+        this.linesPipeline = lines;
+        this.trianglesPipeline = triangles;
+    }
 
-   public void begin() {
-      this.lines.begin();
-      this.triangles.begin();
-   }
+    public void begin() {
+        lines.begin();
+        triangles.begin();
+    }
 
-   public void render(PoseStack matrices) {
-      MeshRenderer.begin().attachments(Minecraft.getInstance().getMainRenderTarget()).pipeline(this.linesPipeline).mesh(this.lines, matrices).end();
-      MeshRenderer.begin().attachments(Minecraft.getInstance().getMainRenderTarget()).pipeline(this.trianglesPipeline).mesh(this.triangles, matrices).end();
-   }
+    public void render(PoseStack matrices) {
+        MeshRenderer.begin()
+            .attachments(Minecraft.getInstance().gameRenderer.mainRenderTarget())
+            .pipeline(linesPipeline)
+            .mesh(lines, matrices)
+            .end();
 
-   public void line(double x1, double y1, double z1, double x2, double y2, double z2, Color color1, Color color2) {
-      this.lines.ensureLineCapacity();
-      this.lines.line(this.lines.vec3(x1, y1, z1).color(color1).next(), this.lines.vec3(x2, y2, z2).color(color2).next());
-   }
+        MeshRenderer.begin()
+            .attachments(Minecraft.getInstance().gameRenderer.mainRenderTarget())
+            .pipeline(trianglesPipeline)
+            .mesh(triangles, matrices)
+            .end();
+    }
 
-   public void line(double x1, double y1, double z1, double x2, double y2, double z2, Color color) {
-      this.line(x1, y1, z1, x2, y2, z2, color, color);
-   }
+    // Lines
 
-   public void boxLines(double x1, double y1, double z1, double x2, double y2, double z2, Color color, int excludeDir) {
-      this.lines.ensureCapacity(8, 24);
-      int blb = this.lines.vec3(x1, y1, z1).color(color).next();
-      int blf = this.lines.vec3(x1, y1, z2).color(color).next();
-      int brb = this.lines.vec3(x2, y1, z1).color(color).next();
-      int brf = this.lines.vec3(x2, y1, z2).color(color).next();
-      int tlb = this.lines.vec3(x1, y2, z1).color(color).next();
-      int tlf = this.lines.vec3(x1, y2, z2).color(color).next();
-      int trb = this.lines.vec3(x2, y2, z1).color(color).next();
-      int trf = this.lines.vec3(x2, y2, z2).color(color).next();
-      if (excludeDir == 0) {
-         this.lines.line(blb, tlb);
-         this.lines.line(blf, tlf);
-         this.lines.line(brb, trb);
-         this.lines.line(brf, trf);
-         this.lines.line(blb, blf);
-         this.lines.line(brb, brf);
-         this.lines.line(blb, brb);
-         this.lines.line(blf, brf);
-         this.lines.line(tlb, tlf);
-         this.lines.line(trb, trf);
-         this.lines.line(tlb, trb);
-         this.lines.line(tlf, trf);
-      } else {
-         if (Dir.isNot(excludeDir, (byte)32) && Dir.isNot(excludeDir, (byte)8)) {
-            this.lines.line(blb, tlb);
-         }
+    public void line(double x1, double y1, double z1, double x2, double y2, double z2, Color color1, Color color2) {
+        lines.ensureLineCapacity();
 
-         if (Dir.isNot(excludeDir, (byte)32) && Dir.isNot(excludeDir, (byte)16)) {
-            this.lines.line(blf, tlf);
-         }
+        lines.line(
+            lines.vec3(x1, y1, z1).color(color1).next(),
+            lines.vec3(x2, y2, z2).color(color2).next()
+        );
+    }
 
-         if (Dir.isNot(excludeDir, (byte)64) && Dir.isNot(excludeDir, (byte)8)) {
-            this.lines.line(brb, trb);
-         }
+    public void line(double x1, double y1, double z1, double x2, double y2, double z2, Color color) {
+        line(x1, y1, z1, x2, y2, z2, color, color);
+    }
 
-         if (Dir.isNot(excludeDir, (byte)64) && Dir.isNot(excludeDir, (byte)16)) {
-            this.lines.line(brf, trf);
-         }
+    @SuppressWarnings("Duplicates")
+    public void boxLines(double x1, double y1, double z1, double x2, double y2, double z2, Color color, int excludeDir) {
+        lines.ensureCapacity(8, 24);
 
-         if (Dir.isNot(excludeDir, (byte)32) && Dir.isNot(excludeDir, (byte)4)) {
-            this.lines.line(blb, blf);
-         }
+        int blb = lines.vec3(x1, y1, z1).color(color).next();
+        int blf = lines.vec3(x1, y1, z2).color(color).next();
+        int brb = lines.vec3(x2, y1, z1).color(color).next();
+        int brf = lines.vec3(x2, y1, z2).color(color).next();
+        int tlb = lines.vec3(x1, y2, z1).color(color).next();
+        int tlf = lines.vec3(x1, y2, z2).color(color).next();
+        int trb = lines.vec3(x2, y2, z1).color(color).next();
+        int trf = lines.vec3(x2, y2, z2).color(color).next();
 
-         if (Dir.isNot(excludeDir, (byte)64) && Dir.isNot(excludeDir, (byte)4)) {
-            this.lines.line(brb, brf);
-         }
+        if (excludeDir == 0) {
+            // Bottom to top
+            lines.line(blb, tlb);
+            lines.line(blf, tlf);
+            lines.line(brb, trb);
+            lines.line(brf, trf);
 
-         if (Dir.isNot(excludeDir, (byte)8) && Dir.isNot(excludeDir, (byte)4)) {
-            this.lines.line(blb, brb);
-         }
+            // Bottom loop
+            lines.line(blb, blf);
+            lines.line(brb, brf);
+            lines.line(blb, brb);
+            lines.line(blf, brf);
 
-         if (Dir.isNot(excludeDir, (byte)16) && Dir.isNot(excludeDir, (byte)4)) {
-            this.lines.line(blf, brf);
-         }
+            // Top loop
+            lines.line(tlb, tlf);
+            lines.line(trb, trf);
+            lines.line(tlb, trb);
+            lines.line(tlf, trf);
+        } else {
+            // Bottom to top
+            if (Dir.isNot(excludeDir, Dir.WEST) && Dir.isNot(excludeDir, Dir.NORTH)) lines.line(blb, tlb);
+            if (Dir.isNot(excludeDir, Dir.WEST) && Dir.isNot(excludeDir, Dir.SOUTH)) lines.line(blf, tlf);
+            if (Dir.isNot(excludeDir, Dir.EAST) && Dir.isNot(excludeDir, Dir.NORTH)) lines.line(brb, trb);
+            if (Dir.isNot(excludeDir, Dir.EAST) && Dir.isNot(excludeDir, Dir.SOUTH)) lines.line(brf, trf);
 
-         if (Dir.isNot(excludeDir, (byte)32) && Dir.isNot(excludeDir, (byte)2)) {
-            this.lines.line(tlb, tlf);
-         }
+            // Bottom loop
+            if (Dir.isNot(excludeDir, Dir.WEST) && Dir.isNot(excludeDir, Dir.DOWN)) lines.line(blb, blf);
+            if (Dir.isNot(excludeDir, Dir.EAST) && Dir.isNot(excludeDir, Dir.DOWN)) lines.line(brb, brf);
+            if (Dir.isNot(excludeDir, Dir.NORTH) && Dir.isNot(excludeDir, Dir.DOWN)) lines.line(blb, brb);
+            if (Dir.isNot(excludeDir, Dir.SOUTH) && Dir.isNot(excludeDir, Dir.DOWN)) lines.line(blf, brf);
 
-         if (Dir.isNot(excludeDir, (byte)64) && Dir.isNot(excludeDir, (byte)2)) {
-            this.lines.line(trb, trf);
-         }
+            // Top loop
+            if (Dir.isNot(excludeDir, Dir.WEST) && Dir.isNot(excludeDir, Dir.UP)) lines.line(tlb, tlf);
+            if (Dir.isNot(excludeDir, Dir.EAST) && Dir.isNot(excludeDir, Dir.UP)) lines.line(trb, trf);
+            if (Dir.isNot(excludeDir, Dir.NORTH) && Dir.isNot(excludeDir, Dir.UP)) lines.line(tlb, trb);
+            if (Dir.isNot(excludeDir, Dir.SOUTH) && Dir.isNot(excludeDir, Dir.UP)) lines.line(tlf, trf);
+        }
+    }
 
-         if (Dir.isNot(excludeDir, (byte)8) && Dir.isNot(excludeDir, (byte)2)) {
-            this.lines.line(tlb, trb);
-         }
+    public void blockLines(int x, int y, int z, Color color, int excludeDir) {
+        boxLines(x, y, z, x + 1, y + 1, z + 1, color, excludeDir);
+    }
 
-         if (Dir.isNot(excludeDir, (byte)16) && Dir.isNot(excludeDir, (byte)2)) {
-            this.lines.line(tlf, trf);
-         }
-      }
-   }
+    // Quads
 
-   public void blockLines(int x, int y, int z, Color color, int excludeDir) {
-      this.boxLines(x, y, z, x + 1, y + 1, z + 1, color, excludeDir);
-   }
+    public void quad(double x1, double y1, double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4, Color topLeft, Color topRight, Color bottomRight, Color bottomLeft) {
+        triangles.ensureQuadCapacity();
 
-   public void quad(
-      double x1,
-      double y1,
-      double z1,
-      double x2,
-      double y2,
-      double z2,
-      double x3,
-      double y3,
-      double z3,
-      double x4,
-      double y4,
-      double z4,
-      Color topLeft,
-      Color topRight,
-      Color bottomRight,
-      Color bottomLeft
-   ) {
-      this.triangles.ensureQuadCapacity();
-      this.triangles
-         .quad(
-            this.triangles.vec3(x1, y1, z1).color(bottomLeft).next(),
-            this.triangles.vec3(x2, y2, z2).color(topLeft).next(),
-            this.triangles.vec3(x3, y3, z3).color(topRight).next(),
-            this.triangles.vec3(x4, y4, z4).color(bottomRight).next()
-         );
-   }
+        triangles.quad(
+            triangles.vec3(x1, y1, z1).color(bottomLeft).next(),
+            triangles.vec3(x2, y2, z2).color(topLeft).next(),
+            triangles.vec3(x3, y3, z3).color(topRight).next(),
+            triangles.vec3(x4, y4, z4).color(bottomRight).next()
+        );
+    }
 
-   public void quad(
-      double x1, double y1, double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4, Color color
-   ) {
-      this.quad(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, color, color, color, color);
-   }
+    public void quad(double x1, double y1, double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4, Color color) {
+        quad(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, color, color, color, color);
+    }
 
-   public void quadVertical(double x1, double y1, double z1, double x2, double y2, double z2, Color color) {
-      this.quad(x1, y1, z1, x1, y2, z1, x2, y2, z2, x2, y1, z2, color);
-   }
+    public void quadVertical(double x1, double y1, double z1, double x2, double y2, double z2, Color color) {
+        quad(x1, y1, z1, x1, y2, z1, x2, y2, z2, x2, y1, z2, color);
+    }
 
-   public void quadHorizontal(double x1, double y, double z1, double x2, double z2, Color color) {
-      this.quad(x1, y, z1, x1, y, z2, x2, y, z2, x2, y, z1, color);
-   }
+    public void quadHorizontal(double x1, double y, double z1, double x2, double z2, Color color) {
+        quad(x1, y, z1, x1, y, z2, x2, y, z2, x2, y, z1, color);
+    }
 
-   public void gradientQuadVertical(double x1, double y1, double z1, double x2, double y2, double z2, Color topColor, Color bottomColor) {
-      this.quad(x1, y1, z1, x1, y2, z1, x2, y2, z2, x2, y1, z2, topColor, topColor, bottomColor, bottomColor);
-   }
+    public void gradientQuadVertical(double x1, double y1, double z1, double x2, double y2, double z2, Color topColor, Color bottomColor) {
+        quad(x1, y1, z1, x1, y2, z1, x2, y2, z2, x2, y1, z2, topColor, topColor, bottomColor, bottomColor);
+    }
 
-   public void side(
-      double x1,
-      double y1,
-      double z1,
-      double x2,
-      double y2,
-      double z2,
-      double x3,
-      double y3,
-      double z3,
-      double x4,
-      double y4,
-      double z4,
-      Color sideColor,
-      Color lineColor,
-      ShapeMode mode
-   ) {
-      if (mode.lines()) {
-         this.lines.ensureCapacity(4, 8);
-         int i1 = this.lines.vec3(x1, y1, z1).color(lineColor).next();
-         int i2 = this.lines.vec3(x2, y2, z2).color(lineColor).next();
-         int i3 = this.lines.vec3(x3, y3, z3).color(lineColor).next();
-         int i4 = this.lines.vec3(x4, y4, z4).color(lineColor).next();
-         this.lines.line(i1, i2);
-         this.lines.line(i2, i3);
-         this.lines.line(i3, i4);
-         this.lines.line(i4, i1);
-      }
+    // Sides
 
-      if (mode.sides()) {
-         this.quad(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, sideColor);
-      }
-   }
+    @SuppressWarnings("Duplicates")
+    public void side(double x1, double y1, double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4, Color sideColor, Color lineColor, ShapeMode mode) {
+        if (mode.lines()) {
+            lines.ensureCapacity(4, 8);
 
-   public void sideVertical(double x1, double y1, double z1, double x2, double y2, double z2, Color sideColor, Color lineColor, ShapeMode mode) {
-      this.side(x1, y1, z1, x1, y2, z1, x2, y2, z2, x2, y1, z2, sideColor, lineColor, mode);
-   }
+            int i1 = lines.vec3(x1, y1, z1).color(lineColor).next();
+            int i2 = lines.vec3(x2, y2, z2).color(lineColor).next();
+            int i3 = lines.vec3(x3, y3, z3).color(lineColor).next();
+            int i4 = lines.vec3(x4, y4, z4).color(lineColor).next();
 
-   public void sideHorizontal(double x1, double y, double z1, double x2, double z2, Color sideColor, Color lineColor, ShapeMode mode) {
-      this.side(x1, y, z1, x1, y, z2, x2, y, z2, x2, y, z1, sideColor, lineColor, mode);
-   }
+            lines.line(i1, i2);
+            lines.line(i2, i3);
+            lines.line(i3, i4);
+            lines.line(i4, i1);
+        }
 
-   public void boxSides(double x1, double y1, double z1, double x2, double y2, double z2, Color color, int excludeDir) {
-      this.triangles.ensureCapacity(8, 36);
-      int blb = this.triangles.vec3(x1, y1, z1).color(color).next();
-      int blf = this.triangles.vec3(x1, y1, z2).color(color).next();
-      int brb = this.triangles.vec3(x2, y1, z1).color(color).next();
-      int brf = this.triangles.vec3(x2, y1, z2).color(color).next();
-      int tlb = this.triangles.vec3(x1, y2, z1).color(color).next();
-      int tlf = this.triangles.vec3(x1, y2, z2).color(color).next();
-      int trb = this.triangles.vec3(x2, y2, z1).color(color).next();
-      int trf = this.triangles.vec3(x2, y2, z2).color(color).next();
-      if (excludeDir == 0) {
-         this.triangles.quad(blb, blf, tlf, tlb);
-         this.triangles.quad(brb, trb, trf, brf);
-         this.triangles.quad(blb, tlb, trb, brb);
-         this.triangles.quad(blf, brf, trf, tlf);
-         this.triangles.quad(blb, brb, brf, blf);
-         this.triangles.quad(tlb, tlf, trf, trb);
-      } else {
-         if (Dir.isNot(excludeDir, (byte)32)) {
-            this.triangles.quad(blb, blf, tlf, tlb);
-         }
+        if (mode.sides()) {
+            quad(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, sideColor);
+        }
+    }
 
-         if (Dir.isNot(excludeDir, (byte)64)) {
-            this.triangles.quad(brb, trb, trf, brf);
-         }
+    public void sideVertical(double x1, double y1, double z1, double x2, double y2, double z2, Color sideColor, Color lineColor, ShapeMode mode) {
+        side(x1, y1, z1, x1, y2, z1, x2, y2, z2, x2, y1, z2, sideColor, lineColor, mode);
+    }
 
-         if (Dir.isNot(excludeDir, (byte)8)) {
-            this.triangles.quad(blb, tlb, trb, brb);
-         }
+    public void sideHorizontal(double x1, double y, double z1, double x2, double z2, Color sideColor, Color lineColor, ShapeMode mode) {
+        side(x1, y, z1, x1, y, z2, x2, y, z2, x2, y, z1, sideColor, lineColor, mode);
+    }
 
-         if (Dir.isNot(excludeDir, (byte)16)) {
-            this.triangles.quad(blf, brf, trf, tlf);
-         }
+    // Boxes
 
-         if (Dir.isNot(excludeDir, (byte)4)) {
-            this.triangles.quad(blb, brb, brf, blf);
-         }
+    @SuppressWarnings("Duplicates")
+    public void boxSides(double x1, double y1, double z1, double x2, double y2, double z2, Color color, int excludeDir) {
+        triangles.ensureCapacity(8, 36);
 
-         if (Dir.isNot(excludeDir, (byte)2)) {
-            this.triangles.quad(tlb, tlf, trf, trb);
-         }
-      }
-   }
+        int blb = triangles.vec3(x1, y1, z1).color(color).next();
+        int blf = triangles.vec3(x1, y1, z2).color(color).next();
+        int brb = triangles.vec3(x2, y1, z1).color(color).next();
+        int brf = triangles.vec3(x2, y1, z2).color(color).next();
+        int tlb = triangles.vec3(x1, y2, z1).color(color).next();
+        int tlf = triangles.vec3(x1, y2, z2).color(color).next();
+        int trb = triangles.vec3(x2, y2, z1).color(color).next();
+        int trf = triangles.vec3(x2, y2, z2).color(color).next();
 
-   public void blockSides(int x, int y, int z, Color color, int excludeDir) {
-      this.boxSides(x, y, z, x + 1, y + 1, z + 1, color, excludeDir);
-   }
+        if (excludeDir == 0) {
+            // Bottom to top
+            triangles.quad(blb, blf, tlf, tlb);
+            triangles.quad(brb, trb, trf, brf);
+            triangles.quad(blb, tlb, trb, brb);
+            triangles.quad(blf, brf, trf, tlf);
 
-   public void box(double x1, double y1, double z1, double x2, double y2, double z2, Color sideColor, Color lineColor, ShapeMode mode, int excludeDir) {
-      if (mode.lines()) {
-         this.boxLines(x1, y1, z1, x2, y2, z2, lineColor, excludeDir);
-      }
+            // Bottom
+            triangles.quad(blb, brb, brf, blf);
 
-      if (mode.sides()) {
-         this.boxSides(x1, y1, z1, x2, y2, z2, sideColor, excludeDir);
-      }
-   }
+            // Top
+            triangles.quad(tlb, tlf, trf, trb);
+        } else {
+            // Bottom to top
+            if (Dir.isNot(excludeDir, Dir.WEST)) triangles.quad(blb, blf, tlf, tlb);
+            if (Dir.isNot(excludeDir, Dir.EAST)) triangles.quad(brb, trb, trf, brf);
+            if (Dir.isNot(excludeDir, Dir.NORTH)) triangles.quad(blb, tlb, trb, brb);
+            if (Dir.isNot(excludeDir, Dir.SOUTH)) triangles.quad(blf, brf, trf, tlf);
 
-   public void box(BlockPos pos, Color sideColor, Color lineColor, ShapeMode mode, int excludeDir) {
-      if (mode.lines()) {
-         this.boxLines(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1, lineColor, excludeDir);
-      }
+            // Bottom
+            if (Dir.isNot(excludeDir, Dir.DOWN)) triangles.quad(blb, brb, brf, blf);
 
-      if (mode.sides()) {
-         this.boxSides(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1, sideColor, excludeDir);
-      }
-   }
+            // Top
+            if (Dir.isNot(excludeDir, Dir.UP)) triangles.quad(tlb, tlf, trf, trb);
+        }
+    }
 
-   public void box(AABB box, Color sideColor, Color lineColor, ShapeMode mode, int excludeDir) {
-      if (mode.lines()) {
-         this.boxLines(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ, lineColor, excludeDir);
-      }
+    public void blockSides(int x, int y, int z, Color color, int excludeDir) {
+        boxSides(x, y, z, x + 1, y + 1, z + 1, color, excludeDir);
+    }
 
-      if (mode.sides()) {
-         this.boxSides(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ, sideColor, excludeDir);
-      }
-   }
+    public void box(double x1, double y1, double z1, double x2, double y2, double z2, Color sideColor, Color lineColor, ShapeMode mode, int excludeDir) {
+        if (mode.lines()) boxLines(x1, y1, z1, x2, y2, z2, lineColor, excludeDir);
+        if (mode.sides()) boxSides(x1, y1, z1, x2, y2, z2, sideColor, excludeDir);
+    }
+
+    public void box(BlockPos pos, Color sideColor, Color lineColor, ShapeMode mode, int excludeDir) {
+        if (mode.lines())
+            boxLines(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1, lineColor, excludeDir);
+        if (mode.sides())
+            boxSides(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1, sideColor, excludeDir);
+    }
+
+    public void box(AABB box, Color sideColor, Color lineColor, ShapeMode mode, int excludeDir) {
+        if (mode.lines()) boxLines(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ, lineColor, excludeDir);
+        if (mode.sides()) boxSides(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ, sideColor, excludeDir);
+    }
 }

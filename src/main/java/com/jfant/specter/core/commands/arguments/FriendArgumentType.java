@@ -1,43 +1,53 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.commands.arguments;
 
 import com.google.common.collect.Streams;
-import com.jfant.specter.core.systems.friends.Friend;
-import com.jfant.specter.core.systems.friends.Friends;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.jfant.specter.core.systems.friends.Friend;
+import com.jfant.specter.core.systems.friends.Friends;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import net.minecraft.commands.SharedSuggestionProvider;
+
+import static net.minecraft.commands.SharedSuggestionProvider.suggest;
 
 public class FriendArgumentType implements ArgumentType<String> {
-   private static final FriendArgumentType INSTANCE = new FriendArgumentType();
-   private static final Collection<String> EXAMPLES = List.of("seasnail8169", "MineGame159");
+    private static final FriendArgumentType INSTANCE = new FriendArgumentType();
+    private static final Collection<String> EXAMPLES = List.of("seasnail8169", "MineGame159");
 
-   public static FriendArgumentType create() {
-      return INSTANCE;
-   }
+    public static FriendArgumentType create() {
+        return INSTANCE;
+    }
 
-   public static Friend get(CommandContext<?> context) {
-      return Friends.get().get((String)context.getArgument("friend", String.class));
-   }
+    public static Friend get(CommandContext<?> context) {
+        return Friends.get().get(context.getArgument("friend", String.class));
+    }
 
-   private FriendArgumentType() {
-   }
+    private FriendArgumentType() {
+    }
 
-   public String parse(StringReader reader) throws CommandSyntaxException {
-      return reader.readString();
-   }
+    @Override
+    public String parse(StringReader reader) throws CommandSyntaxException {
+        return reader.readString();
+    }
 
-   public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-      return SharedSuggestionProvider.suggest(Streams.stream(Friends.get()).map(Friend::getName), builder);
-   }
+    @Override
+    public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
+        return suggest(Streams.stream(Friends.get()).map(Friend::getName), builder);
+    }
 
-   public Collection<String> getExamples() {
-      return EXAMPLES;
-   }
+    @Override
+    public Collection<String> getExamples() {
+        return EXAMPLES;
+    }
 }

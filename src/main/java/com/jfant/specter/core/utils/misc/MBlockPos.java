@@ -1,93 +1,94 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.misc;
 
-import com.jfant.specter.core.SpecterCore;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
 
+import static com.jfant.specter.core.SpecterCore.mc;
+
 public class MBlockPos {
-   private static final MutableBlockPos POS = new MutableBlockPos();
-   public int x;
-   public int y;
-   public int z;
+    private static final BlockPos.MutableBlockPos POS = new BlockPos.MutableBlockPos();
 
-   public MBlockPos() {
-   }
+    public int x, y, z;
 
-   public MBlockPos(Entity entity) {
-      this.set(entity);
-   }
+    public MBlockPos() {
+    }
 
-   public MBlockPos set(int x, int y, int z) {
-      this.x = x;
-      this.y = y;
-      this.z = z;
-      return this;
-   }
+    public MBlockPos(Entity entity) {
+        set(entity);
+    }
 
-   public MBlockPos set(MBlockPos pos) {
-      return this.set(pos.x, pos.y, pos.z);
-   }
+    public MBlockPos set(int x, int y, int z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        return this;
+    }
 
-   public MBlockPos set(Entity entity) {
-      return this.set(entity.getBlockX(), entity.getBlockY(), entity.getBlockZ());
-   }
+    public MBlockPos set(MBlockPos pos) {
+        return set(pos.x, pos.y, pos.z);
+    }
 
-   public MBlockPos coerceBlockLevel(Entity entity) {
-      return this.set(entity.getBlockX(), (int)Math.round(entity.getY()), entity.getBlockZ());
-   }
+    public MBlockPos set(Entity entity) {
+        return set(entity.getBlockX(), entity.getBlockY(), entity.getBlockZ());
+    }
 
-   public MBlockPos offset(HorizontalDirection dir, int amount) {
-      this.x = this.x + dir.offsetX * amount;
-      this.z = this.z + dir.offsetZ * amount;
-      return this;
-   }
+    public MBlockPos coerceBlockLevel(Entity entity) {
+        return set(entity.getBlockX(), (int) Math.round(entity.getY()), entity.getBlockZ());
+    }
 
-   public MBlockPos offset(HorizontalDirection dir) {
-      return this.offset(dir, 1);
-   }
+    public MBlockPos offset(HorizontalDirection dir, int amount) {
+        x += dir.offsetX * amount;
+        z += dir.offsetZ * amount;
+        return this;
+    }
 
-   public MBlockPos add(int x, int y, int z) {
-      this.x += x;
-      this.y += y;
-      this.z += z;
-      return this;
-   }
+    public MBlockPos offset(HorizontalDirection dir) {
+        return offset(dir, 1);
+    }
 
-   public BlockPos getBlockPos() {
-      return POS.set(this.x, this.y, this.z);
-   }
+    public MBlockPos add(int x, int y, int z) {
+        this.x += x;
+        this.y += y;
+        this.z += z;
+        return this;
+    }
 
-   public BlockState getState() {
-      return SpecterCore.mc.level.getBlockState(this.getBlockPos());
-   }
+    public BlockPos getBlockPos() {
+        return POS.set(x, y, z);
+    }
 
-   @Override
-   public boolean equals(Object o) {
-      if (this == o) {
-         return true;
-      } else if (o != null && this.getClass() == o.getClass()) {
-         MBlockPos mBlockPos = (MBlockPos)o;
-         if (this.x != mBlockPos.x) {
-            return false;
-         } else {
-            return this.y != mBlockPos.y ? false : this.z == mBlockPos.z;
-         }
-      } else {
-         return false;
-      }
-   }
+    public BlockState getState() {
+        return mc.level.getBlockState(getBlockPos());
+    }
 
-   @Override
-   public int hashCode() {
-      int result = this.x;
-      result = 31 * result + this.y;
-      return 31 * result + this.z;
-   }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
-   @Override
-   public String toString() {
-      return this.x + ", " + this.y + ", " + this.z;
-   }
+        MBlockPos mBlockPos = (MBlockPos) o;
+
+        if (x != mBlockPos.x) return false;
+        if (y != mBlockPos.y) return false;
+        return z == mBlockPos.z;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = x;
+        result = 31 * result + y;
+        result = 31 * result + z;
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return this.x + ", " + this.y + ", " + this.z;
+    }
 }

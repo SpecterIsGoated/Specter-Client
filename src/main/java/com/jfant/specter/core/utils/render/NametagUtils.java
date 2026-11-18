@@ -1,116 +1,124 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.render;
 
-import com.jfant.specter.core.SpecterCore;
-import com.jfant.specter.core.utils.Utils;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.gui.GuiGraphics;
+import com.jfant.specter.core.systems.modules.Modules;
+import com.jfant.specter.core.utils.Utils;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.util.Mth;
-import org.joml.Matrix3x2fStack;
-import org.joml.Matrix4f;
-import org.joml.Matrix4fStack;
-import org.joml.Vector3d;
-import org.joml.Vector4f;
+import org.joml.*;
+
+import static com.jfant.specter.core.SpecterCore.mc;
 
 public class NametagUtils {
-   private static final Vector4f vec4 = new Vector4f();
-   private static final Vector4f mmMat4 = new Vector4f();
-   private static final Vector4f pmMat4 = new Vector4f();
-   private static final Vector3d camera = new Vector3d();
-   private static final Vector3d cameraNegated = new Vector3d();
-   private static final Matrix4f model = new Matrix4f();
-   private static final Matrix4f projection = new Matrix4f();
-   private static double windowScale;
-   public static double scale;
+    private static final Vector4f vec4 = new Vector4f();
+    private static final Vector4f mmMat4 = new Vector4f();
+    private static final Vector4f pmMat4 = new Vector4f();
+    private static final Vector3d camera = new Vector3d();
+    private static final Vector3d cameraNegated = new Vector3d();
+    private static final Matrix4f model = new Matrix4f();
+    private static final Matrix4f projection = new Matrix4f();
+    private static double windowScale;
 
-   private NametagUtils() {
-   }
+    public static double scale;
 
-   public static void onRender(Matrix4f modelView) {
-      model.set(modelView);
-      projection.set(RenderUtils.projection);
-      Utils.set(camera, SpecterCore.mc.gameRenderer.getMainCamera().position());
-      cameraNegated.set(camera);
-      cameraNegated.negate();
-      windowScale = SpecterCore.mc.getWindow().calculateScale(1, false);
-   }
+    private NametagUtils() {
+    }
 
-   public static boolean to2D(Vector3d pos, double scale) {
-      return to2D(pos, scale, true);
-   }
+    public static void onRender(Matrix4fc modelView) {
+        model.set(modelView);
+        NametagUtils.projection.set(RenderUtils.projection);
 
-   public static boolean to2D(Vector3d pos, double scale, boolean distanceScaling) {
-      return to2D(pos, scale, distanceScaling, false);
-   }
+        Utils.set(camera, mc.gameRenderer.mainCamera().position());
+        cameraNegated.set(camera);
+        cameraNegated.negate();
 
-   public static boolean to2D(Vector3d pos, double scale, boolean distanceScaling, boolean allowBehind) {
-      NametagUtils.scale = scale;
-      if (distanceScaling) {
-         NametagUtils.scale = NametagUtils.scale * getScale(pos);
-      }
+        windowScale = mc.getWindow().calculateScale(1, false);
+    }
 
-      vec4.set(cameraNegated.x + pos.x, cameraNegated.y + pos.y, cameraNegated.z + pos.z, 1.0);
-      vec4.mul(model, mmMat4);
-      mmMat4.mul(projection, pmMat4);
-      boolean behind = pmMat4.w <= 0.0F;
-      if (behind && !allowBehind) {
-         return false;
-      } else {
-         toScreen(pmMat4);
-         double x = pmMat4.x * SpecterCore.mc.getWindow().getWidth();
-         double y = pmMat4.y * SpecterCore.mc.getWindow().getHeight();
-         if (behind) {
-            x = SpecterCore.mc.getWindow().getWidth() - x;
-            y = SpecterCore.mc.getWindow().getHeight() - y;
-         }
+    public static boolean to2D(Vector3d pos, double scale) {
+        return to2D(pos, scale, true);
+    }
 
-         if (!Double.isInfinite(x) && !Double.isInfinite(y)) {
-            pos.set(x / windowScale, SpecterCore.mc.getWindow().getHeight() - y / windowScale, allowBehind ? pmMat4.w : pmMat4.z);
-            return true;
-         } else {
-            return false;
-         }
-      }
-   }
+    public static boolean to2D(Vector3d pos, double scale, boolean distanceScaling) {
+        return to2D(pos, scale, distanceScaling, false);
+    }
 
-   public static void begin(Vector3d pos) {
-      Matrix4fStack matrices = RenderSystem.getModelViewStack();
-      begin(matrices, pos);
-   }
+    public static boolean to2D(Vector3d pos, double scale, boolean distanceScaling, boolean allowBehind) {
+        NametagUtils.scale = scale;
+        if (distanceScaling) {
+            NametagUtils.scale *= getScale(pos);
+        }
 
-   public static void begin(Vector3d pos, GuiGraphics drawContext) {
-      begin(pos);
-      Matrix3x2fStack matrices = drawContext.pose();
-      matrices.pushMatrix();
-      matrices.scale(1.0F / SpecterCore.mc.getWindow().getGuiScale());
-      matrices.translate((float)pos.x, (float)pos.y);
-      matrices.scale((float)scale, (float)scale);
-   }
+        vec4.set(cameraNegated.x + pos.x, cameraNegated.y + pos.y, cameraNegated.z + pos.z, 1);
 
-   private static void begin(Matrix4fStack matrices, Vector3d pos) {
-      matrices.pushMatrix();
-      matrices.translate((float)pos.x, (float)pos.y, 0.0F);
-      matrices.scale((float)scale, (float)scale, 1.0F);
-   }
+        vec4.mul(model, mmMat4);
+        mmMat4.mul(projection, pmMat4);
 
-   public static void end() {
-      RenderSystem.getModelViewStack().popMatrix();
-   }
+        boolean behind = pmMat4.w <= 0.f;
 
-   public static void end(GuiGraphics drawContext) {
-      end();
-      drawContext.pose().popMatrix();
-   }
+        if (behind && !allowBehind) return false;
 
-   private static double getScale(Vector3d pos) {
-      double dist = camera.distance(pos);
-      return Mth.clamp(1.0 - dist * 0.01, 0.5, 2.147483647E9);
-   }
+        toScreen(pmMat4);
+        double x = pmMat4.x * mc.getWindow().getWidth();
+        double y = pmMat4.y * mc.getWindow().getHeight();
 
-   private static void toScreen(Vector4f vec) {
-      float newW = 1.0F / vec.w * 0.5F;
-      vec.x = vec.x * newW + 0.5F;
-      vec.y = vec.y * newW + 0.5F;
-      vec.z = vec.z * newW + 0.5F;
-      vec.w = newW;
-   }
+        if (behind) {
+            x = mc.getWindow().getWidth() - x;
+            y = mc.getWindow().getHeight() - y;
+        }
+
+        if (Double.isInfinite(x) || Double.isInfinite(y)) return false;
+
+        pos.set(x / windowScale, mc.getWindow().getHeight() - y / windowScale, allowBehind ? pmMat4.w : pmMat4.z);
+        return true;
+    }
+
+    public static void begin(Vector3d pos) {
+        Matrix4fStack matrices = RenderSystem.getModelViewStack();
+        begin(matrices, pos);
+    }
+
+    public static void begin(Vector3d pos, GuiGraphicsExtractor graphics) {
+        begin(pos);
+
+        Matrix3x2fStack matrices = graphics.pose();
+        matrices.pushMatrix();
+        matrices.scale(1.0f / mc.getWindow().getGuiScale());
+        matrices.translate((float) pos.x, (float) pos.y);
+        matrices.scale((float) scale, (float) scale);
+    }
+
+    private static void begin(Matrix4fStack matrices, Vector3d pos) {
+        matrices.pushMatrix();
+        matrices.translate((float) pos.x, (float) pos.y, 0);
+        matrices.scale((float) scale, (float) scale, 1);
+    }
+
+    public static void end() {
+        RenderSystem.getModelViewStack().popMatrix();
+    }
+
+    public static void end(GuiGraphicsExtractor graphics) {
+        end();
+        graphics.pose().popMatrix();
+    }
+
+    private static double getScale(Vector3d pos) {
+        double dist = camera.distance(pos);
+        return Mth.clamp(1 - dist * 0.01, 0.5, Integer.MAX_VALUE);
+    }
+
+    private static void toScreen(Vector4f vec) {
+        float newW = 1.0f / vec.w * 0.5f;
+
+        vec.x = vec.x * newW + 0.5f;
+        vec.y = vec.y * newW + 0.5f;
+        vec.z = vec.z * newW + 0.5f;
+        vec.w = newW;
+    }
 }

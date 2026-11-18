@@ -1,14 +1,20 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.events.meteor;
 
 import com.jfant.specter.core.events.Cancellable;
 
 public class CharTypedEvent extends Cancellable {
-   private static final CharTypedEvent INSTANCE = new CharTypedEvent();
-   public char c;
+    private static final CharTypedEvent INSTANCE = new CharTypedEvent();
 
-   public static CharTypedEvent get(char c) {
-      INSTANCE.setCancelled(false);
-      INSTANCE.c = c;
-      return INSTANCE;
-   }
+    public char c;
+
+    public static CharTypedEvent get(char c) {
+        INSTANCE.setCancelled(false);
+        INSTANCE.c = c;
+        return INSTANCE;
+    }
 }

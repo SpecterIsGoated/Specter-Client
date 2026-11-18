@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.systems.hud.screens;
 
 import com.jfant.specter.core.gui.GuiTheme;
@@ -15,118 +20,121 @@ import com.jfant.specter.core.settings.Settings;
 import com.jfant.specter.core.systems.hud.HudElement;
 import com.jfant.specter.core.systems.hud.XAnchor;
 import com.jfant.specter.core.systems.hud.YAnchor;
-import com.jfant.specter.core.utils.Utils;
 import com.jfant.specter.core.utils.misc.NbtUtils;
-import net.minecraft.client.gui.GuiGraphics;
+
+import static com.jfant.specter.core.utils.Utils.getWindowWidth;
 
 public class HudElementScreen extends WindowScreen {
-   private final HudElement element;
-   private WContainer settingsC1;
-   private WContainer settingsC2;
-   private final Settings settings;
+    private final HudElement element;
 
-   public HudElementScreen(GuiTheme theme, HudElement element) {
-      super(theme, element.info.title);
-      this.element = element;
-      this.settings = new Settings();
-      SettingGroup sg = this.settings.createGroup("Anchors");
-      sg.add(
-         new BoolSetting.Builder()
+    private WContainer settingsC1, settingsC2;
+    private final Settings settings;
+
+    public HudElementScreen(GuiTheme theme, HudElement element) {
+        super(theme, element.info.title);
+
+        this.element = element;
+
+        settings = new Settings();
+        SettingGroup sg = settings.createGroup("Anchors");
+        sg.add(new BoolSetting.Builder()
             .name("auto-anchors")
             .description("Automatically assigns anchors based on the position.")
             .defaultValue(true)
             .onModuleActivated(booleanSetting -> booleanSetting.set(element.autoAnchors))
             .onChanged(aBoolean -> {
-               if (aBoolean) {
-                  element.box.updateAnchors();
-               }
-
-               element.autoAnchors = aBoolean;
+                if (aBoolean) element.box.updateAnchors();
+                element.autoAnchors = aBoolean;
             })
             .build()
-      );
-      sg.add(
-         ((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)new EnumSetting.Builder()
-                              .name("x-anchor"))
-                           .description("Horizontal anchor."))
-                        .defaultValue(XAnchor.Left))
-                     .visible(() -> !element.autoAnchors))
-                  .onModuleActivated(xAnchorSetting -> xAnchorSetting.set(element.box.xAnchor)))
-               .onChanged(element.box::setXAnchor))
+        );
+        sg.add(new EnumSetting.Builder<XAnchor>()
+            .name("x-anchor")
+            .description("Horizontal anchor.")
+            .defaultValue(XAnchor.Left)
+            .visible(() -> !element.autoAnchors)
+            .onModuleActivated(xAnchorSetting -> xAnchorSetting.set(element.box.xAnchor))
+            .onChanged(element.box::setXAnchor)
             .build()
-      );
-      sg.add(
-         ((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)new EnumSetting.Builder()
-                              .name("y-anchor"))
-                           .description("Vertical anchor."))
-                        .defaultValue(YAnchor.Top))
-                     .visible(() -> !element.autoAnchors))
-                  .onModuleActivated(yAnchorSetting -> yAnchorSetting.set(element.box.yAnchor)))
-               .onChanged(element.box::setYAnchor))
+        );
+        sg.add(new EnumSetting.Builder<YAnchor>()
+            .name("y-anchor")
+            .description("Vertical anchor.")
+            .defaultValue(YAnchor.Top)
+            .visible(() -> !element.autoAnchors)
+            .onModuleActivated(yAnchorSetting -> yAnchorSetting.set(element.box.yAnchor))
+            .onChanged(element.box::setYAnchor)
             .build()
-      );
-   }
+        );
+    }
 
-   @Override
-   public void initWidgets() {
-      this.add(this.theme.label(this.element.info.description, Utils.getWindowWidth() / 2.0));
-      if (this.element.settings.sizeGroups() > 0) {
-         this.element.settings.onActivated();
-         this.settingsC1 = this.add(this.theme.verticalList()).expandX().widget();
-         this.settingsC1.add(this.theme.settings(this.element.settings)).expandX();
-      }
+    @Override
+    public void initWidgets() {
+        // Description
+        add(theme.label(element.info.description, getWindowWidth() / 2.0));
 
-      this.settings.onActivated();
-      this.settingsC2 = this.add(this.theme.verticalList()).expandX().widget();
-      this.settingsC2.add(this.theme.settings(this.settings)).expandX();
-      this.add(this.theme.horizontalSeparator()).expandX();
-      WWidget widget = this.element.getWidget(this.theme);
-      if (widget != null) {
-         Cell<WWidget> cell = this.add(widget);
-         if (widget instanceof WContainer) {
-            cell.expandX();
-         }
+        // Settings
+        if (element.settings.sizeGroups() > 0) {
+            element.settings.onActivated();
 
-         this.add(this.theme.horizontalSeparator()).expandX();
-      }
+            settingsC1 = add(theme.verticalList()).expandX().widget();
+            settingsC1.add(theme.settings(element.settings)).expandX();
+        }
 
-      WHorizontalList bottomList = this.add(this.theme.horizontalList()).expandX().widget();
-      bottomList.add(this.theme.label("Active:"));
-      WCheckbox active = bottomList.add(this.theme.checkbox(this.element.isActive())).widget();
-      active.action = () -> {
-         if (this.element.isActive() != active.checked) {
-            this.element.toggle();
-         }
-      };
-      WMinus remove = bottomList.add(this.theme.minus()).expandCellX().right().widget();
-      remove.action = () -> {
-         this.element.remove();
-         this.onClose();
-      };
-   }
+        // Anchors
+        settings.onActivated();
 
-   @Override
-   public void tick() {
-      super.tick();
-      if (this.settingsC1 != null) {
-         this.element.settings.tick(this.settingsC1, this.theme);
-      }
+        settingsC2 = add(theme.verticalList()).expandX().widget();
+        settingsC2.add(theme.settings(settings)).expandX();
 
-      this.settings.tick(this.settingsC2, this.theme);
-   }
+        add(theme.horizontalSeparator()).expandX();
 
-   @Override
-   protected void onRenderBefore(GuiGraphics drawContext, float delta) {
-      HudEditorScreen.renderElements(drawContext);
-   }
+        // Custom widget
+        WWidget widget = element.getWidget(theme);
 
-   @Override
-   public boolean toClipboard() {
-      return NbtUtils.toClipboard(this.element);
-   }
+        if (widget != null) {
+            Cell<WWidget> cell = add(widget);
+            if (widget instanceof WContainer) cell.expandX();
+            add(theme.horizontalSeparator()).expandX();
+        }
 
-   @Override
-   public boolean fromClipboard() {
-      return NbtUtils.fromClipboard(this.element);
-   }
+        // Bottom
+        WHorizontalList bottomList = add(theme.horizontalList()).expandX().widget();
+
+        //   Active
+        bottomList.add(theme.label("Active:"));
+        WCheckbox active = bottomList.add(theme.checkbox(element.isActive())).widget();
+        active.action = () -> {
+            if (element.isActive() != active.checked) element.toggle();
+        };
+
+        //   Remove
+        WMinus remove = bottomList.add(theme.minus()).expandCellX().right().widget();
+        remove.action = () -> {
+            element.remove();
+            onClose();
+        };
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+
+        if (settingsC1 != null) {
+            element.settings.tick(settingsC1, theme);
+        }
+
+        settings.tick(settingsC2, theme);
+    }
+
+    @Override
+    public boolean toClipboard() {
+        return NbtUtils.toClipboard(element);
+    }
+
+    @Override
+    public boolean fromClipboard() {
+        return NbtUtils.fromClipboard(element);
+    }
+
 }

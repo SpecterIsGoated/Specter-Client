@@ -1,82 +1,89 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.systems.accounts.types;
 
+import com.mojang.util.UndashedUuid;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.systems.accounts.Account;
 import com.jfant.specter.core.systems.accounts.AccountType;
 import com.jfant.specter.core.systems.accounts.TokenAccount;
 import com.jfant.specter.core.utils.network.Http;
-import com.mojang.util.UndashedUuid;
-import java.util.Optional;
 import net.minecraft.client.User;
 import net.minecraft.nbt.CompoundTag;
 
+import java.util.Optional;
+
 public class SessionAccount extends Account<SessionAccount> implements TokenAccount {
-   private String accessToken;
+    private String accessToken;
 
-   public SessionAccount(String label) {
-      super(AccountType.Session, label);
-      this.accessToken = label;
-   }
+    public SessionAccount(String label) {
+        super(AccountType.Session, label);
+        accessToken = label;
+    }
 
-   public SessionAccount fromTag(CompoundTag tag) {
-      super.fromTag(tag);
-      this.accessToken = tag.getStringOr("token", "");
-      return this;
-   }
+    @Override
+    public SessionAccount fromTag(CompoundTag tag) {
+        super.fromTag(tag);
 
-   @Override
-   public CompoundTag toTag() {
-      CompoundTag tag = super.toTag();
-      tag.putString("token", this.accessToken);
-      return tag;
-   }
+        accessToken = tag.getStringOr("token", "");
+        return this;
+    }
 
-   @Override
-   public boolean fetchInfo() {
-      if (this.accessToken != null && !this.accessToken.isBlank()) {
-         SessionAccount.ProfileResponse profile;
-         try {
-            profile = Http.get("https://api.minecraftservices.com/minecraft/profile").bearer(this.accessToken).sendJson(SessionAccount.ProfileResponse.class);
-         } catch (IllegalArgumentException var3) {
-            SpecterCore.LOG.error("Invalid session account token", var3);
+    @Override
+    public CompoundTag toTag() {
+        CompoundTag tag = super.toTag();
+        tag.putString("token", accessToken);
+        return tag;
+    }
+
+    @Override
+    public boolean fetchInfo() {
+        if (accessToken == null || accessToken.isBlank()) return false;
+
+        ProfileResponse profile;
+        try {
+            profile = Http.get("https://api.minecraftservices.com/minecraft/profile")
+                .bearer(accessToken)
+                .sendJson(ProfileResponse.class);
+        } catch (IllegalArgumentException e) {
+            SpecterCore.LOG.error("Invalid session account token", e);
             return false;
-         }
+        }
 
-         if (profile != null && profile.id != null && profile.name != null) {
-            this.cache.username = profile.name;
-            this.cache.uuid = profile.id;
-            return true;
-         } else {
-            return false;
-         }
-      } else {
-         return false;
-      }
-   }
+        if (profile == null || profile.id == null || profile.name == null) return false;
 
-   @Override
-   public boolean login() {
-      if (this.accessToken != null && !this.accessToken.isBlank()) {
-         super.login();
-         setSession(new User(this.cache.username, UndashedUuid.fromStringLenient(this.cache.uuid), this.accessToken, Optional.empty(), Optional.empty()));
-         return true;
-      } else {
-         return false;
-      }
-   }
+        cache.username = profile.name;
+        cache.uuid = profile.id;
 
-   @Override
-   public String getToken() {
-      return this.accessToken;
-   }
+        return true;
+    }
 
-   @Override
-   public boolean equals(Object o) {
-      return o instanceof SessionAccount account2 ? account2.name.equals(this.name) : false;
-   }
+    @Override
+    public boolean login() {
+        if (accessToken == null || accessToken.isBlank()) return false;
 
-   private static class ProfileResponse {
-      public String id;
-      public String name;
-   }
+        super.login();
+
+        setSession(new User(cache.username, UndashedUuid.fromStringLenient(cache.uuid), accessToken, Optional.empty(), Optional.empty()));
+        return true;
+    }
+
+    @Override
+    public String getToken() {
+        return accessToken;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof SessionAccount account2)) return false;
+        return account2.name.equals(this.name);
+    }
+
+    private static class ProfileResponse {
+        public String id;
+        public String name;
+    }
 }

@@ -1,208 +1,210 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.settings;
 
 import com.jfant.specter.core.systems.modules.Module;
 import com.jfant.specter.core.utils.Utils;
 import com.jfant.specter.core.utils.misc.IGetter;
 import com.jfant.specter.core.utils.misc.ISerializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.function.Consumer;
 import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 public abstract class Setting<T> implements IGetter<T>, ISerializable<T> {
-   private static final List<String> NO_SUGGESTIONS = new ArrayList<>(0);
-   public final String name;
-   public final String title;
-   public final String description;
-   private final IVisible visible;
-   protected final T defaultValue;
-   protected T value;
-   public final Consumer<Setting<T>> onModuleActivated;
-   private final Consumer<T> onChanged;
-   public Module module;
-   public boolean lastWasVisible;
+    private static final List<String> NO_SUGGESTIONS = List.of();
 
-   public Setting(String name, String description, T defaultValue, Consumer<T> onChanged, Consumer<Setting<T>> onModuleActivated, IVisible visible) {
-      this.name = name;
-      this.title = Utils.nameToTitle(name);
-      this.description = description;
-      this.defaultValue = defaultValue;
-      this.onChanged = onChanged;
-      this.onModuleActivated = onModuleActivated;
-      this.visible = visible;
-      this.resetImpl();
-   }
+    public final String name, title, description;
+    private final IVisible visible;
 
-   @Override
-   public T get() {
-      return this.value;
-   }
+    protected final T defaultValue;
+    protected T value;
 
-   public boolean set(T value) {
-      if (!this.isValueValid(value)) {
-         return false;
-      } else {
-         this.value = value;
-         this.onChanged();
-         return true;
-      }
-   }
+    public final Consumer<Setting<T>> onModuleActivated;
+    private final Consumer<T> onChanged;
 
-   protected void resetImpl() {
-      this.value = this.defaultValue;
-   }
+    public Module module;
+    public boolean lastWasVisible;
 
-   public void reset() {
-      this.resetImpl();
-      this.onChanged();
-   }
+    public Setting(String name, String description, T defaultValue, Consumer<T> onChanged, Consumer<Setting<T>> onModuleActivated, IVisible visible) {
+        this.name = name;
+        this.title = Utils.nameToTitle(name);
+        this.description = description;
+        this.defaultValue = defaultValue;
+        this.onChanged = onChanged;
+        this.onModuleActivated = onModuleActivated;
+        this.visible = visible;
 
-   public T getDefaultValue() {
-      return this.defaultValue;
-   }
+        resetImpl();
+    }
 
-   public boolean parse(String str) {
-      T newValue = this.parseImpl(str);
-      if (newValue != null && this.isValueValid(newValue)) {
-         this.value = newValue;
-         this.onChanged();
-      }
+    @Override
+    public T get() {
+        return value;
+    }
 
-      return newValue != null;
-   }
+    public boolean set(T value) {
+        if (!isValueValid(value)) return false;
+        this.value = value;
+        onChanged();
+        return true;
+    }
 
-   public boolean wasChanged() {
-      return !Objects.equals(this.value, this.defaultValue);
-   }
+    protected void resetImpl() {
+        value = defaultValue;
+    }
 
-   public void onChanged() {
-      if (this.onChanged != null) {
-         this.onChanged.accept(this.value);
-      }
-   }
+    public void reset() {
+        resetImpl();
+        onChanged();
+    }
 
-   public void onActivated() {
-      if (this.onModuleActivated != null) {
-         this.onModuleActivated.accept(this);
-      }
-   }
+    public T getDefaultValue() {
+        return defaultValue;
+    }
 
-   public boolean isVisible() {
-      return this.visible == null || this.visible.isVisible();
-   }
+    public boolean parse(String str) {
+        T newValue = parseImpl(str);
 
-   protected abstract T parseImpl(String var1);
+        if (newValue != null) {
+            if (isValueValid(newValue)) {
+                value = newValue;
+                onChanged();
+            }
+        }
 
-   protected abstract boolean isValueValid(T var1);
+        return newValue != null;
+    }
 
-   public Iterable<Identifier> getIdentifierSuggestions() {
-      return null;
-   }
+    public boolean wasChanged() {
+        return !Objects.equals(value, defaultValue);
+    }
 
-   public List<String> getSuggestions() {
-      return NO_SUGGESTIONS;
-   }
+    public void onChanged() {
+        if (onChanged != null) onChanged.accept(value);
+    }
 
-   protected abstract CompoundTag save(CompoundTag var1);
+    public void onActivated() {
+        if (onModuleActivated != null) onModuleActivated.accept(this);
+    }
 
-   @Override
-   public CompoundTag toTag() {
-      CompoundTag tag = new CompoundTag();
-      tag.putString("name", this.name);
-      this.save(tag);
-      return tag;
-   }
+    public boolean isVisible() {
+        return visible == null || visible.isVisible();
+    }
 
-   protected abstract T load(CompoundTag var1);
+    protected abstract T parseImpl(String str);
 
-   @Override
-   public T fromTag(CompoundTag tag) {
-      T value = this.load(tag);
-      this.onChanged();
-      return value;
-   }
+    protected abstract boolean isValueValid(T value);
 
-   @Override
-   public String toString() {
-      return this.value.toString();
-   }
+    public Iterable<Identifier> getIdentifierSuggestions() {
+        return null;
+    }
 
-   @Override
-   public boolean equals(Object o) {
-      if (this == o) {
-         return true;
-      } else if (o != null && this.getClass() == o.getClass()) {
-         Setting<?> setting = (Setting<?>)o;
-         return Objects.equals(this.name, setting.name);
-      } else {
-         return false;
-      }
-   }
+    public Iterable<String> getSuggestions() {
+        return NO_SUGGESTIONS;
+    }
 
-   @Override
-   public int hashCode() {
-      return Objects.hash(this.name);
-   }
+    protected abstract CompoundTag save(CompoundTag tag);
 
-   @Nullable
-   public static <T> T parseId(Registry<T> registry, String name) {
-      name = name.trim();
-      Identifier id;
-      if (name.contains(":")) {
-         id = Identifier.parse(name);
-      } else {
-         id = Identifier.fromNamespaceAndPath("minecraft", name);
-      }
+    @Override
+    public CompoundTag toTag() {
+        CompoundTag tag = new CompoundTag();
 
-      return registry.containsKey(id) ? registry.getValue(id) : null;
-   }
+        tag.putString("name", name);
+        save(tag);
 
-   public abstract static class SettingBuilder<B, V, S> {
-      protected String name = "undefined";
-      protected String description = "";
-      protected V defaultValue;
-      protected IVisible visible;
-      protected Consumer<V> onChanged;
-      protected Consumer<Setting<V>> onModuleActivated;
+        return tag;
+    }
 
-      protected SettingBuilder(V defaultValue) {
-         this.defaultValue = defaultValue;
-      }
+    protected abstract T load(CompoundTag tag);
 
-      public B name(String name) {
-         this.name = name;
-         return (B)this;
-      }
+    @Override
+    public T fromTag(CompoundTag tag) {
+        T value = load(tag);
+        onChanged();
 
-      public B description(String description) {
-         this.description = description;
-         return (B)this;
-      }
+        return value;
+    }
 
-      public B defaultValue(V defaultValue) {
-         this.defaultValue = defaultValue;
-         return (B)this;
-      }
+    @Override
+    public String toString() {
+        return value.toString();
+    }
 
-      public B visible(IVisible visible) {
-         this.visible = visible;
-         return (B)this;
-      }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Setting<?> setting = (Setting<?>) o;
+        return Objects.equals(name, setting.name);
+    }
 
-      public B onChanged(Consumer<V> onChanged) {
-         this.onChanged = onChanged;
-         return (B)this;
-      }
+    @Override
+    public int hashCode() {
+        return Objects.hash(name);
+    }
 
-      public B onModuleActivated(Consumer<Setting<V>> onModuleActivated) {
-         this.onModuleActivated = onModuleActivated;
-         return (B)this;
-      }
+    @Nullable
+    public static <T> T parseId(Registry<T> registry, String name) {
+        name = name.trim();
 
-      public abstract S build();
-   }
+        Identifier id;
+        if (name.contains(":")) id = Identifier.parse(name);
+        else id = Identifier.withDefaultNamespace(name);
+        if (registry.containsKey(id)) return registry.getValue(id);
+
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    public abstract static class SettingBuilder<B, V, S> {
+        protected String name = "undefined", description = "";
+        protected V defaultValue;
+        protected IVisible visible;
+        protected Consumer<V> onChanged;
+        protected Consumer<Setting<V>> onModuleActivated;
+
+        protected SettingBuilder(V defaultValue) {
+            this.defaultValue = defaultValue;
+        }
+
+        public B name(String name) {
+            this.name = name;
+            return (B) this;
+        }
+
+        public B description(String description) {
+            this.description = description;
+            return (B) this;
+        }
+
+        public B defaultValue(V defaultValue) {
+            this.defaultValue = defaultValue;
+            return (B) this;
+        }
+
+        public B visible(IVisible visible) {
+            this.visible = visible;
+            return (B) this;
+        }
+
+        public B onChanged(Consumer<V> onChanged) {
+            this.onChanged = onChanged;
+            return (B) this;
+        }
+
+        public B onModuleActivated(Consumer<Setting<V>> onModuleActivated) {
+            this.onModuleActivated = onModuleActivated;
+            return (B) this;
+        }
+
+        public abstract S build();
+    }
 }

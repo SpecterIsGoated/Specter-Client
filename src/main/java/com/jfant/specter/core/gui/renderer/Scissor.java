@@ -1,40 +1,43 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.renderer;
 
-import com.jfant.specter.core.mixininterface.IGpuDevice;
-import com.jfant.specter.core.utils.Utils;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.jfant.specter.core.mixininterface.IGpuDevice;
+
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.jfant.specter.core.utils.Utils.getWindowHeight;
+
 public class Scissor {
-   public int x;
-   public int y;
-   public int width;
-   public int height;
-   public final List<Runnable> postTasks = new ArrayList<>();
+    public int x, y;
+    public int width, height;
 
-   public Scissor set(double x, double y, double width, double height) {
-      if (width < 0.0) {
-         width = 0.0;
-      }
+    public final List<Runnable> postTasks = new ArrayList<>();
 
-      if (height < 0.0) {
-         height = 0.0;
-      }
+    public Scissor set(double x, double y, double width, double height) {
+        if (width < 0) width = 0;
+        if (height < 0) height = 0;
 
-      this.x = (int)Math.round(x);
-      this.y = (int)Math.round(y);
-      this.width = (int)Math.round(width);
-      this.height = (int)Math.round(height);
-      this.postTasks.clear();
-      return this;
-   }
+        this.x = (int) Math.round(x);
+        this.y = (int) Math.round(y);
+        this.width = (int) Math.round(width);
+        this.height = (int) Math.round(height);
 
-   public void push() {
-      ((IGpuDevice)RenderSystem.getDevice()).meteor$pushScissor(this.x, Utils.getWindowHeight() - this.y - this.height, this.width, this.height);
-   }
+        postTasks.clear();
 
-   public void pop() {
-      ((IGpuDevice)RenderSystem.getDevice()).meteor$popScissor();
-   }
+        return this;
+    }
+
+    public void push() {
+        ((IGpuDevice) RenderSystem.getDevice()).meteor$pushScissor(x, getWindowHeight() - y - height, width, height);
+    }
+
+    public void pop() {
+        ((IGpuDevice) RenderSystem.getDevice()).meteor$popScissor();
+    }
 }

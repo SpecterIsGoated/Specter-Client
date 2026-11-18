@@ -1,7 +1,15 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.render;
 
-import net.minecraft.client.renderer.MultiBufferSource;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.rendertype.RenderType;
 
-public interface IVertexConsumerProvider extends MultiBufferSource {
-   void setOffset(int var1, int var2, int var3);
+public interface IVertexConsumerProvider {
+    VertexConsumer getBuffer(RenderType layer);
+
+    void setOffset(int offsetX, int offsetY, int offsetZ);
 }

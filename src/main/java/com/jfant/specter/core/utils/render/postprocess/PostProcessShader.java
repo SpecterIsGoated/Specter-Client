@@ -1,95 +1,104 @@
 package com.jfant.specter.core.utils.render.postprocess;
 
-import com.jfant.specter.core.SpecterCore;
-import com.jfant.specter.core.renderer.MeshRenderer;
+import com.mojang.blaze3d.Blaze3D;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.buffers.Std140SizeCalculator;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.FilterMode;
+import com.mojang.renderpearl.api.GpuFormat;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.textures.FilterMode;
+import com.jfant.specter.core.SpecterCore;
+import com.jfant.specter.core.renderer.MeshRenderer;
+import net.minecraft.client.gui.render.GuiRenderer;
+import net.minecraft.client.renderer.DynamicGpuDataStorage;
+import net.minecraft.client.renderer.DynamicGpuDataStorageMapped;
+import org.jspecify.annotations.NonNull;
+
 import java.nio.ByteBuffer;
-import net.minecraft.client.renderer.DynamicUniformStorage;
-import net.minecraft.client.renderer.DynamicUniformStorage.DynamicUniform;
-import org.lwjgl.glfw.GLFW;
+
+import static com.jfant.specter.core.SpecterCore.mc;
 
 public abstract class PostProcessShader {
-   protected final RenderPipeline pipeline;
-   public final RenderTarget framebuffer;
-   private static final int UNIFORM_SIZE = new Std140SizeCalculator().putVec2().putFloat().get();
-   private static final DynamicUniformStorage<PostProcessShader.UniformData> UNIFORM_STORAGE = new DynamicUniformStorage<>(
-      "Meteor - Post UBO", UNIFORM_SIZE, 16
-   );
+    protected final RenderPipeline pipeline;
+    public final RenderTarget framebuffer;
 
-   protected PostProcessShader(RenderPipeline pipeline) {
-      this.pipeline = pipeline;
-      this.framebuffer = new TextureTarget(
-         SpecterCore.NAME + " PostProcessShader " + this.getClass().getSimpleName(),
-         SpecterCore.mc.getWindow().getWidth(),
-         SpecterCore.mc.getWindow().getHeight(),
-         true
-      );
-   }
+    protected PostProcessShader(RenderPipeline pipeline) {
+        this.pipeline = pipeline;
+        this.framebuffer = new TextureTarget(SpecterCore.NAME + " PostProcessShader " + this.getClass().getSimpleName(), mc.getWindow().getWidth(), mc.getWindow().getHeight(),
+            GpuFormat.RGBA8_UNORM, GpuFormat.D32_FLOAT);
+    }
 
-   protected abstract boolean shouldDraw();
+    protected abstract boolean shouldDraw();
 
-   protected void preDraw() {
-   }
+    protected void preDraw() {
+    }
 
-   protected void postDraw() {
-   }
+    protected void postDraw() {
+    }
 
-   protected abstract void setupPass(MeshRenderer var1);
+    protected abstract void setupPass(MeshRenderer renderer);
 
-   public void clearTexture() {
-      if (this.shouldDraw()) {
-         RenderSystem.getDevice().createCommandEncoder().clearColorTexture(this.framebuffer.getColorTexture(), 0);
-      }
-   }
+    public void clearTexture() {
+        if (this.shouldDraw()) {
+            RenderSystem.getDevice().createCommandEncoder().clearColorTexture(framebuffer.getColorTexture(),
+                GuiRenderer.CLEAR_COLOR);
+        }
+    }
 
-   public void submitVertices(Runnable draw) {
-      if (this.shouldDraw()) {
-         this.preDraw();
-         draw.run();
-         this.postDraw();
-      }
-   }
+    public void submitVertices(Runnable draw) {
+        if (!shouldDraw()) return;
 
-   public void render() {
-      if (this.shouldDraw()) {
-         MeshRenderer renderer = MeshRenderer.begin()
-            .attachments(SpecterCore.mc.getMainRenderTarget())
-            .pipeline(this.pipeline)
+        preDraw();
+        draw.run();
+        postDraw();
+    }
+
+    public void render() {
+        if (!shouldDraw()) return;
+
+        var renderer = MeshRenderer.begin()
+            .attachments(mc.gameRenderer.mainRenderTarget())
+            .pipeline(pipeline)
             .fullscreen()
-            .uniform(
-               "PostData",
-               UNIFORM_STORAGE.writeUniform(
-                  new PostProcessShader.UniformData(
-                     (float)SpecterCore.mc.getWindow().getWidth(), (float)SpecterCore.mc.getWindow().getHeight(), (float)GLFW.glfwGetTime()
-                  )
-               )
-            )
-            .sampler("u_Texture", this.framebuffer.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
-         this.setupPass(renderer);
-         renderer.end();
-      }
-   }
+            .uniform("PostData", UNIFORM_STORAGE.writeData(new UniformData(
+                (float) mc.getWindow().getWidth(), (float) mc.getWindow().getHeight(),
+                (float) Blaze3D.getTime()
+            )))
+            .sampler("u_Texture", framebuffer.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
 
-   public void onResized(int width, int height) {
-      if (this.framebuffer != null) {
-         this.framebuffer.resize(width, height);
-      }
-   }
+        setupPass(renderer);
 
-   public static void flipFrame() {
-      UNIFORM_STORAGE.endFrame();
-   }
+        renderer.end();
+    }
 
-   private record UniformData(float sizeX, float sizeY, float time) implements DynamicUniform {
-      @Override
-      public void write(ByteBuffer buffer) {
-         Std140Builder.intoBuffer(buffer).putVec2(this.sizeX, this.sizeY).putFloat(this.time);
-      }
-   }
+    public void onResized(int width, int height) {
+        if (framebuffer == null) return;
+        framebuffer.resize(width, height);
+    }
+
+    // Uniforms
+
+    private static final int UNIFORM_SIZE = new Std140SizeCalculator()
+        .putVec2()
+        .putFloat()
+        .get();
+
+    // todo what should usage be? not just here but everywhere else also
+    private static final DynamicGpuDataStorage<UniformData> UNIFORM_STORAGE = new DynamicGpuDataStorageMapped<>("Meteor - Post UBO", UNIFORM_SIZE, GpuBuffer.USAGE_UNIFORM, 16);
+
+    public static void flipFrame() {
+        UNIFORM_STORAGE.endFrame();
+    }
+
+    private record UniformData(float sizeX, float sizeY, float time) implements DynamicGpuDataStorage.DynamicGpuData {
+        @Override
+        public void write(@NonNull ByteBuffer buffer) {
+            Std140Builder.intoBuffer(buffer)
+                .putVec2(sizeX, sizeY)
+                .putFloat(time);
+        }
+    }
 }

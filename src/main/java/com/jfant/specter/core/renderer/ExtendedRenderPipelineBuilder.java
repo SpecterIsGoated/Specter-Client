@@ -1,28 +1,33 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.renderer;
 
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.jfant.specter.core.mixininterface.IRenderPipeline;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.pipeline.RenderPipeline.Builder;
-import com.mojang.blaze3d.pipeline.RenderPipeline.Snippet;
+import org.jspecify.annotations.NonNull;
 
-public class ExtendedRenderPipelineBuilder extends Builder {
-   private boolean lineSmooth;
+public class ExtendedRenderPipelineBuilder extends RenderPipeline.Builder {
+    private boolean lineSmooth;
 
-   public ExtendedRenderPipelineBuilder(Snippet... snippets) {
-      for (Snippet snippet : snippets) {
-         this.withSnippet(snippet);
-      }
-   }
+    public ExtendedRenderPipelineBuilder(RenderPipeline.Snippet... snippets) {
+        for (RenderPipeline.Snippet snippet : snippets) {
+            withSnippet(snippet);
+        }
+    }
 
-   public ExtendedRenderPipelineBuilder withLineSmooth() {
-      this.lineSmooth = true;
-      return this;
-   }
+    public ExtendedRenderPipelineBuilder withLineSmooth() {
+        lineSmooth = true;
+        return this;
+    }
 
-   @Override
-   public RenderPipeline build() {
-      RenderPipeline pipeline = super.build();
-      ((IRenderPipeline)pipeline).meteor$setLineSmooth(this.lineSmooth);
-      return pipeline;
-   }
+    @Override
+    public @NonNull RenderPipeline build() {
+        RenderPipeline pipeline = super.build();
+        ((IRenderPipeline) pipeline).meteor$setLineSmooth(lineSmooth);
+
+        return pipeline;
+    }
 }

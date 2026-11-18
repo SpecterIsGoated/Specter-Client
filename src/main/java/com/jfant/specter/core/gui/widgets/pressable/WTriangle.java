@@ -1,12 +1,18 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets.pressable;
 
 public abstract class WTriangle extends WPressable {
-   public double rotation;
+    public double rotation;
 
-   @Override
-   protected void onCalculateSize() {
-      double s = this.theme.textHeight();
-      this.width = s;
-      this.height = s;
-   }
+    @Override
+    protected void onCalculateSize() {
+        double s = theme.textHeight();
+
+        width = s;
+        height = s;
+    }
 }

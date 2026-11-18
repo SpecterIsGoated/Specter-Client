@@ -1,6 +1,10 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.commands.arguments;
 
-import com.jfant.specter.core.SpecterCore;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -8,56 +12,56 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import static com.jfant.specter.core.SpecterCore.mc;
+
 public class PlayerListEntryArgumentType implements ArgumentType<PlayerInfo> {
-   private static final PlayerListEntryArgumentType INSTANCE = new PlayerListEntryArgumentType();
-   private static final DynamicCommandExceptionType NO_SUCH_PLAYER = new DynamicCommandExceptionType(
-      name -> Component.literal("Player list entry with name " + name + " doesn't exist.")
-   );
-   private static final Collection<String> EXAMPLES = List.of("seasnail8169", "MineGame159");
+    private static final PlayerListEntryArgumentType INSTANCE = new PlayerListEntryArgumentType();
+    private static final DynamicCommandExceptionType NO_SUCH_PLAYER = new DynamicCommandExceptionType(name -> Component.literal("Player list entry with name " + name + " doesn't exist."));
 
-   public static PlayerListEntryArgumentType create() {
-      return INSTANCE;
-   }
+    private static final Collection<String> EXAMPLES = List.of("seasnail8169", "MineGame159");
 
-   public static PlayerInfo get(CommandContext<?> context) {
-      return (PlayerInfo)context.getArgument("player", PlayerInfo.class);
-   }
+    public static PlayerListEntryArgumentType create() {
+        return INSTANCE;
+    }
 
-   private PlayerListEntryArgumentType() {
-   }
+    public static PlayerInfo get(CommandContext<?> context) {
+        return context.getArgument("player", PlayerInfo.class);
+    }
 
-   public PlayerInfo parse(StringReader reader) throws CommandSyntaxException {
-      String argument = reader.readString();
-      PlayerInfo playerListEntry = null;
+    private PlayerListEntryArgumentType() {
+    }
 
-      for (PlayerInfo p : SpecterCore.mc.getConnection().getOnlinePlayers()) {
-         if (p.getProfile().name().equalsIgnoreCase(argument)) {
-            playerListEntry = p;
-            break;
-         }
-      }
+    @Override
+    public PlayerInfo parse(StringReader reader) throws CommandSyntaxException {
+        String argument = reader.readString();
+        PlayerInfo playerListEntry = null;
 
-      if (playerListEntry == null) {
-         throw NO_SUCH_PLAYER.create(argument);
-      } else {
-         return playerListEntry;
-      }
-   }
+        for (PlayerInfo p : mc.getConnection().getOnlinePlayers()) {
+            if (p.getProfile().name().equalsIgnoreCase(argument)) {
+                playerListEntry = p;
+                break;
+            }
+        }
+        if (playerListEntry == null) throw NO_SUCH_PLAYER.create(argument);
 
-   public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-      return SharedSuggestionProvider.suggest(
-         SpecterCore.mc.getConnection().getOnlinePlayers().stream().map(playerListEntry -> playerListEntry.getProfile().name()), builder
-      );
-   }
+        return playerListEntry;
+    }
 
-   public Collection<String> getExamples() {
-      return EXAMPLES;
-   }
+    @Override
+    public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
+        return SharedSuggestionProvider.suggest(mc.getConnection().getOnlinePlayers().stream().map(playerListEntry -> playerListEntry.getProfile().name()), builder);
+    }
+
+    @Override
+    public Collection<String> getExamples() {
+        return EXAMPLES;
+    }
 }

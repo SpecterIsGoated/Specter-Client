@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets.containers;
 
 import com.jfant.specter.core.gui.renderer.GuiRenderer;
@@ -6,129 +11,131 @@ import com.jfant.specter.core.gui.widgets.WWidget;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.util.Mth;
 
+import static com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT;
+
 public abstract class WSection extends WVerticalList {
-   public Runnable action;
-   protected String title;
-   protected boolean expanded;
-   protected double animProgress;
-   private WSection.WHeader header;
-   protected final WWidget headerWidget;
-   private double actualWidth;
-   private double actualHeight;
-   private double forcedHeight = -1.0;
-   private boolean firstTime = true;
+    public Runnable action;
 
-   public WSection(String title, boolean expanded, WWidget headerWidget) {
-      this.title = title;
-      this.expanded = expanded;
-      this.headerWidget = headerWidget;
-      this.animProgress = expanded ? 1.0 : 0.0;
-   }
+    protected String title;
 
-   @Override
-   public void init() {
-      this.header = this.createHeader();
-      this.header.theme = this.theme;
-      super.add(this.header).expandX();
-   }
+    protected boolean expanded;
+    protected double animProgress;
 
-   @Override
-   public <T extends WWidget> Cell<T> add(T widget) {
-      return super.<T>add(widget).padHorizontal(6.0);
-   }
+    private WHeader header;
+    protected final WWidget headerWidget;
 
-   protected abstract WSection.WHeader createHeader();
+    private double actualWidth, actualHeight;
+    private double forcedHeight = -1;
+    private boolean firstTime = true;
 
-   public void setExpanded(boolean expanded) {
-      this.expanded = expanded;
-   }
+    public WSection(String title, boolean expanded, WWidget headerWidget) {
+        this.title = title;
+        this.expanded = expanded;
+        this.headerWidget = headerWidget;
 
-   public boolean isExpanded() {
-      return this.expanded;
-   }
+        animProgress = expanded ? 1 : 0;
+    }
 
-   @Override
-   protected void onCalculateSize() {
-      if (this.forcedHeight == -1.0) {
-         super.onCalculateSize();
-         this.actualWidth = this.width;
-         this.actualHeight = this.height;
-      } else {
-         this.width = this.actualWidth;
-         this.height = this.forcedHeight;
-         if (this.animProgress == 1.0) {
-            this.forcedHeight = -1.0;
-         }
-      }
+    @Override
+    public void init() {
+        header = createHeader();
+        header.theme = theme;
 
-      if (this.firstTime) {
-         this.firstTime = false;
-         this.forcedHeight = (this.actualHeight - this.header.height) * this.animProgress + this.header.height;
-         this.onCalculateSize();
-      }
-   }
+        super.add(header).expandX();
+    }
 
-   @Override
-   public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-      if (!this.visible) {
-         return true;
-      } else {
-         double preProgress = this.animProgress;
-         this.animProgress = this.animProgress + (this.expanded ? 1 : -1) * delta * 14.0;
-         this.animProgress = Mth.clamp(this.animProgress, 0.0, 1.0);
-         if (this.animProgress != preProgress) {
-            this.forcedHeight = (this.actualHeight - this.header.height) * this.animProgress + this.header.height;
-            this.invalidate();
-         }
+    @Override
+    public <T extends WWidget> Cell<T> add(T widget) {
+        return super.add(widget).padHorizontal(6);
+    }
 
-         boolean scissor = this.animProgress != 0.0 && this.animProgress != 1.0 || this.expanded && this.animProgress != 1.0;
-         if (scissor) {
-            renderer.scissorStart(this.x, this.y, this.width, (this.height - this.header.height) * this.animProgress + this.header.height);
-         }
+    protected abstract WHeader createHeader();
 
-         boolean toReturn = super.render(renderer, mouseX, mouseY, delta);
-         if (scissor) {
-            renderer.scissorEnd();
-         }
+    public void setExpanded(boolean expanded) {
+        this.expanded = expanded;
+    }
 
-         return toReturn;
-      }
-   }
+    public boolean isExpanded() {
+        return expanded;
+    }
 
-   @Override
-   protected void renderWidget(WWidget widget, GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-      if (this.expanded || this.animProgress > 0.0 || widget instanceof WSection.WHeader) {
-         widget.render(renderer, mouseX, mouseY, delta);
-      }
-   }
+    @Override
+    protected void onCalculateSize() {
+        if (forcedHeight == -1) {
+            super.onCalculateSize();
 
-   @Override
-   protected boolean propagateEvents(WWidget widget) {
-      return this.expanded || widget instanceof WSection.WHeader;
-   }
+            actualWidth = width;
+            actualHeight = height;
+        } else {
+            width = actualWidth;
+            height = forcedHeight;
 
-   protected abstract class WHeader extends WHorizontalList {
-      protected String title;
+            if (animProgress == 1) forcedHeight = -1;
+        }
 
-      public WHeader(String title) {
-         this.title = title;
-      }
+        if (firstTime) {
+            firstTime = false;
 
-      @Override
-      public boolean onMouseClicked(MouseButtonEvent click, boolean doubled) {
-         if (this.mouseOver && click.button() == 0 && !doubled) {
-            this.onClick();
-            return true;
-         } else {
+            forcedHeight = (actualHeight - header.height) * animProgress + header.height;
+            onCalculateSize();
+        }
+    }
+
+    @Override
+    public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+        if (!visible) return true;
+
+        double preProgress = animProgress;
+
+        animProgress += (expanded ? 1 : -1) * delta * 14;
+        animProgress = Mth.clamp(animProgress, 0, 1);
+
+        if (animProgress != preProgress) {
+            forcedHeight = (actualHeight - header.height) * animProgress + header.height;
+            invalidate();
+        }
+
+        boolean scissor = (animProgress != 0 && animProgress != 1) || (expanded && animProgress != 1);
+        if (scissor) renderer.scissorStart(x, y, width, (height - header.height) * animProgress + header.height);
+        boolean toReturn = super.render(renderer, mouseX, mouseY, delta);
+        if (scissor) renderer.scissorEnd();
+
+        return toReturn;
+    }
+
+    @Override
+    protected void renderWidget(WWidget widget, GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+        if (expanded || animProgress > 0 || widget instanceof WHeader) {
+            widget.render(renderer, mouseX, mouseY, delta);
+        }
+    }
+
+    @Override
+    protected boolean propagateEvents(WWidget widget) {
+        return expanded || widget instanceof WHeader;
+    }
+
+    protected abstract class WHeader extends WHorizontalList {
+        protected String title;
+
+        public WHeader(String title) {
+            this.title = title;
+        }
+
+        @Override
+        public boolean onMouseClicked(MouseButtonEvent click, boolean doubled) {
+            if (mouseOver && click.button() == MOUSE_BUTTON_LEFT && !doubled) {
+                onClick();
+                return true;
+            }
+
             return false;
-         }
-      }
+        }
 
-      protected void onClick() {
-         WSection.this.setExpanded(!WSection.this.expanded);
-         if (WSection.this.action != null) {
-            WSection.this.action.run();
-         }
-      }
-   }
+        protected void onClick() {
+            setExpanded(!expanded);
+
+            if (action != null) action.run();
+        }
+    }
 }

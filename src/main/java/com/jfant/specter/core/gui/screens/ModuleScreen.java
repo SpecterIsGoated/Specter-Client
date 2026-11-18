@@ -1,5 +1,11 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.screens;
 
+import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.events.meteor.ActiveModulesChangedEvent;
 import com.jfant.specter.core.events.meteor.ModuleBindChangedEvent;
 import com.jfant.specter.core.gui.GuiTheme;
@@ -17,140 +23,158 @@ import com.jfant.specter.core.gui.widgets.pressable.WCheckbox;
 import com.jfant.specter.core.gui.widgets.pressable.WFavorite;
 import com.jfant.specter.core.systems.modules.Module;
 import com.jfant.specter.core.systems.modules.Modules;
-import com.jfant.specter.core.utils.Utils;
 import com.jfant.specter.core.utils.misc.NbtUtils;
 import com.jfant.specter.core.utils.render.prompts.OkPrompt;
-import java.util.Optional;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.nbt.CompoundTag;
 
+import java.util.Optional;
+
+import static com.jfant.specter.core.utils.Utils.getWindowWidth;
+
 public class ModuleScreen extends WindowScreen {
-   private final Module module;
-   private WContainer settingsContainer;
-   private WKeybind keybind;
-   private WCheckbox active;
+    private final Module module;
 
-   public ModuleScreen(GuiTheme theme, Module module) {
-      super(theme, theme.favorite(module.favorite), module.title);
-      ((WFavorite)this.window.icon).action = () -> module.favorite = ((WFavorite)this.window.icon).checked;
-      this.module = module;
-   }
+    private WContainer settingsContainer;
+    private WKeybind keybind;
+    private WCheckbox active;
 
-   @Override
-   public void initWidgets() {
-      this.add(this.theme.label(this.module.description, Utils.getWindowWidth() / 2.0));
-      if (!this.module.settings.groups.isEmpty()) {
-         this.settingsContainer = this.add(this.theme.verticalList()).expandX().widget();
-         this.settingsContainer.add(this.theme.settings(this.module.settings)).expandX();
-      }
+    public ModuleScreen(GuiTheme theme, Module module) {
+        super(theme, theme.favorite(module.favorite), module.title);
+        ((WFavorite) window.icon).action = () -> module.favorite = ((WFavorite) window.icon).checked;
 
-      WWidget widget = this.module.getWidget(this.theme);
-      if (widget != null) {
-         this.add(this.theme.horizontalSeparator()).expandX();
-         Cell<WWidget> cell = this.add(widget);
-         if (widget instanceof WContainer) {
-            cell.expandX();
-         }
-      }
+        this.module = module;
+    }
 
-      WSection section = this.add(this.theme.section("Bind", true)).expandX().widget();
-      WHorizontalList bind = section.add(this.theme.horizontalList()).expandX().widget();
-      bind.add(this.theme.label("Bind: "));
-      this.keybind = bind.add(this.theme.keybind(this.module.keybind)).expandX().widget();
-      this.keybind.actionOnSet = () -> Modules.get().setModuleToBind(this.module);
-      WButton reset = bind.add(this.theme.button(GuiRenderer.RESET)).expandCellX().right().widget();
-      reset.action = this.keybind::resetBind;
-      reset.tooltip = "Reset";
-      WHorizontalList tobr = section.add(this.theme.horizontalList()).widget();
-      tobr.add(this.theme.label("Toggle on bind release: "));
-      WCheckbox tobrC = tobr.add(this.theme.checkbox(this.module.toggleOnBindRelease)).widget();
-      tobrC.action = () -> this.module.toggleOnBindRelease = tobrC.checked;
-      WHorizontalList cf = section.add(this.theme.horizontalList()).widget();
-      cf.add(this.theme.label("Chat Feedback: "));
-      WCheckbox cfC = cf.add(this.theme.checkbox(this.module.chatFeedback)).widget();
-      cfC.action = () -> this.module.chatFeedback = cfC.checked;
-      this.add(this.theme.horizontalSeparator()).expandX();
-      WHorizontalList bottom = this.add(this.theme.horizontalList()).expandX().widget();
-      bottom.add(this.theme.label("Active: "));
-      this.active = bottom.add(this.theme.checkbox(this.module.isActive())).expandCellX().widget();
-      this.active.action = () -> {
-         if (this.module.isActive() != this.active.checked) {
-            this.module.toggle();
-         }
-      };
-      WHorizontalList sharing = bottom.add(this.theme.horizontalList()).right().widget();
-      WButton copy = sharing.add(this.theme.button(GuiRenderer.COPY)).widget();
-      copy.action = () -> {
-         if (this.toClipboard()) {
-            OkPrompt.create()
-               .title("Module copied!")
-               .message("The settings for this module are now in your clipboard.")
-               .message("You can also copy settings using Ctrl+C.")
-               .message("Settings can be imported using Ctrl+V or the paste button.")
-               .id("config-sharing-guide")
-               .show();
-         }
-      };
-      copy.tooltip = "Copy config";
-      WButton paste = sharing.add(this.theme.button(GuiRenderer.PASTE)).widget();
-      paste.action = this::fromClipboard;
-      paste.tooltip = "Paste config";
-   }
+    @Override
+    public void initWidgets() {
+        // Description
+        add(theme.label(module.description, getWindowWidth() / 2.0));
 
-   @Override
-   public boolean shouldCloseOnEsc() {
-      return !Modules.get().isBinding();
-   }
+        // Settings
+        if (!module.settings.groups.isEmpty()) {
+            settingsContainer = add(theme.verticalList()).expandX().widget();
+            settingsContainer.add(theme.settings(module.settings)).expandX();
+        }
 
-   @Override
-   public void tick() {
-      super.tick();
-      this.module.settings.tick(this.settingsContainer, this.theme);
-   }
+        // Custom widget
+        WWidget widget = module.getWidget(theme);
 
-   @EventHandler
-   private void onModuleBindChanged(ModuleBindChangedEvent event) {
-      this.keybind.reset();
-   }
+        if (widget != null) {
+            add(theme.horizontalSeparator()).expandX();
+            Cell<WWidget> cell = add(widget);
+            if (widget instanceof WContainer) cell.expandX();
+        }
 
-   @EventHandler
-   private void onActiveModulesChanged(ActiveModulesChangedEvent event) {
-      this.active.checked = this.module.isActive();
-   }
+        // Bind
+        WSection section = add(theme.section("Bind", true)).expandX().widget();
 
-   @Override
-   public boolean toClipboard() {
-      CompoundTag tag = new CompoundTag();
-      tag.putString("name", this.module.name);
-      CompoundTag settingsTag = this.module.settings.toTag();
-      if (!settingsTag.isEmpty()) {
-         tag.put("settings", settingsTag);
-      }
+        // Keybind
+        WHorizontalList bind = section.add(theme.horizontalList()).expandX().widget();
 
-      return NbtUtils.toClipboard(tag);
-   }
+        bind.add(theme.label("Bind: "));
+        keybind = bind.add(theme.keybind(module.keybind)).expandX().widget();
+        keybind.actionOnSet = () -> Modules.get().setModuleToBind(module);
 
-   @Override
-   public boolean fromClipboard() {
-      CompoundTag tag = NbtUtils.fromClipboard();
-      if (tag == null) {
-         return false;
-      } else if (!tag.getStringOr("name", "").equals(this.module.name)) {
-         return false;
-      } else {
-         Optional<CompoundTag> settings = tag.getCompound("settings");
-         if (settings.isPresent()) {
-            this.module.settings.fromTag(settings.get());
-         } else {
-            this.module.settings.reset();
-         }
+        WButton reset = bind.add(theme.button(GuiRenderer.RESET)).expandCellX().right().widget();
+        reset.action = keybind::resetBind;
+        reset.tooltip = "Reset";
 
-         if (this.parent instanceof WidgetScreen p) {
-            p.reload();
-         }
+        // Toggle on bind release
+        WHorizontalList tobr = section.add(theme.horizontalList()).widget();
 
-         this.reload();
-         return true;
-      }
-   }
+        tobr.add(theme.label("Toggle on bind release: "));
+        WCheckbox tobrC = tobr.add(theme.checkbox(module.toggleOnBindRelease)).widget();
+        tobrC.action = () -> module.toggleOnBindRelease = tobrC.checked;
+
+        // Chat feedback
+        WHorizontalList cf = section.add(theme.horizontalList()).widget();
+
+        cf.add(theme.label("Chat Feedback: "));
+        WCheckbox cfC = cf.add(theme.checkbox(module.chatFeedback)).widget();
+        cfC.action = () -> module.chatFeedback = cfC.checked;
+
+        add(theme.horizontalSeparator()).expandX();
+
+        // Bottom
+        WHorizontalList bottom = add(theme.horizontalList()).expandX().widget();
+
+        // Active
+        bottom.add(theme.label("Active: "));
+        active = bottom.add(theme.checkbox(module.isActive())).expandCellX().widget();
+        active.action = () -> {
+            if (module.isActive() != active.checked) module.toggle();
+        };
+
+        // Config sharing
+        WHorizontalList sharing = bottom.add(theme.horizontalList()).right().widget();
+        WButton copy = sharing.add(theme.button(GuiRenderer.COPY)).widget();
+        copy.action = () -> {
+            if (toClipboard()) {
+                OkPrompt.create()
+                    .title("Module copied!")
+                    .message("The settings for this module are now in your clipboard.")
+                    .message("You can also copy settings using Ctrl+C.")
+                    .message("Settings can be imported using Ctrl+V or the paste button.")
+                    .id("config-sharing-guide")
+                    .show();
+            }
+        };
+        copy.tooltip = "Copy config";
+
+        WButton paste = sharing.add(theme.button(GuiRenderer.PASTE)).widget();
+        paste.action = this::fromClipboard;
+        paste.tooltip = "Paste config";
+    }
+
+    @Override
+    public boolean shouldCloseOnEsc() {
+        return !Modules.get().isBinding();
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+
+        module.settings.tick(settingsContainer, theme);
+    }
+
+    @EventHandler
+    private void onModuleBindChanged(ModuleBindChangedEvent event) {
+        keybind.reset();
+    }
+
+    @EventHandler
+    private void onActiveModulesChanged(ActiveModulesChangedEvent event) {
+        this.active.checked = module.isActive();
+    }
+
+    @Override
+    public boolean toClipboard() {
+        CompoundTag tag = new CompoundTag();
+
+        tag.putString("name", module.name);
+
+        CompoundTag settingsTag = module.settings.toTag();
+        if (!settingsTag.isEmpty()) tag.put("settings", settingsTag);
+
+        return NbtUtils.toClipboard(tag);
+    }
+
+    @Override
+    public boolean fromClipboard() {
+        CompoundTag tag = NbtUtils.fromClipboard();
+        if (tag == null) return false;
+        if (!tag.getStringOr("name", "").equals(module.name)) return false;
+
+        Optional<CompoundTag> settings = tag.getCompound("settings");
+
+        if (settings.isPresent()) module.settings.fromTag(settings.get());
+        else module.settings.reset();
+
+        if (parent instanceof WidgetScreen p) p.reload();
+        reload();
+
+        return true;
+    }
 }

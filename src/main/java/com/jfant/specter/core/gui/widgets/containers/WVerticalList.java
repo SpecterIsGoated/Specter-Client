@@ -1,48 +1,55 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets.containers;
 
 import com.jfant.specter.core.gui.utils.Cell;
 
 public class WVerticalList extends WContainer {
-   public double spacing = 3.0;
-   protected double widthRemove;
+    public double spacing = 3;
 
-   protected double spacing() {
-      return this.theme.scale(this.spacing);
-   }
+    protected double widthRemove;
 
-   @Override
-   protected void onCalculateSize() {
-      this.width = 0.0;
-      this.height = 0.0;
+    protected double spacing() {
+        return theme.scale(spacing);
+    }
 
-      for (int i = 0; i < this.cells.size(); i++) {
-         Cell<?> cell = this.cells.get(i);
-         if (i > 0) {
-            this.height = this.height + this.spacing();
-         }
+    @Override
+    protected void onCalculateSize() {
+        width = 0;
+        height = 0;
 
-         this.width = Math.max(this.width, cell.padLeft() + cell.widget().width + cell.padRight());
-         this.height = this.height + (cell.padTop() + cell.widget().height + cell.padBottom());
-      }
-   }
+        for (int i = 0; i < cells.size(); i++) {
+            Cell<?> cell = cells.get(i);
 
-   @Override
-   protected void onCalculateWidgetPositions() {
-      double y = this.y;
+            if (i > 0) height += spacing();
 
-      for (int i = 0; i < this.cells.size(); i++) {
-         Cell<?> cell = this.cells.get(i);
-         if (i > 0) {
-            y += this.spacing();
-         }
+            width = Math.max(width, cell.padLeft() + cell.widget().width + cell.padRight());
+            height += cell.padTop() + cell.widget().height + cell.padBottom();
+        }
+    }
 
-         y += cell.padTop();
-         cell.x = this.x + cell.padLeft();
-         cell.y = y;
-         cell.width = this.width - this.widthRemove - cell.padLeft() - cell.padRight();
-         cell.height = cell.widget().height;
-         cell.alignWidget();
-         y += cell.height + cell.padBottom();
-      }
-   }
+    @Override
+    protected void onCalculateWidgetPositions() {
+        double y = this.y;
+
+        for (int i = 0; i < cells.size(); i++) {
+            Cell<?> cell = cells.get(i);
+
+            if (i > 0) y += spacing();
+            y += cell.padTop();
+
+            cell.x = x + cell.padLeft();
+            cell.y = y;
+
+            cell.width = width - widthRemove - cell.padLeft() - cell.padRight();
+            cell.height = cell.widget().height;
+
+            cell.alignWidget();
+
+            y += cell.height + cell.padBottom();
+        }
+    }
 }

@@ -1,12 +1,25 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.mixininterface;
 
-import com.mojang.blaze3d.systems.RenderPass;
+
+import com.mojang.renderpearl.backend.api.RenderPassBackend;
 
 public interface IGpuDevice {
-   void meteor$pushScissor(int var1, int var2, int var3, int var4);
+    /**
+     * Currently there can only be a single scissor pushed at once.
+     */
+    void meteor$pushScissor(int x, int y, int width, int height);
 
-   void meteor$popScissor();
+    void meteor$popScissor();
 
-   @Deprecated
-   void meteor$onCreateRenderPass(RenderPass var1);
+    /**
+     * This is an *INTERNAL* method, it shouldn't be called.
+     */
+    @Deprecated
+    @SuppressWarnings("DeprecatedIsStillUsed")
+    void meteor$onCreateRenderPass(RenderPassBackend backend);
 }

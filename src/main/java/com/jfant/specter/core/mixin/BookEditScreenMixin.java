@@ -1,23 +1,18 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.mixin;
 
-import com.jfant.specter.core.SpecterCore;
+import it.unimi.dsi.fastutil.io.FastByteArrayInputStream;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.Base64;
-import java.util.List;
-import net.minecraft.client.gui.components.Button.Builder;
+import com.jfant.specter.core.SpecterCore;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.BookEditScreen;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtAccounter;
-import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -25,99 +20,110 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin({BookEditScreen.class})
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Base64;
+import java.util.List;
+
+import static com.jfant.specter.core.SpecterCore.mc;
+
+@Mixin(BookEditScreen.class)
 public abstract class BookEditScreenMixin extends Screen {
-   @Shadow
-   @Final
-   private List<String> pages;
-   @Shadow
-   private int currentPage;
+    @Shadow
+    @Final
+    private List<String> pages;
+    @Shadow
+    private int currentPage;
 
-   @Shadow
-   protected abstract void updatePageContent();
+    @Shadow
+    protected abstract void updatePageContent();
 
-   @Shadow
-   protected abstract void pageForward();
+    @Shadow
+    protected abstract void pageForward();
 
-   @Shadow
-   protected abstract void pageBack();
+    @Shadow
+    protected abstract void pageBack();
 
-   public BookEditScreenMixin(Component title) {
-      super(title);
-   }
+    public BookEditScreenMixin(Component title) {
+        super(title);
+    }
 
-   @Inject(
-      method = {"init"},
-      at = {@At("TAIL")}
-   )
-   private void onInit(CallbackInfo info) {
-      this.addRenderableWidget(new Builder(Component.literal("Copy"), button -> {
-         ListTag listTag = new ListTag();
-         this.pages.stream().map(StringTag::valueOf).forEach(listTag::add);
-         CompoundTag tag = new CompoundTag();
-         tag.put("pages", listTag);
-         tag.putInt("currentPage", this.currentPage);
-         FastByteArrayOutputStream bytes = new FastByteArrayOutputStream();
-         DataOutputStream out = new DataOutputStream(bytes);
+    @Inject(method = "init", at = @At("TAIL"))
+    private void onInit(CallbackInfo ci) {
+        addRenderableWidget(
+            new Button.Builder(Component.literal("Copy"), _ -> {
+                ListTag listTag = new ListTag();
+                pages.stream().map(StringTag::valueOf).forEach(listTag::add);
 
-         try {
-            NbtIo.writeUnnamedTagWithFallback(tag, out);
-         } catch (IOException var8) {
-            SpecterCore.LOG.error("Error writing the book to the output stream", var8);
-         }
+                CompoundTag tag = new CompoundTag();
+                tag.put("pages", listTag);
+                tag.putInt("currentPage", currentPage);
 
-         try {
-            GLFW.glfwSetClipboardString(SpecterCore.mc.getWindow().handle(), Base64.getEncoder().encodeToString(bytes.array));
-         } catch (OutOfMemoryError var7) {
-            GLFW.glfwSetClipboardString(SpecterCore.mc.getWindow().handle(), var7.toString());
-         }
-      }).pos(4, 4).size(120, 20).build());
-      this.addRenderableWidget(new Builder(Component.literal("Paste"), button -> {
-         String clipboard = GLFW.glfwGetClipboardString(SpecterCore.mc.getWindow().handle());
-         if (clipboard != null) {
-            byte[] bytes;
-            try {
-               bytes = Base64.getDecoder().decode(clipboard);
-            } catch (IllegalArgumentException var8) {
-               return;
-            }
+                FastByteArrayOutputStream bytes = new FastByteArrayOutputStream();
+                DataOutputStream out = new DataOutputStream(bytes);
+                try {
+                    NbtIo.write(tag, out);
+                } catch (IOException e) {
+                    SpecterCore.LOG.error("Error writing the book to the output stream", e);
+                }
 
-            DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes));
+                try {
+                    mc.keyboardHandler.setClipboard(Base64.getEncoder().encodeToString(bytes.toByteArray()));
+                } catch (OutOfMemoryError exception) {
+                    mc.keyboardHandler.setClipboard(exception.toString());
+                }
+            })
+                .pos(4, 4)
+                .size(120, 20)
+                .build()
+        );
 
-            try {
-               CompoundTag tag = NbtIo.readCompressed(in, NbtAccounter.unlimitedHeap());
-               ListTag listTag = tag.getListOrEmpty("pages").copy();
-               this.pages.clear();
+        addRenderableWidget(
+            new Button.Builder(Component.literal("Paste"), _ -> {
+                String clipboard = mc.keyboardHandler.getClipboard();
+                if (clipboard.isEmpty()) return;
 
-               for (int i = 0; i < listTag.size(); i++) {
-                  this.pages.add(listTag.getStringOr(i, ""));
-               }
+                byte[] bytes;
+                try {
+                    bytes = Base64.getDecoder().decode(clipboard);
+                } catch (IllegalArgumentException _) {
+                    return;
+                }
+                var in = new FastByteArrayInputStream(bytes);
 
-               if (this.pages.isEmpty()) {
-                  this.pages.add("");
-               }
+                try {
+                    CompoundTag tag = NbtIo.readCompressed(in, NbtAccounter.unlimitedHeap());
 
-               this.currentPage = tag.getIntOr("currentPage", 0);
-               this.updatePageContent();
-            } catch (IOException var9) {
-               SpecterCore.LOG.error("Error reading the data from your clipboard", var9);
-            }
-         }
-      }).pos(4, 26).size(120, 20).build());
-   }
+                    ListTag listTag = tag.getListOrEmpty("pages").copy();
 
-   @Override
-   public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-      if (verticalAmount == 0.0) {
-         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
-      } else {
-         if (verticalAmount < 0.0) {
-            this.pageForward();
-         } else {
-            this.pageBack();
-         }
+                    pages.clear();
+                    for (int i = 0; i < listTag.size(); ++i) {
+                        pages.add(listTag.getStringOr(i, ""));
+                    }
 
-         return true;
-      }
-   }
+                    if (pages.isEmpty()) {
+                        pages.add("");
+                    }
+
+                    currentPage = tag.getIntOr("currentPage", 0);
+
+                    updatePageContent();
+                } catch (IOException e) {
+                    SpecterCore.LOG.error("Error reading the data from your clipboard", e);
+                }
+            })
+                .pos(4, 4 + 20 + 2)
+                .size(120, 20)
+                .build()
+        );
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (verticalAmount == 0) return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+
+        if (verticalAmount < 0) this.pageForward(); // scroll down
+        else this.pageBack();                       // scroll up
+        return true;
+    }
 }

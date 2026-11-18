@@ -1,58 +1,68 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.screens.settings;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import com.jfant.specter.core.gui.GuiTheme;
 import com.jfant.specter.core.gui.screens.settings.base.CollectionListSettingScreen;
 import com.jfant.specter.core.gui.widgets.WWidget;
 import com.jfant.specter.core.settings.Setting;
 import com.jfant.specter.core.settings.StorageBlockListSetting;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import java.util.List;
-import java.util.Map;
+import com.jfant.specter.core.utils.render.DisplayItemUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.entity.BlockEntityTypes;
+
+import java.util.List;
+import java.util.Map;
 
 public class StorageBlockListSettingScreen extends CollectionListSettingScreen<BlockEntityType<?>> {
-   private static final Map<BlockEntityType<?>, StorageBlockListSettingScreen.BlockEntityTypeInfo> BLOCK_ENTITY_TYPE_INFO_MAP = new Object2ObjectOpenHashMap();
-   private static final StorageBlockListSettingScreen.BlockEntityTypeInfo UNKNOWN = new StorageBlockListSettingScreen.BlockEntityTypeInfo(
-      Items.BARRIER, "Unknown"
-   );
+    private static final Map<BlockEntityType<?>, BlockEntityTypeInfo> BLOCK_ENTITY_TYPE_INFO_MAP = new Object2ObjectOpenHashMap<>();
+    private static final BlockEntityTypeInfo UNKNOWN = new BlockEntityTypeInfo(Items.BARRIER, "Unknown");
 
-   public StorageBlockListSettingScreen(GuiTheme theme, Setting<List<BlockEntityType<?>>> setting) {
-      super(theme, "Select Storage Blocks", setting, setting.get(), StorageBlockListSetting.REGISTRY);
-   }
+    static {
+        // Map of storage blocks
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.BARREL, new BlockEntityTypeInfo(Items.BARREL, "Barrel"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.BLAST_FURNACE, new BlockEntityTypeInfo(Items.BLAST_FURNACE, "Blast Furnace"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.BREWING_STAND, new BlockEntityTypeInfo(Items.BREWING_STAND, "Brewing Stand"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.CAMPFIRE, new BlockEntityTypeInfo(Items.CAMPFIRE, "Campfire"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.CHEST, new BlockEntityTypeInfo(Items.CHEST, "Chest"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.CHISELED_BOOKSHELF, new BlockEntityTypeInfo(Items.CHISELED_BOOKSHELF, "Chiseled Bookshelf"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.CRAFTER, new BlockEntityTypeInfo(Items.CRAFTER, "Crafter"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.DISPENSER, new BlockEntityTypeInfo(Items.DISPENSER, "Dispenser"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.DECORATED_POT, new BlockEntityTypeInfo(Items.DECORATED_POT, "Decorated Pot"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.DROPPER, new BlockEntityTypeInfo(Items.DROPPER, "Dropper"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.ENDER_CHEST, new BlockEntityTypeInfo(Items.ENDER_CHEST, "Ender Chest"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.FURNACE, new BlockEntityTypeInfo(Items.FURNACE, "Furnace"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.HOPPER, new BlockEntityTypeInfo(Items.HOPPER, "Hopper"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.SHULKER_BOX, new BlockEntityTypeInfo(Items.SHULKER_BOX, "Shulker Box"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.SMOKER, new BlockEntityTypeInfo(Items.SMOKER, "Smoker"));
+        BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityTypes.TRAPPED_CHEST, new BlockEntityTypeInfo(Items.TRAPPED_CHEST, "Trapped Chest"));
+    }
 
-   protected WWidget getValueWidget(BlockEntityType<?> value) {
-      StorageBlockListSettingScreen.BlockEntityTypeInfo info = BLOCK_ENTITY_TYPE_INFO_MAP.getOrDefault(value, UNKNOWN);
-      return this.theme.itemWithLabel(info.item().getDefaultInstance(), info.name());
-   }
+    public StorageBlockListSettingScreen(GuiTheme theme, Setting<List<BlockEntityType<?>>> setting) {
+        super(theme, "Select Storage Blocks", setting, setting.get(), StorageBlockListSetting.REGISTRY);
+    }
 
-   protected String[] getValueNames(BlockEntityType<?> value) {
-      return new String[]{BLOCK_ENTITY_TYPE_INFO_MAP.getOrDefault(value, UNKNOWN).name(), BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(value).toString()};
-   }
+    @Override
+    protected WWidget getValueWidget(BlockEntityType<?> value) {
+        BlockEntityTypeInfo info = BLOCK_ENTITY_TYPE_INFO_MAP.getOrDefault(value, UNKNOWN);
+        return theme.itemWithLabel(DisplayItemUtils.toStack(info.item()), info.name());
+    }
 
-   static {
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.BARREL, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.BARREL, "Barrel"));
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.BLAST_FURNACE, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.BLAST_FURNACE, "Blast Furnace"));
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.BREWING_STAND, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.BREWING_STAND, "Brewing Stand"));
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.CAMPFIRE, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.CAMPFIRE, "Campfire"));
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.CHEST, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.CHEST, "Chest"));
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(
-         BlockEntityType.CHISELED_BOOKSHELF, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.CHISELED_BOOKSHELF, "Chiseled Bookshelf")
-      );
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.CRAFTER, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.CRAFTER, "Crafter"));
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.DISPENSER, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.DISPENSER, "Dispenser"));
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.DECORATED_POT, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.DECORATED_POT, "Decorated Pot"));
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.DROPPER, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.DROPPER, "Dropper"));
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.ENDER_CHEST, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.ENDER_CHEST, "Ender Chest"));
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.FURNACE, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.FURNACE, "Furnace"));
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.HOPPER, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.HOPPER, "Hopper"));
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.SHULKER_BOX, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.SHULKER_BOX, "Shulker Box"));
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.SMOKER, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.SMOKER, "Smoker"));
-      BLOCK_ENTITY_TYPE_INFO_MAP.put(BlockEntityType.TRAPPED_CHEST, new StorageBlockListSettingScreen.BlockEntityTypeInfo(Items.TRAPPED_CHEST, "Trapped Chest"));
-   }
+    @Override
+    protected String[] getValueNames(BlockEntityType<?> value) {
+        return new String[]{
+            BLOCK_ENTITY_TYPE_INFO_MAP.getOrDefault(value, UNKNOWN).name(),
+            BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(value).toString()
+        };
+    }
 
-   private record BlockEntityTypeInfo(Item item, String name) {
-   }
+    private record BlockEntityTypeInfo(Item item, String name) {
+    }
 }

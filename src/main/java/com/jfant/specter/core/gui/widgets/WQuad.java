@@ -1,18 +1,24 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets;
 
 import com.jfant.specter.core.utils.render.color.Color;
 
 public abstract class WQuad extends WWidget {
-   public Color color;
+    public Color color;
 
-   public WQuad(Color color) {
-      this.color = color;
-   }
+    public WQuad(Color color) {
+        this.color = color;
+    }
 
-   @Override
-   protected void onCalculateSize() {
-      double s = this.theme.scale(32.0);
-      this.width = s;
-      this.height = s;
-   }
+    @Override
+    protected void onCalculateSize() {
+        double s = theme.scale(32);
+
+        width = s;
+        height = s;
+    }
 }

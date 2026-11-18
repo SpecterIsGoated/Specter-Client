@@ -1,9 +1,14 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.utils;
 
 public interface CharFilter {
-   boolean filter(String var1, char var2);
+    boolean filter(String text, char c);
 
-   default boolean filter(String text, int i) {
-      return this.filter(text, (char)i);
-   }
+    default boolean filter(String text, int i) {
+        return filter(text, (char) i);
+    }
 }

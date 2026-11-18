@@ -1,19 +1,24 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.events.entity.player;
 
 public class SendMovementPacketsEvent {
-   public static class Post {
-      private static final SendMovementPacketsEvent.Post INSTANCE = new SendMovementPacketsEvent.Post();
+    public static class Pre {
+        private static final Pre INSTANCE = new Pre();
 
-      public static SendMovementPacketsEvent.Post get() {
-         return INSTANCE;
-      }
-   }
+        public static Pre get() {
+            return INSTANCE;
+        }
+    }
 
-   public static class Pre {
-      private static final SendMovementPacketsEvent.Pre INSTANCE = new SendMovementPacketsEvent.Pre();
+    public static class Post {
+        private static final Post INSTANCE = new Post();
 
-      public static SendMovementPacketsEvent.Pre get() {
-         return INSTANCE;
-      }
-   }
+        public static Post get() {
+            return INSTANCE;
+        }
+    }
 }

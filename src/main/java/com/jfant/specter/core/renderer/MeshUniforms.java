@@ -1,40 +1,56 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.renderer;
 
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.buffers.Std140SizeCalculator;
-import java.nio.ByteBuffer;
-import net.minecraft.client.renderer.DynamicUniformStorage;
-import net.minecraft.client.renderer.DynamicUniformStorage.DynamicUniform;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+import net.minecraft.client.renderer.DynamicGpuDataStorage;
+import net.minecraft.client.renderer.DynamicGpuDataStorageMapped;
 import org.joml.Matrix4f;
+import org.jspecify.annotations.NonNull;
+
+import java.nio.ByteBuffer;
 
 public class MeshUniforms {
-   public static final int SIZE = new Std140SizeCalculator().putMat4f().putMat4f().get();
-   private static final MeshUniforms.Data DATA = new MeshUniforms.Data();
-   private static final DynamicUniformStorage<MeshUniforms.Data> STORAGE = new DynamicUniformStorage<>("Meteor - Mesh UBO", SIZE, 16);
+    public static final int SIZE = new Std140SizeCalculator()
+        .putMat4f()
+        .putMat4f()
+        .get();
 
-   public static void flipFrame() {
-      STORAGE.endFrame();
-   }
+    private static final Data DATA = new Data();
 
-   public static GpuBufferSlice write(Matrix4f proj, Matrix4f modelView) {
-      DATA.proj = proj;
-      DATA.modelView = modelView;
-      return STORAGE.writeUniform(DATA);
-   }
+    private static final DynamicGpuDataStorage<Data> STORAGE = new DynamicGpuDataStorageMapped<>("Meteor - Mesh UBO", SIZE, GpuBuffer.USAGE_UNIFORM, 16);
 
-   private static final class Data implements DynamicUniform {
-      private Matrix4f proj;
-      private Matrix4f modelView;
+    public static void flipFrame() {
+        STORAGE.endFrame();
+    }
 
-      @Override
-      public void write(ByteBuffer buffer) {
-         Std140Builder.intoBuffer(buffer).putMat4f(this.proj).putMat4f(this.modelView);
-      }
+    public static GpuBufferSlice write(Matrix4f proj, Matrix4f modelView) {
+        DATA.proj = proj;
+        DATA.modelView = modelView;
 
-      @Override
-      public boolean equals(Object o) {
-         return false;
-      }
-   }
+        return STORAGE.writeData(DATA);
+    }
+
+    private static final class Data implements DynamicGpuDataStorage.DynamicGpuData {
+        private Matrix4f proj;
+        private Matrix4f modelView;
+
+        @Override
+        public void write(@NonNull ByteBuffer buffer) {
+            Std140Builder.intoBuffer(buffer)
+                .putMat4f(proj)
+                .putMat4f(modelView);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return false;
+        }
+    }
 }

@@ -1,22 +1,29 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.renderer.operations;
 
 import com.jfant.specter.core.gui.renderer.GuiRenderOperation;
 import com.jfant.specter.core.renderer.text.TextRenderer;
 
 public class TextOperation extends GuiRenderOperation<TextOperation> {
-   private String text;
-   private TextRenderer renderer;
-   public boolean title;
+    private String text;
+    private TextRenderer renderer;
 
-   public TextOperation set(String text, TextRenderer renderer, boolean title) {
-      this.text = text;
-      this.renderer = renderer;
-      this.title = title;
-      return this;
-   }
+    public boolean title;
 
-   @Override
-   protected void onRun() {
-      this.renderer.render(this.text, this.x, this.y, this.color);
-   }
+    public TextOperation set(String text, TextRenderer renderer, boolean title) {
+        this.text = text;
+        this.renderer = renderer;
+        this.title = title;
+
+        return this;
+    }
+
+    @Override
+    protected void onRun() {
+        renderer.render(text, x, y, color);
+    }
 }

@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets;
 
 import com.jfant.specter.core.gui.GuiTheme;
@@ -9,166 +14,171 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 
 public abstract class WWidget implements BaseWidget {
-   public boolean visible = true;
-   public GuiTheme theme;
-   public double x;
-   public double y;
-   public double width;
-   public double height;
-   public double minWidth;
-   public WWidget parent;
-   public String tooltip;
-   public boolean mouseOver;
-   public boolean focused;
-   protected boolean instantTooltips;
-   protected double mouseOverTimer;
+    public boolean visible = true;
+    public GuiTheme theme;
 
-   public void init() {
-   }
+    public double x, y;
+    public double width, height;
+    public double minWidth;
 
-   public void move(double deltaX, double deltaY) {
-      this.x = Math.round(this.x + deltaX);
-      this.y = Math.round(this.y + deltaY);
-   }
+    public WWidget parent;
+    public String tooltip;
 
-   @Override
-   public GuiTheme getTheme() {
-      return this.theme;
-   }
+    public boolean mouseOver;
+    public boolean focused;
+    protected boolean instantTooltips;
+    protected double mouseOverTimer;
 
-   public double pad() {
-      return this.theme.pad();
-   }
+    public void init() {
+    }
 
-   public void calculateSize() {
-      this.onCalculateSize();
-      double minWidth = this.theme.scale(this.minWidth);
-      if (this.width < minWidth) {
-         this.width = minWidth;
-      }
+    public void move(double deltaX, double deltaY) {
+        x = Math.round(x + deltaX);
+        y = Math.round(y + deltaY);
+    }
 
-      this.width = Math.round(this.width);
-      this.height = Math.round(this.height);
-   }
+    @Override
+    public GuiTheme getTheme() {
+        return theme;
+    }
 
-   protected void onCalculateSize() {
-   }
+    public double pad() {
+        return theme.pad();
+    }
 
-   public void calculateWidgetPositions() {
-      this.x = Math.round(this.x);
-      this.y = Math.round(this.y);
-      this.onCalculateWidgetPositions();
-   }
+    // Layout
 
-   protected void onCalculateWidgetPositions() {
-   }
+    public void calculateSize() {
+        onCalculateSize();
 
-   public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-      if (!this.visible) {
-         return true;
-      } else {
-         if (this.isOver(mouseX, mouseY)) {
-            this.mouseOverTimer += delta;
-            if ((this.instantTooltips || this.mouseOverTimer >= 1.0) && this.tooltip != null) {
-               WView view = this.getView();
-               if (view == null || view.mouseOver) {
-                  renderer.tooltip(this.tooltip);
-               }
+        double minWidth = theme.scale(this.minWidth);
+        if (width < minWidth) width = minWidth;
+
+        width = Math.round(width);
+        height = Math.round(height);
+    }
+
+    protected void onCalculateSize() {
+
+    }
+
+    public void calculateWidgetPositions() {
+        x = Math.round(x);
+        y = Math.round(y);
+
+        onCalculateWidgetPositions();
+    }
+
+    protected void onCalculateWidgetPositions() {
+
+    }
+
+    // Rendering
+
+    public boolean render(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+        if (!visible) return true;
+
+        if (isOver(mouseX, mouseY)) {
+            mouseOverTimer += delta;
+
+            if ((instantTooltips || mouseOverTimer >= 1) && tooltip != null) {
+                WView view = getView();
+                if (view == null || view.mouseOver) renderer.tooltip(tooltip);
             }
-         } else {
-            this.mouseOverTimer = 0.0;
-         }
+        } else {
+            mouseOverTimer = 0;
+        }
 
-         this.onRender(renderer, mouseX, mouseY, delta);
-         return false;
-      }
-   }
+        onRender(renderer, mouseX, mouseY, delta);
+        return false;
+    }
 
-   protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
-   }
+    protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+    }
 
-   public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
-      return this.onMouseClicked(click, doubled);
-   }
+    // Events
 
-   public boolean onMouseClicked(MouseButtonEvent click, boolean doubled) {
-      return false;
-   }
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
+        return onMouseClicked(click, doubled);
+    }
 
-   public boolean mouseReleased(MouseButtonEvent click) {
-      return this.onMouseReleased(click);
-   }
+    public boolean onMouseClicked(MouseButtonEvent click, boolean doubled) {
+        return false;
+    }
 
-   public boolean onMouseReleased(MouseButtonEvent click) {
-      return false;
-   }
+    public boolean mouseReleased(MouseButtonEvent click) {
+        return onMouseReleased(click);
+    }
 
-   public void mouseMoved(double mouseX, double mouseY, double lastMouseX, double lastMouseY) {
-      this.mouseOver = this.isOver(mouseX, mouseY);
-      this.onMouseMoved(mouseX, mouseY, lastMouseX, lastMouseY);
-   }
+    public boolean onMouseReleased(MouseButtonEvent click) {
+        return false;
+    }
 
-   public void onMouseMoved(double mouseX, double mouseY, double lastMouseX, double lastMouseY) {
-   }
+    public void mouseMoved(double mouseX, double mouseY, double lastMouseX, double lastMouseY) {
+        mouseOver = isOver(mouseX, mouseY);
+        onMouseMoved(mouseX, mouseY, lastMouseX, lastMouseY);
+    }
 
-   public boolean mouseScrolled(double amount) {
-      return this.onMouseScrolled(amount);
-   }
+    public void onMouseMoved(double mouseX, double mouseY, double lastMouseX, double lastMouseY) {
+    }
 
-   public boolean onMouseScrolled(double amount) {
-      return false;
-   }
+    public boolean mouseScrolled(double amount) {
+        return onMouseScrolled(amount);
+    }
 
-   public boolean keyPressed(KeyEvent input) {
-      return this.onKeyPressed(input);
-   }
+    public boolean onMouseScrolled(double amount) {
+        return false;
+    }
 
-   public boolean onKeyPressed(KeyEvent input) {
-      return false;
-   }
+    public boolean keyPressed(KeyEvent input) {
+        return onKeyPressed(input);
+    }
 
-   public boolean keyRepeated(KeyEvent input) {
-      return this.onKeyRepeated(input);
-   }
+    public boolean onKeyPressed(KeyEvent input) {
+        return false;
+    }
 
-   public boolean onKeyRepeated(KeyEvent input) {
-      return false;
-   }
+    public boolean keyRepeated(KeyEvent input) {
+        return onKeyRepeated(input);
+    }
 
-   public boolean charTyped(CharacterEvent input) {
-      return this.onCharTyped(input);
-   }
+    public boolean onKeyRepeated(KeyEvent input) {
+        return false;
+    }
 
-   public boolean onCharTyped(CharacterEvent input) {
-      return false;
-   }
+    public boolean charTyped(CharacterEvent input) {
+        return onCharTyped(input);
+    }
 
-   public void invalidate() {
-      WWidget root = this.getRoot();
-      if (root != null) {
-         root.invalidate();
-      }
-   }
+    public boolean onCharTyped(CharacterEvent input) {
+        return false;
+    }
 
-   protected WWidget getRoot() {
-      return this.parent != null ? this.parent.getRoot() : (this instanceof WRoot ? this : null);
-   }
+    // Other
 
-   public WView getView() {
-      return this instanceof WView ? (WView)this : (this.parent != null ? this.parent.getView() : null);
-   }
+    public void invalidate() {
+        WWidget root = getRoot();
+        if (root != null) root.invalidate();
+    }
 
-   public boolean isOver(double x, double y) {
-      return x >= this.x && x <= this.x + this.width && y >= this.y && y <= this.y + this.height;
-   }
+    protected WWidget getRoot() {
+        return parent != null ? parent.getRoot() : (this instanceof WRoot ? this : null);
+    }
 
-   public boolean isFocused() {
-      return this.focused;
-   }
+    public WView getView() {
+        if (this instanceof WView view) return view;
+        return parent != null ? parent.getView() : null;
+    }
 
-   public void setFocused(boolean focused) {
-      if (this.focused != focused) {
-         this.focused = focused;
-      }
-   }
+    public boolean isOver(double x, double y) {
+        return x >= this.x && x <= this.x + width && y >= this.y && y <= this.y + height;
+    }
+
+    public boolean isFocused() {
+        return focused;
+    }
+
+    public void setFocused(boolean focused) {
+        if (this.focused != focused) this.focused = focused;
+    }
 }

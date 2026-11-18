@@ -1,18 +1,24 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.world;
 
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.events.world.TickEvent;
+import com.jfant.specter.core.systems.modules.Modules;
 import com.jfant.specter.core.utils.PreInit;
 import com.jfant.specter.core.utils.Utils;
 import com.jfant.specter.core.utils.player.FindItemResult;
 import com.jfant.specter.core.utils.player.InvUtils;
 import com.jfant.specter.core.utils.player.Rotations;
+import com.jfant.specter.core.utils.player.SlotUtils;
+import com.jfant.specter.core.utils.player.SwingMode;
 import meteordevelopment.orbit.EventHandler;
+import meteordevelopment.orbit.EventPriority;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.BlockPos.MutableBlockPos;
-import net.minecraft.core.Direction.Axis;
-import net.minecraft.network.protocol.game.ServerboundSwingPacket;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -24,27 +30,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
-import net.minecraft.world.level.block.AnvilBlock;
-import net.minecraft.world.level.block.BaseEntityBlock;
-import net.minecraft.world.level.block.BasePressurePlateBlock;
-import net.minecraft.world.level.block.BedBlock;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.ButtonBlock;
-import net.minecraft.world.level.block.CartographyTableBlock;
-import net.minecraft.world.level.block.CraftingTableBlock;
-import net.minecraft.world.level.block.DoorBlock;
-import net.minecraft.world.level.block.FenceGateBlock;
-import net.minecraft.world.level.block.GrindstoneBlock;
-import net.minecraft.world.level.block.LoomBlock;
-import net.minecraft.world.level.block.NoteBlock;
-import net.minecraft.world.level.block.ScaffoldingBlock;
-import net.minecraft.world.level.block.SlabBlock;
-import net.minecraft.world.level.block.SnowLayerBlock;
-import net.minecraft.world.level.block.StairBlock;
-import net.minecraft.world.level.block.StonecutterBlock;
-import net.minecraft.world.level.block.TransparentBlock;
-import net.minecraft.world.level.block.TrapDoorBlock;
+import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Half;
 import net.minecraft.world.level.block.state.properties.SlabType;
@@ -54,387 +40,385 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
+import static com.jfant.specter.core.SpecterCore.mc;
+
+@SuppressWarnings("ConstantConditions")
 public class BlockUtils {
-   public static boolean breaking;
-   private static boolean breakingThisTick;
-   private static final ThreadLocal<MutableBlockPos> EXPOSED_POS = ThreadLocal.withInitial(MutableBlockPos::new);
+    public static boolean breaking;
+    private static boolean breakingThisTick;
 
-   private BlockUtils() {
-   }
+    private BlockUtils() {
+    }
 
-   @PreInit
-   public static void init() {
-      SpecterCore.EVENT_BUS.subscribe(BlockUtils.class);
-   }
+    @PreInit
+    public static void init() {
+        SpecterCore.EVENT_BUS.subscribe(BlockUtils.class);
+    }
 
-   public static boolean place(BlockPos blockPos, FindItemResult findItemResult, int rotationPriority) {
-      return place(blockPos, findItemResult, rotationPriority, true);
-   }
+    // Placing
 
-   public static boolean place(BlockPos blockPos, FindItemResult findItemResult, boolean rotate, int rotationPriority) {
-      return place(blockPos, findItemResult, rotate, rotationPriority, true);
-   }
+    public static boolean place(BlockPos blockPos, FindItemResult findItemResult, int rotationPriority) {
+        return place(blockPos, findItemResult, rotationPriority, true);
+    }
 
-   public static boolean place(BlockPos blockPos, FindItemResult findItemResult, boolean rotate, int rotationPriority, boolean checkEntities) {
-      return place(blockPos, findItemResult, rotate, rotationPriority, true, checkEntities);
-   }
+    public static boolean place(BlockPos blockPos, FindItemResult findItemResult, boolean rotate, int rotationPriority) {
+        return place(blockPos, findItemResult, rotate, rotationPriority, true);
+    }
 
-   public static boolean place(BlockPos blockPos, FindItemResult findItemResult, int rotationPriority, boolean checkEntities) {
-      return place(blockPos, findItemResult, true, rotationPriority, true, checkEntities);
-   }
+    public static boolean place(BlockPos blockPos, FindItemResult findItemResult, boolean rotate, int rotationPriority, boolean checkEntities) {
+        return place(blockPos, findItemResult, rotate, rotationPriority, true, checkEntities);
+    }
 
-   public static boolean place(BlockPos blockPos, FindItemResult findItemResult, boolean rotate, int rotationPriority, boolean swingHand, boolean checkEntities) {
-      return place(blockPos, findItemResult, rotate, rotationPriority, swingHand, checkEntities, true);
-   }
+    public static boolean place(BlockPos blockPos, FindItemResult findItemResult, int rotationPriority, boolean checkEntities) {
+        return place(blockPos, findItemResult, true, rotationPriority, true, checkEntities);
+    }
 
-   public static boolean place(
-      BlockPos blockPos, FindItemResult findItemResult, boolean rotate, int rotationPriority, boolean swingHand, boolean checkEntities, boolean swapBack
-   ) {
-      if (findItemResult.isOffhand()) {
-         return place(
-            blockPos,
-            InteractionHand.OFF_HAND,
-            SpecterCore.mc.player.getInventory().getSelectedSlot(),
-            rotate,
-            rotationPriority,
-            swingHand,
-            checkEntities,
-            swapBack
-         );
-      } else {
-         return findItemResult.isHotbar()
-            ? place(blockPos, InteractionHand.MAIN_HAND, findItemResult.slot(), rotate, rotationPriority, swingHand, checkEntities, swapBack)
-            : false;
-      }
-   }
+    public static boolean place(BlockPos blockPos, FindItemResult findItemResult, boolean rotate, int rotationPriority, boolean swingHand, boolean checkEntities) {
+        return place(blockPos, findItemResult, rotate, rotationPriority, swingHand, checkEntities, true);
+    }
 
-   public static boolean place(
-      BlockPos blockPos, InteractionHand hand, int slot, boolean rotate, int rotationPriority, boolean swingHand, boolean checkEntities, boolean swapBack
-   ) {
-      if (slot >= 0 && slot <= 8) {
-         Block toPlace = Blocks.OBSIDIAN;
-         ItemStack i = hand == InteractionHand.MAIN_HAND
-            ? SpecterCore.mc.player.getInventory().getItem(slot)
-            : SpecterCore.mc.player.getInventory().getItem(40);
-         if (i.getItem() instanceof BlockItem blockItem) {
-            toPlace = blockItem.getBlock();
-         }
+    public static boolean place(BlockPos blockPos, FindItemResult findItemResult, boolean rotate, int rotationPriority, boolean swingHand, boolean checkEntities, boolean swapBack) {
+        if (findItemResult.isOffhand()) {
+            return place(blockPos, InteractionHand.OFF_HAND, mc.player.getInventory().getSelectedSlot(), rotate, rotationPriority, swingHand, checkEntities, swapBack);
+        } else if (findItemResult.isHotbar()) {
+            return place(blockPos, InteractionHand.MAIN_HAND, findItemResult.slot(), rotate, rotationPriority, swingHand, checkEntities, swapBack);
+        }
+        return false;
+    }
 
-         if (!canPlaceBlock(blockPos, checkEntities, toPlace)) {
-            return false;
-         } else {
-            Vec3 hitPos = Vec3.atCenterOf(blockPos);
-            Direction side = getPlaceSide(blockPos);
-            BlockPos neighbour;
-            if (side == null) {
-               side = Direction.UP;
-               neighbour = blockPos;
-            } else {
-               neighbour = blockPos.relative(side);
-               hitPos = hitPos.add(side.getStepX() * 0.5, side.getStepY() * 0.5, side.getStepZ() * 0.5);
-            }
+    public static boolean place(BlockPos blockPos, InteractionHand hand, int slot, boolean rotate, int rotationPriority, boolean swingHand, boolean checkEntities, boolean swapBack) {
+        if (slot < 0 || slot > 8) return false;
 
-            BlockHitResult bhr = new BlockHitResult(hitPos, side.getOpposite(), neighbour, false);
-            if (rotate) {
-               Rotations.rotate(Rotations.getYaw(hitPos), Rotations.getPitch(hitPos), rotationPriority, () -> {
-                  InvUtils.swap(slot, swapBack);
-                  interact(bhr, hand, swingHand);
-                  if (swapBack) {
-                     InvUtils.swapBack();
-                  }
-               });
-            } else {
-               InvUtils.swap(slot, swapBack);
-               interact(bhr, hand, swingHand);
-               if (swapBack) {
-                  InvUtils.swapBack();
-               }
-            }
+        Block toPlace = Blocks.OBSIDIAN;
+        ItemStack i = hand == InteractionHand.MAIN_HAND ? mc.player.getInventory().getItem(slot) : mc.player.getInventory().getItem(SlotUtils.OFFHAND);
+        if (i.getItem() instanceof BlockItem blockItem) toPlace = blockItem.getBlock();
+        if (!canPlaceBlock(blockPos, checkEntities, toPlace)) return false;
 
-            return true;
-         }
-      } else {
-         return false;
-      }
-   }
+        Vec3 hitPos = Vec3.atCenterOf(blockPos);
 
-   public static void interact(BlockHitResult blockHitResult, InteractionHand hand, boolean swing) {
-      boolean wasSneaking = SpecterCore.mc.player.isShiftKeyDown();
-      SpecterCore.mc.player.setShiftKeyDown(false);
-      InteractionResult result = SpecterCore.mc.gameMode.useItemOn(SpecterCore.mc.player, hand, blockHitResult);
-      if (result.consumesAction()) {
-         if (swing) {
-            SpecterCore.mc.player.swing(hand);
-         } else {
-            SpecterCore.mc.getConnection().send(new ServerboundSwingPacket(hand));
-         }
-      }
+        BlockPos neighbour;
+        Direction side = getPlaceSide(blockPos);
 
-      SpecterCore.mc.player.setShiftKeyDown(wasSneaking);
-   }
+        if (side == null) {
+            side = Direction.UP;
+            neighbour = blockPos;
+        } else {
+            neighbour = blockPos.relative(side);
+            hitPos = hitPos.add(side.getStepX() * 0.5, side.getStepY() * 0.5, side.getStepZ() * 0.5);
+        }
 
-   public static boolean canPlaceBlock(BlockPos blockPos, boolean checkEntities, Block block) {
-      if (blockPos == null) {
-         return false;
-      } else if (!Level.isInSpawnableBounds(blockPos)) {
-         return false;
-      } else {
-         return !SpecterCore.mc.level.getBlockState(blockPos).canBeReplaced()
-            ? false
-            : !checkEntities || SpecterCore.mc.level.isUnobstructed(block.defaultBlockState(), blockPos, CollisionContext.empty());
-      }
-   }
+        BlockHitResult bhr = new BlockHitResult(hitPos, side.getOpposite(), neighbour, false);
 
-   public static boolean canPlace(BlockPos blockPos, boolean checkEntities) {
-      return canPlaceBlock(blockPos, checkEntities, Blocks.OBSIDIAN);
-   }
+        if (rotate) {
+            Rotations.rotate(Rotations.getYaw(hitPos), Rotations.getPitch(hitPos), rotationPriority, () -> {
+                InvUtils.swap(slot, swapBack);
 
-   public static boolean canPlace(BlockPos blockPos) {
-      return canPlace(blockPos, true);
-   }
+                interact(bhr, hand, swingHand);
 
-   public static Direction getPlaceSide(BlockPos blockPos) {
-      Vec3 lookVec = blockPos.getCenter().subtract(SpecterCore.mc.player.getEyePosition());
-      double bestRelevancy = -1.7976931348623157E308;
-      Direction bestSide = null;
+                if (swapBack) InvUtils.swapBack();
+            });
+        } else {
+            InvUtils.swap(slot, swapBack);
 
-      for (Direction side : Direction.values()) {
-         BlockPos neighbor = blockPos.relative(side);
-         BlockState state = SpecterCore.mc.level.getBlockState(neighbor);
-         if (!state.isAir() && !isClickable(state.getBlock()) && state.getFluidState().isEmpty()) {
+            interact(bhr, hand, swingHand);
+
+            if (swapBack) InvUtils.swapBack();
+        }
+
+
+        return true;
+    }
+
+    public static InteractionResult interact(BlockHitResult blockHitResult, InteractionHand hand, boolean swing) {
+        boolean wasSneaking = mc.player.isShiftKeyDown();
+        mc.player.setShiftKeyDown(false);
+
+        InteractionResult result = mc.gameMode.useItemOn(mc.player, hand, blockHitResult);
+
+        if (result instanceof InteractionResult.Success success && success.swingSource() == InteractionResult.SwingSource.PREDICTED) {
+            SwingMode.of(swing).interactSwing(hand);
+        }
+
+        mc.player.setShiftKeyDown(wasSneaking);
+
+        return result;
+    }
+
+    public static boolean canPlaceBlock(BlockPos blockPos, boolean checkEntities, Block block) {
+        if (blockPos == null) return false;
+
+        // Check y level
+        if (!Level.isInSpawnableBounds(blockPos)) return false;
+
+        // Check if current block is replaceable
+        if (!mc.level.getBlockState(blockPos).canBeReplaced()) return false;
+
+        // Check if intersects entities
+        return !checkEntities || mc.level.isUnobstructed(block.defaultBlockState(), blockPos, CollisionContext.empty());
+    }
+
+    public static boolean canPlace(BlockPos blockPos, boolean checkEntities) {
+        return canPlaceBlock(blockPos, checkEntities, Blocks.OBSIDIAN);
+    }
+
+    public static boolean canPlace(BlockPos blockPos) {
+        return canPlace(blockPos, true);
+    }
+
+    public static Direction getPlaceSide(BlockPos blockPos) {
+        Vec3 lookVec = Vec3.atCenterOf(blockPos).subtract(mc.player.getEyePosition());
+        double bestRelevancy = -Double.MAX_VALUE;
+        Direction bestSide = null;
+
+        for (Direction side : Direction.values()) {
+            BlockPos neighbor = blockPos.relative(side);
+            BlockState state = mc.level.getBlockState(neighbor);
+
+            // Check if neighbour isn't empty
+            if (state.isAir() || isClickable(state.getBlock())) continue;
+
+            // Check if neighbour is a fluid
+            if (!state.getFluidState().isEmpty()) continue;
+
             double relevancy = side.getAxis().choose(lookVec.x(), lookVec.y(), lookVec.z()) * side.getAxisDirection().getStep();
             if (relevancy > bestRelevancy) {
-               bestRelevancy = relevancy;
-               bestSide = side;
+                bestRelevancy = relevancy;
+                bestSide = side;
             }
-         }
-      }
+        }
 
-      return bestSide;
-   }
+        return bestSide;
+    }
 
-   public static Direction getClosestPlaceSide(BlockPos blockPos) {
-      return getClosestPlaceSide(blockPos, SpecterCore.mc.player.getEyePosition());
-   }
+    public static Direction getClosestPlaceSide(BlockPos blockPos) {
+        return getClosestPlaceSide(blockPos, mc.player.getEyePosition());
+    }
 
-   public static Direction getClosestPlaceSide(BlockPos blockPos, Vec3 pos) {
-      Direction closestSide = null;
-      double closestDistance = 1.7976931348623157E308;
+    public static Direction getClosestPlaceSide(BlockPos blockPos, Vec3 pos) {
+        Direction closestSide = null;
+        double closestDistance = Double.MAX_VALUE;
 
-      for (Direction side : Direction.values()) {
-         BlockPos neighbor = blockPos.relative(side);
-         BlockState state = SpecterCore.mc.level.getBlockState(neighbor);
-         if (!state.isAir() && !isClickable(state.getBlock()) && state.getFluidState().isEmpty()) {
+        for (Direction side : Direction.values()) {
+            BlockPos neighbor = blockPos.relative(side);
+            BlockState state = mc.level.getBlockState(neighbor);
+
+            // Check if neighbour isn't empty
+            if (state.isAir() || isClickable(state.getBlock())) continue;
+
+            // Check if neighbour is a fluid
+            if (!state.getFluidState().isEmpty()) continue;
+
             double distance = pos.distanceToSqr(neighbor.getX(), neighbor.getY(), neighbor.getZ());
             if (distance < closestDistance) {
-               closestDistance = distance;
-               closestSide = side;
+                closestDistance = distance;
+                closestSide = side;
             }
-         }
-      }
+        }
 
-      return closestSide;
-   }
+        return closestSide;
+    }
 
-   @EventHandler(
-      priority = 300
-   )
-   private static void onTickPre(TickEvent.Pre event) {
-      breakingThisTick = false;
-   }
+    // Breaking
 
-   @EventHandler(
-      priority = -300
-   )
-   private static void onTickPost(TickEvent.Post event) {
-      if (!breakingThisTick && breaking) {
-         breaking = false;
-         if (SpecterCore.mc.gameMode != null) {
-            SpecterCore.mc.gameMode.stopDestroyBlock();
-         }
-      }
-   }
+    @EventHandler(priority = EventPriority.HIGHEST + 100)
+    private static void onTickPre(TickEvent.Pre event) {
+        breakingThisTick = false;
+    }
 
-   public static boolean breakBlock(BlockPos blockPos, boolean swing) {
-      if (!canBreak(blockPos, SpecterCore.mc.level.getBlockState(blockPos))) {
-         return false;
-      } else {
-         BlockPos pos = blockPos instanceof MutableBlockPos ? new BlockPos(blockPos) : blockPos;
-         if (SpecterCore.mc.gameMode.isDestroying()) {
-            SpecterCore.mc.gameMode.continueDestroyBlock(pos, getDirection(blockPos));
-         } else {
-            SpecterCore.mc.gameMode.startDestroyBlock(pos, getDirection(blockPos));
-         }
+    @EventHandler(priority = EventPriority.LOWEST - 100)
+    private static void onTickPost(TickEvent.Post event) {
+        if (!breakingThisTick && breaking) {
+            breaking = false;
+            if (mc.gameMode != null) mc.gameMode.stopDestroyBlock();
+        }
+    }
 
-         if (swing) {
-            SpecterCore.mc.player.swing(InteractionHand.MAIN_HAND);
-         } else {
-            SpecterCore.mc.getConnection().send(new ServerboundSwingPacket(InteractionHand.MAIN_HAND));
-         }
+    /**
+     * Needs to be used in {@link TickEvent.Pre}
+     */
+    public static boolean breakBlock(BlockPos blockPos, boolean swing) {
+        if (!canBreak(blockPos, mc.level.getBlockState(blockPos))) return false;
 
-         breaking = true;
-         breakingThisTick = true;
-         return true;
-      }
-   }
+        // Creating new instance of block pos because minecraft assigns the parameter to a field, and we don't want it to change when it has been stored in a field somewhere
+        BlockPos pos = blockPos instanceof BlockPos.MutableBlockPos ? blockPos.immutable() : blockPos;
 
-   public static boolean canBreak(BlockPos blockPos, BlockState state) {
-      return !SpecterCore.mc.player.isCreative() && state.getDestroySpeed(SpecterCore.mc.level, blockPos) < 0.0F
-         ? false
-         : state.getShape(SpecterCore.mc.level, blockPos) != Shapes.empty();
-   }
+        if (mc.gameMode.isDestroying())
+            mc.gameMode.continueDestroyBlock(pos, getDirection(blockPos));
+        else mc.gameMode.startDestroyBlock(pos, getDirection(blockPos));
 
-   public static boolean canBreak(BlockPos blockPos) {
-      return canBreak(blockPos, SpecterCore.mc.level.getBlockState(blockPos));
-   }
+        SwingMode.of(swing).attackSwing(InteractionHand.MAIN_HAND);
 
-   public static boolean canInstaBreak(BlockPos blockPos, float breakSpeed) {
-      return SpecterCore.mc.player.isCreative() || calcBlockBreakingDelta2(blockPos, breakSpeed) >= 1.0F;
-   }
+        breaking = true;
+        breakingThisTick = true;
 
-   public static boolean canInstaBreak(BlockPos blockPos) {
-      BlockState state = SpecterCore.mc.level.getBlockState(blockPos);
-      return canInstaBreak(blockPos, SpecterCore.mc.player.getDestroySpeed(state));
-   }
+        return true;
+    }
 
-   public static float calcBlockBreakingDelta2(BlockPos blockPos, float breakSpeed) {
-      BlockState state = SpecterCore.mc.level.getBlockState(blockPos);
-      float f = state.getDestroySpeed(SpecterCore.mc.level, blockPos);
-      if (f == -1.0F) {
-         return 0.0F;
-      } else {
-         int i = SpecterCore.mc.player.hasCorrectToolForDrops(state) ? 30 : 100;
-         return breakSpeed / f / i;
-      }
-   }
+    public static boolean canBreak(BlockPos blockPos, BlockState state) {
+        if (!mc.player.isCreative() && state.getDestroySpeed(mc.level, blockPos) < 0) return false;
+        return state.getShape(mc.level, blockPos) != Shapes.empty();
+    }
 
-   public static boolean isClickable(Block block) {
-      return block instanceof CraftingTableBlock
-         || block instanceof AnvilBlock
-         || block instanceof LoomBlock
-         || block instanceof CartographyTableBlock
-         || block instanceof GrindstoneBlock
-         || block instanceof StonecutterBlock
-         || block instanceof ButtonBlock
-         || block instanceof BasePressurePlateBlock
-         || block instanceof BaseEntityBlock
-         || block instanceof BedBlock
-         || block instanceof FenceGateBlock
-         || block instanceof DoorBlock
-         || block instanceof NoteBlock
-         || block instanceof TrapDoorBlock;
-   }
+    public static boolean canBreak(BlockPos blockPos) {
+        return canBreak(blockPos, mc.level.getBlockState(blockPos));
+    }
 
-   public static BlockUtils.MobSpawn isValidMobSpawn(BlockPos blockPos, BlockState blockState, int spawnLightLimit) {
-      boolean snow = blockState.getBlock() instanceof SnowLayerBlock && blockState.getValue(SnowLayerBlock.LAYERS) == 1;
-      if (!blockState.isAir() && !snow) {
-         return BlockUtils.MobSpawn.Never;
-      } else if (!isValidSpawnBlock(SpecterCore.mc.level.getBlockState(blockPos.below()))) {
-         return BlockUtils.MobSpawn.Never;
-      } else if (SpecterCore.mc.level.getBrightness(LightLayer.BLOCK, blockPos) > spawnLightLimit) {
-         return BlockUtils.MobSpawn.Never;
-      } else {
-         return SpecterCore.mc.level.getBrightness(LightLayer.SKY, blockPos) > spawnLightLimit ? BlockUtils.MobSpawn.Potential : BlockUtils.MobSpawn.Always;
-      }
-   }
+    public static boolean canInstaBreak(BlockPos blockPos, float breakSpeed) {
+        return mc.player.isCreative() || calcBlockBreakingDelta2(blockPos, breakSpeed) >= 1;
+    }
 
-   public static boolean isValidSpawnBlock(BlockState blockState) {
-      Block block = blockState.getBlock();
-      if (block == Blocks.BEDROCK || block == Blocks.BARRIER || block instanceof TransparentBlock || block instanceof ScaffoldingBlock) {
-         return false;
-      } else if (block != Blocks.SOUL_SAND && block != Blocks.MUD) {
-         if (block instanceof SlabBlock && blockState.getValue(SlabBlock.TYPE) == SlabType.TOP) {
-            return true;
-         } else {
-            return block instanceof StairBlock && blockState.getValue(StairBlock.HALF) == Half.TOP ? true : blockState.isSolidRender();
-         }
-      } else {
-         return true;
-      }
-   }
+    public static boolean canInstaBreak(BlockPos blockPos) {
+        BlockState state = mc.level.getBlockState(blockPos);
+        return canInstaBreak(blockPos, mc.player.getDestroySpeed(state));
+    }
 
-   public static Direction getDirection(BlockPos pos) {
-      double eyePos = SpecterCore.mc.player.getY() + SpecterCore.mc.player.getEyeHeight(SpecterCore.mc.player.getPose());
-      VoxelShape outline = SpecterCore.mc.level.getBlockState(pos).getCollisionShape(SpecterCore.mc.level, pos);
-      if (eyePos > pos.getY() + outline.max(Axis.Y) && SpecterCore.mc.level.getBlockState(pos.above()).canBeReplaced()) {
-         return Direction.UP;
-      } else if (eyePos < pos.getY() + outline.min(Axis.Y) && SpecterCore.mc.level.getBlockState(pos.below()).canBeReplaced()) {
-         return Direction.DOWN;
-      } else {
-         BlockPos difference = pos.subtract(SpecterCore.mc.player.blockPosition());
-         if (Math.abs(difference.getX()) > Math.abs(difference.getZ())) {
-            return difference.getX() > 0 ? Direction.WEST : Direction.EAST;
-         } else {
-            return difference.getZ() > 0 ? Direction.NORTH : Direction.SOUTH;
-         }
-      }
-   }
+    public static float calcBlockBreakingDelta2(BlockPos blockPos, float breakSpeed) {
+        BlockState state = mc.level.getBlockState(blockPos);
+        float f = state.getDestroySpeed(mc.level, blockPos);
+        if (f == -1.0F) {
+            return 0.0F;
+        } else {
+            int i = mc.player.hasCorrectToolForDrops(state) ? 30 : 100;
+            return breakSpeed / f / i;
+        }
+    }
 
-   public static boolean isExposed(BlockPos blockPos) {
-      for (Direction direction : Direction.values()) {
-         if (!SpecterCore.mc.level.getBlockState(EXPOSED_POS.get().setWithOffset(blockPos, direction)).isSolidRender()) {
-            return true;
-         }
-      }
+    // Other
 
-      return false;
-   }
+    public static boolean isClickable(Block block) {
+        return block instanceof CraftingTableBlock
+            || block instanceof AnvilBlock
+            || block instanceof LoomBlock
+            || block instanceof CartographyTableBlock
+            || block instanceof GrindstoneBlock
+            || block instanceof StonecutterBlock
+            || block instanceof ButtonBlock
+            || block instanceof BasePressurePlateBlock
+            || block instanceof BaseEntityBlock
+            || block instanceof BedBlock
+            || block instanceof FenceGateBlock
+            || block instanceof DoorBlock
+            || block instanceof NoteBlock
+            || block instanceof TrapDoorBlock;
+    }
 
-   public static double getBreakDelta(int slot, BlockState state) {
-      float hardness = state.getDestroySpeed(null, null);
-      return hardness == -1.0F
-         ? 0.0
-         : getBlockBreakingSpeed(slot, state)
-            / hardness
-            / (
-               state.requiresCorrectToolForDrops() && !SpecterCore.mc.player.getInventory().getNonEquipmentItems().get(slot).isCorrectToolForDrops(state)
-                  ? 100
-                  : 30
-            );
-   }
 
-   private static double getBlockBreakingSpeed(int slot, BlockState block) {
-      double speed = SpecterCore.mc.player.getInventory().getNonEquipmentItems().get(slot).getDestroySpeed(block);
-      if (speed > 1.0) {
-         ItemStack tool = SpecterCore.mc.player.getInventory().getItem(slot);
-         int efficiency = Utils.getEnchantmentLevel(tool, Enchantments.EFFICIENCY);
-         if (efficiency > 0 && !tool.isEmpty()) {
-            speed += efficiency * efficiency + 1;
-         }
-      }
+    public static MobSpawn isValidMobSpawn(BlockPos blockPos, BlockState blockState, int spawnLightLimit) {
+        boolean snow = blockState.getBlock() instanceof SnowLayerBlock && blockState.getValue(SnowLayerBlock.LAYERS) == 1;
+        if (!blockState.isAir() && !snow) return MobSpawn.Never;
 
-      if (MobEffectUtil.hasDigSpeed(SpecterCore.mc.player)) {
-         speed *= 1.0F + (MobEffectUtil.getDigSpeedAmplification(SpecterCore.mc.player) + 1) * 0.2F;
-      }
+        if (!isValidSpawnBlock(mc.level.getBlockState(blockPos.below()))) return MobSpawn.Never;
 
-      if (SpecterCore.mc.player.hasEffect(MobEffects.MINING_FATIGUE)) {
-         float k = switch (SpecterCore.mc.player.getEffect(MobEffects.MINING_FATIGUE).getAmplifier()) {
-            case 0 -> 0.3F;
-            case 1 -> 0.09F;
-            case 2 -> 0.0027F;
-            default -> 8.1E-4F;
-         };
-         speed *= k;
-      }
+        if (mc.level.getBrightness(LightLayer.BLOCK, blockPos) > spawnLightLimit) return MobSpawn.Never;
+        else if (mc.level.getBrightness(LightLayer.SKY, blockPos) > spawnLightLimit) return MobSpawn.Potential;
 
-      if (SpecterCore.mc.player.isEyeInFluid(FluidTags.WATER)) {
-         speed *= SpecterCore.mc.player.getAttributeValue(Attributes.SUBMERGED_MINING_SPEED);
-      }
+        return MobSpawn.Always;
+    }
 
-      if (!SpecterCore.mc.player.onGround()) {
-         speed /= 5.0;
-      }
+    public static boolean isValidSpawnBlock(BlockState blockState) {
+        Block block = blockState.getBlock();
 
-      return speed;
-   }
+        if (block == Blocks.BEDROCK
+            || block == Blocks.BARRIER
+            || block instanceof TransparentBlock
+            || block instanceof ScaffoldingBlock) return false;
 
-   public static MutableBlockPos mutateAround(MutableBlockPos mutable, BlockPos origin, int xOffset, int yOffset, int zOffset) {
-      return mutable.set(origin.getX() + xOffset, origin.getY() + yOffset, origin.getZ() + zOffset);
-   }
+        if (block == Blocks.SOUL_SAND || block == Blocks.MUD) return true;
+        if (block instanceof SlabBlock && blockState.getValue(SlabBlock.TYPE) == SlabType.TOP) return true;
+        if (block instanceof StairBlock && blockState.getValue(StairBlock.HALF) == Half.TOP) return true;
 
-   public static enum MobSpawn {
-      Never,
-      Potential,
-      Always;
-   }
+        return blockState.isSolidRender();
+    }
+
+    // Finds the best block direction to get when interacting with the block.
+    public static Direction getDirection(BlockPos pos) {
+        double eyePos = mc.player.getY() + mc.player.getEyeHeight(mc.player.getPose());
+        VoxelShape outline = mc.level.getBlockState(pos).getCollisionShape(mc.level, pos);
+
+        if (eyePos > pos.getY() + outline.max(Direction.Axis.Y) && mc.level.getBlockState(pos.above()).canBeReplaced()) {
+            return Direction.UP;
+        } else if (eyePos < pos.getY() + outline.min(Direction.Axis.Y) && mc.level.getBlockState(pos.below()).canBeReplaced()) {
+            return Direction.DOWN;
+        } else {
+            BlockPos difference = pos.subtract(mc.player.blockPosition());
+
+            if (Math.abs(difference.getX()) > Math.abs(difference.getZ())) {
+                return difference.getX() > 0 ? Direction.WEST : Direction.EAST;
+            } else {
+                return difference.getZ() > 0 ? Direction.NORTH : Direction.SOUTH;
+            }
+        }
+    }
+
+    public enum MobSpawn {
+        Never,
+        Potential,
+        Always
+    }
+
+    private static final ThreadLocal<BlockPos.MutableBlockPos> EXPOSED_POS = ThreadLocal.withInitial(BlockPos.MutableBlockPos::new);
+
+    public static boolean isExposed(BlockPos blockPos) {
+        for (Direction direction : Direction.values()) {
+            if (!mc.level.getBlockState(EXPOSED_POS.get().setWithOffset(blockPos, direction)).isSolidRender())
+                return true;
+        }
+
+        return false;
+    }
+
+    public static double getBreakDelta(int slot, BlockState state) {
+        float hardness = state.getDestroySpeed(null, null);
+        if (hardness == -1) return 0;
+        else {
+            return getDestroySpeed(slot, state) / hardness / (!state.requiresCorrectToolForDrops() || mc.player.getInventory().getNonEquipmentItems().get(slot).isCorrectToolForDrops(state) ? 30 : 100);
+        }
+    }
+
+    /**
+     * @see net.minecraft.world.entity.player.Player#getDestroySpeed(BlockState)
+     */
+    private static double getDestroySpeed(int slot, BlockState block) {
+        double speed = mc.player.getInventory().getNonEquipmentItems().get(slot).getDestroySpeed(block);
+
+        if (speed > 1) {
+            ItemStack tool = mc.player.getInventory().getItem(slot);
+
+            int efficiency = Utils.getEnchantmentLevel(tool, Enchantments.EFFICIENCY);
+
+            if (efficiency > 0 && !tool.isEmpty()) speed += efficiency * efficiency + 1;
+        }
+
+        if (MobEffectUtil.hasDigSpeed(mc.player)) {
+            speed *= 1 + (MobEffectUtil.getDigSpeedAmplification(mc.player) + 1) * 0.2F;
+        }
+
+        if (mc.player.hasEffect(MobEffects.MINING_FATIGUE)) {
+            float k = switch (mc.player.getEffect(MobEffects.MINING_FATIGUE).getAmplifier()) {
+                case 0 -> 0.3F;
+                case 1 -> 0.09F;
+                case 2 -> 0.0027F;
+                default -> 8.1E-4F;
+            };
+
+            speed *= k;
+        }
+
+        if (mc.player.isEyeInFluid(FluidTags.WATER)) {
+            speed *= mc.player.getAttributeValue(Attributes.SUBMERGED_MINING_SPEED);
+        }
+
+        if (!mc.player.onGround()) {
+            speed /= 5.0F;
+        }
+
+        return speed;
+    }
+
+    /**
+     * Mutates a {@link BlockPos.MutableBlockPos} around an origin
+     */
+    public static BlockPos.MutableBlockPos mutateAround(BlockPos.MutableBlockPos mutable, BlockPos origin, int xOffset, int yOffset, int zOffset) {
+        return mutable.set(origin.getX() + xOffset, origin.getY() + yOffset, origin.getZ() + zOffset);
+    }
 }

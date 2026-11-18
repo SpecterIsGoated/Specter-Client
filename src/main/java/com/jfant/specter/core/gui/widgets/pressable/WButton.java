@@ -1,44 +1,52 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.widgets.pressable;
 
 import com.jfant.specter.core.gui.renderer.packer.GuiTexture;
 
 public abstract class WButton extends WPressable {
-   protected String text;
-   protected double textWidth;
-   protected GuiTexture texture;
+    protected String text;
+    protected double textWidth;
 
-   public WButton(String text, GuiTexture texture) {
-      this.text = text;
-      this.texture = texture;
-      if (text == null) {
-         this.instantTooltips = true;
-      }
-   }
+    protected GuiTexture texture;
 
-   @Override
-   protected void onCalculateSize() {
-      double pad = this.pad();
-      String text = this.getText();
-      if (text != null) {
-         this.textWidth = this.theme.textWidth(text);
-         this.width = pad + this.textWidth + pad;
-         this.height = pad + this.theme.textHeight() + pad;
-      } else {
-         double s = this.theme.textHeight();
-         this.width = pad + s + pad;
-         this.height = pad + s + pad;
-      }
-   }
+    public WButton(String text, GuiTexture texture) {
+        this.text = text;
+        this.texture = texture;
 
-   public void set(String text) {
-      if (this.text == null || Math.round(this.theme.textWidth(text)) != this.textWidth) {
-         this.invalidate();
-      }
+        if (text == null) instantTooltips = true;
+    }
 
-      this.text = text;
-   }
+    @Override
+    protected void onCalculateSize() {
+        double pad = pad();
 
-   public String getText() {
-      return this.text;
-   }
+        String text = getText();
+
+        if (text != null) {
+            textWidth = theme.textWidth(text);
+
+            width = pad + textWidth + pad;
+            height = pad + theme.textHeight() + pad;
+        }
+        else {
+            double s = theme.textHeight();
+
+            width = pad + s + pad;
+            height = pad + s + pad;
+        }
+    }
+
+    public void set(String text) {
+        if (this.text == null || Math.round(theme.textWidth(text)) != textWidth) invalidate();
+
+        this.text = text;
+    }
+
+    public String getText() {
+        return text;
+    }
 }

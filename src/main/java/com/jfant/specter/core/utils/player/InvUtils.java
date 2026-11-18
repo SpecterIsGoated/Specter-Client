@@ -1,361 +1,357 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.player;
 
-import com.jfant.specter.core.SpecterCore;
-import com.jfant.specter.core.mixininterface.IClientPlayerInteractionManager;
-import java.util.function.Predicate;
-import net.minecraft.world.inventory.ClickType;
+import com.jfant.specter.core.mixininterface.IMultiPlayerGameMode;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Range;
 
+import java.util.function.Predicate;
+
+import static com.jfant.specter.core.SpecterCore.mc;
+
+/**
+ * Util class for dealing inventories and the items in them.
+ * See {@link SlotUtils} for details on how slots are referenced.
+ */
 public class InvUtils {
-   private static final InvUtils.Action ACTION = new InvUtils.Action();
-   public static int previousSlot = -1;
+    private static final Action ACTION = new Action();
+    public static int previousSlot = -1;
 
-   private InvUtils() {
-   }
+    private InvUtils() {
+    }
 
-   public static boolean testInMainHand(Predicate<ItemStack> predicate) {
-      return predicate.test(SpecterCore.mc.player.getMainHandItem());
-   }
+    // Predicates
 
-   public static boolean testInMainHand(Item... items) {
-      return testInMainHand(itemStack -> {
-         for (Item item : items) {
-            if (itemStack.is(item)) {
-               return true;
-            }
-         }
+    private static Predicate<ItemStack> isOneOf(Item... items) {
+        return itemStack -> {
+            for (var item : items) if (itemStack.is(item)) return true;
+            return false;
+        };
+    }
 
-         return false;
-      });
-   }
+    public static boolean testInMainHand(Predicate<ItemStack> predicate) {
+        return predicate.test(mc.player.getMainHandItem());
+    }
 
-   public static boolean testInOffHand(Predicate<ItemStack> predicate) {
-      return predicate.test(SpecterCore.mc.player.getOffhandItem());
-   }
+    public static boolean testInMainHand(Item... items) {
+        return testInMainHand(isOneOf(items));
+    }
 
-   public static boolean testInOffHand(Item... items) {
-      return testInOffHand(itemStack -> {
-         for (Item item : items) {
-            if (itemStack.is(item)) {
-               return true;
-            }
-         }
+    public static boolean testInOffHand(Predicate<ItemStack> predicate) {
+        return predicate.test(mc.player.getOffhandItem());
+    }
 
-         return false;
-      });
-   }
+    public static boolean testInOffHand(Item... items) {
+        return testInOffHand(isOneOf(items));
+    }
 
-   public static boolean testInHands(Predicate<ItemStack> predicate) {
-      return testInMainHand(predicate) || testInOffHand(predicate);
-   }
+    public static boolean testInHands(Predicate<ItemStack> predicate) {
+        return testInMainHand(predicate) || testInOffHand(predicate);
+    }
 
-   public static boolean testInHands(Item... items) {
-      return testInMainHand(items) || testInOffHand(items);
-   }
+    public static boolean testInHands(Item... items) {
+        return testInMainHand(items) || testInOffHand(items);
+    }
 
-   public static boolean testInHotbar(Predicate<ItemStack> predicate) {
-      if (testInHands(predicate)) {
-         return true;
-      } else {
-         for (int i = 0; i <= 8; i++) {
-            ItemStack stack = SpecterCore.mc.player.getInventory().getItem(i);
-            if (predicate.test(stack)) {
-               return true;
-            }
-         }
+    public static boolean testInHotbar(Predicate<ItemStack> predicate) {
+        if (testInHands(predicate)) return true;
 
-         return false;
-      }
-   }
+        for (int i = SlotUtils.HOTBAR_START; i <= SlotUtils.HOTBAR_END; i++) {
+            ItemStack stack = mc.player.getInventory().getItem(i);
+            if (predicate.test(stack)) return true;
+        }
 
-   public static boolean testInHotbar(Item... items) {
-      return testInHotbar(itemStack -> {
-         for (Item item : items) {
-            if (itemStack.is(item)) {
-               return true;
-            }
-         }
+        return false;
+    }
 
-         return false;
-      });
-   }
+    public static boolean testInHotbar(Item... items) {
+        return testInHotbar(isOneOf(items));
+    }
 
-   public static FindItemResult findEmpty() {
-      return find(ItemStack::isEmpty);
-   }
+    // Finding items
 
-   public static FindItemResult findInHotbar(Item... items) {
-      return findInHotbar(itemStack -> {
-         for (Item item : items) {
-            if (itemStack.getItem() == item) {
-               return true;
-            }
-         }
+    public static FindItemResult findEmpty() {
+        return find(ItemStack::isEmpty);
+    }
 
-         return false;
-      });
-   }
+    public static FindItemResult findInHotbar(Item... items) {
+        return findInHotbar(isOneOf(items));
+    }
 
-   public static FindItemResult findInHotbar(Predicate<ItemStack> isGood) {
-      if (testInOffHand(isGood)) {
-         return new FindItemResult(40, SpecterCore.mc.player.getOffhandItem().getCount());
-      } else {
-         return testInMainHand(isGood)
-            ? new FindItemResult(SpecterCore.mc.player.getInventory().getSelectedSlot(), SpecterCore.mc.player.getMainHandItem().getCount())
-            : find(isGood, 0, 8);
-      }
-   }
+    public static FindItemResult findInHotbar(Predicate<ItemStack> isGood) {
+        if (testInOffHand(isGood)) {
+            return new FindItemResult(SlotUtils.OFFHAND, mc.player.getOffhandItem().getCount());
+        }
 
-   public static FindItemResult find(Item... items) {
-      return find(itemStack -> {
-         for (Item item : items) {
-            if (itemStack.getItem() == item) {
-               return true;
-            }
-         }
+        if (testInMainHand(isGood)) {
+            return new FindItemResult(mc.player.getInventory().getSelectedSlot(), mc.player.getMainHandItem().getCount());
+        }
 
-         return false;
-      });
-   }
+        return find(isGood, 0, 8);
+    }
 
-   public static FindItemResult find(Predicate<ItemStack> isGood) {
-      return SpecterCore.mc.player == null ? new FindItemResult(0, 0) : find(isGood, 0, SpecterCore.mc.player.getInventory().getContainerSize());
-   }
+    public static FindItemResult find(Item... items) {
+        return find(isOneOf(items));
+    }
 
-   public static FindItemResult find(Predicate<ItemStack> isGood, int start, int end) {
-      if (SpecterCore.mc.player == null) {
-         return new FindItemResult(0, 0);
-      } else {
-         int slot = -1;
-         int count = 0;
+    public static FindItemResult find(Predicate<ItemStack> isGood) {
+        if (mc.player == null) return new FindItemResult(0, 0);
+        return find(isGood, 0, mc.player.getInventory().getContainerSize());
+    }
 
-         for (int i = start; i <= end; i++) {
-            ItemStack stack = SpecterCore.mc.player.getInventory().getItem(i);
+    public static FindItemResult find(Predicate<ItemStack> isGood, int start, int end) {
+        if (mc.player == null) return new FindItemResult(0, 0);
+
+        int slot = -1, count = 0;
+
+        for (int i = start; i <= end; i++) {
+            ItemStack stack = mc.player.getInventory().getItem(i);
+
             if (isGood.test(stack)) {
-               if (slot == -1) {
-                  slot = i;
-               }
-
-               count += stack.getCount();
+                if (slot == -1) slot = i;
+                count += stack.getCount();
             }
-         }
+        }
 
-         return new FindItemResult(slot, count);
-      }
-   }
+        return new FindItemResult(slot, count);
+    }
 
-   public static FindItemResult findFastestTool(BlockState state) {
-      float bestScore = 1.0F;
-      int slot = -1;
+    public static FindItemResult findFastestTool(BlockState state) {
+        float bestScore = 1;
+        int slot = -1;
 
-      for (int i = 0; i < 9; i++) {
-         ItemStack stack = SpecterCore.mc.player.getInventory().getItem(i);
-         if (stack.isCorrectToolForDrops(state)) {
+        for (int i = 0; i < 9; i++) {
+            ItemStack stack = mc.player.getInventory().getItem(i);
+            if (!stack.isCorrectToolForDrops(state)) continue;
+
             float score = stack.getDestroySpeed(state);
             if (score > bestScore) {
-               bestScore = score;
-               slot = i;
+                bestScore = score;
+                slot = i;
             }
-         }
-      }
+        }
 
-      return new FindItemResult(slot, 1);
-   }
+        return new FindItemResult(slot, 1);
+    }
 
-   public static boolean swap(int slot, boolean swapBack) {
-      if (slot == 40) {
-         return true;
-      } else if (slot >= 0 && slot <= 8) {
-         if (swapBack && previousSlot == -1) {
-            previousSlot = SpecterCore.mc.player.getInventory().getSelectedSlot();
-         } else if (!swapBack) {
-            previousSlot = -1;
-         }
+    // Interactions
 
-         SpecterCore.mc.player.getInventory().setSelectedSlot(slot);
-         ((IClientPlayerInteractionManager)SpecterCore.mc.gameMode).meteor$syncSelected();
-         return true;
-      } else {
-         return false;
-      }
-   }
+    public static boolean swap(int slot, boolean swapBack) {
+        if (slot == SlotUtils.OFFHAND) return true;
+        if (slot < 0 || slot > 8) return false;
+        if (swapBack && previousSlot == -1) previousSlot = mc.player.getInventory().getSelectedSlot();
+        else if (!swapBack) previousSlot = -1;
 
-   public static boolean swapBack() {
-      if (previousSlot == -1) {
-         return false;
-      } else {
-         boolean return_ = swap(previousSlot, false);
-         previousSlot = -1;
-         return return_;
-      }
-   }
+        mc.player.getInventory().setSelectedSlot(slot);
+        ((IMultiPlayerGameMode) mc.gameMode).meteor$syncSelected();
+        return true;
+    }
 
-   public static InvUtils.Action move() {
-      ACTION.type = ClickType.PICKUP;
-      ACTION.two = true;
-      return ACTION;
-   }
+    public static boolean swapBack() {
+        if (previousSlot == -1) return false;
 
-   public static InvUtils.Action click() {
-      ACTION.type = ClickType.PICKUP;
-      return ACTION;
-   }
+        boolean return_ = swap(previousSlot, false);
+        previousSlot = -1;
+        return return_;
+    }
 
-   public static InvUtils.Action quickSwap() {
-      ACTION.type = ClickType.SWAP;
-      return ACTION;
-   }
+    public static Action move() {
+        ACTION.type = ContainerInput.PICKUP;
+        ACTION.two = true;
+        return ACTION;
+    }
 
-   public static InvUtils.Action shiftClick() {
-      ACTION.type = ClickType.QUICK_MOVE;
-      return ACTION;
-   }
+    public static Action click() {
+        ACTION.type = ContainerInput.PICKUP;
+        return ACTION;
+    }
 
-   public static InvUtils.Action drop() {
-      ACTION.type = ClickType.THROW;
-      ACTION.data = 1;
-      return ACTION;
-   }
+    /**
+     * When writing code with quickSwap, both to and from should provide the ID of a slot, not the index.
+     * From should be the slot in the hotbar, to should be the slot you're switching an item from.
+     */
+    public static Action quickSwap() {
+        ACTION.type = ContainerInput.SWAP;
+        return ACTION;
+    }
 
-   public static InvUtils.Action dropOne() {
-      ACTION.type = ClickType.THROW;
-      ACTION.data = 0;
-      return ACTION;
-   }
+    public static Action shiftClick() {
+        ACTION.type = ContainerInput.QUICK_MOVE;
+        return ACTION;
+    }
 
-   public static void dropHand() {
-      if (!SpecterCore.mc.player.containerMenu.getCarried().isEmpty()) {
-         SpecterCore.mc.gameMode.handleInventoryMouseClick(SpecterCore.mc.player.containerMenu.containerId, -999, 0, ClickType.PICKUP, SpecterCore.mc.player);
-      }
-   }
+    public static Action drop() {
+        ACTION.type = ContainerInput.THROW;
+        ACTION.data = 1;
+        return ACTION;
+    }
 
-   public static class Action {
-      private ClickType type = null;
-      private boolean two = false;
-      private int from = -1;
-      private int to = -1;
-      private int data = 0;
-      private boolean isRecursive = false;
+    public static Action dropOne() {
+        ACTION.type = ContainerInput.THROW;
+        ACTION.data = 0;
+        return ACTION;
+    }
 
-      private Action() {
-      }
+    public static void dropHand() {
+        if (!mc.player.containerMenu.getCarried().isEmpty())
+            mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, AbstractContainerMenu.SLOT_CLICKED_OUTSIDE, 0, ContainerInput.PICKUP, mc.player);
+    }
 
-      public InvUtils.Action fromId(int id) {
-         this.from = id;
-         return this;
-      }
+    public static class Action {
+        private ContainerInput type = null;
+        private boolean two = false;
+        private int from = -1;
+        private int to = -1;
+        private int data = 0;
 
-      public InvUtils.Action from(int index) {
-         return this.fromId(SlotUtils.indexToId(index));
-      }
+        private boolean isRecursive = false;
 
-      public InvUtils.Action fromHotbar(@Range(from = 0L,to = 8L) int i) {
-         return this.from(0 + i);
-      }
+        private Action() {
+        }
 
-      public InvUtils.Action fromOffhand() {
-         return this.from(40);
-      }
+        // From
 
-      public InvUtils.Action fromMain(@Range(from = 0L,to = 26L) int i) {
-         return this.from(9 + i);
-      }
+        public Action fromId(int id) {
+            from = id;
+            return this;
+        }
 
-      public InvUtils.Action fromArmor(int i) {
-         return this.from(36 + (3 - i));
-      }
+        /**
+         * @param index The index of one of the slots within the inventory
+         */
+        public Action from(int index) {
+            return fromId(SlotUtils.indexToId(index));
+        }
 
-      public void toId(int id) {
-         this.to = id;
-         this.run();
-      }
+        public Action fromHotbar(@Range(from = 0, to = 8) int i) {
+            return from(SlotUtils.HOTBAR_START + i);
+        }
 
-      public void to(int index) {
-         this.toId(SlotUtils.indexToId(index));
-      }
+        public Action fromOffhand() {
+            return from(SlotUtils.OFFHAND);
+        }
 
-      public void toHotbar(@Range(from = 0L,to = 8L) int i) {
-         this.to(0 + i);
-      }
+        public Action fromMain(@Range(from = 0, to = 26) int i) {
+            return from(SlotUtils.MAIN_START + i);
+        }
 
-      public void toOffhand() {
-         this.to(40);
-      }
+        /**
+         * @param i The entity slot id of one of the four humanoid armor pieces, as defined in {@link EquipmentSlot}
+         */
+        public Action fromArmor(int i) {
+            return from(SlotUtils.ARMOR_START + (3 - i));
+        }
 
-      public void toMain(@Range(from = 0L,to = 26L) int i) {
-         this.to(9 + i);
-      }
+        // To
 
-      public void toArmor(int i) {
-         this.to(36 + (3 - i));
-      }
+        public void toId(int id) {
+            to = id;
+            run();
+        }
 
-      public void slotId(int id) {
-         this.from = this.to = id;
-         this.run();
-      }
+        /**
+         * @param index The index of one of the slots within the inventory
+         */
+        public void to(int index) {
+            toId(SlotUtils.indexToId(index));
+        }
 
-      public void slot(int index) {
-         this.slotId(SlotUtils.indexToId(index));
-      }
+        public void toHotbar(@Range(from = 0, to = 8) int i) {
+            to(SlotUtils.HOTBAR_START + i);
+        }
 
-      public void slotHotbar(@Range(from = 0L,to = 8L) int i) {
-         this.slot(0 + i);
-      }
+        public void toOffhand() {
+            to(SlotUtils.OFFHAND);
+        }
 
-      public void slotOffhand() {
-         this.slot(40);
-      }
+        public void toMain(@Range(from = 0, to = 26) int i) {
+            to(SlotUtils.MAIN_START + i);
+        }
 
-      public void slotMain(@Range(from = 0L,to = 26L) int i) {
-         this.slot(9 + i);
-      }
+        /**
+         * @param i The entity slot id of one of the four humanoid armor pieces, as defined in {@link EquipmentSlot}
+         */
+        public void toArmor(int i) {
+            to(SlotUtils.ARMOR_START + (3 - i));
+        }
 
-      public void slotArmor(int i) {
-         this.slot(36 + (3 - i));
-      }
+        // Slot
 
-      private void run() {
-         boolean hadEmptyCursor = SpecterCore.mc.player.containerMenu.getCarried().isEmpty();
-         if (this.type == ClickType.SWAP) {
-            this.data = this.from;
-            this.from = this.to;
-         }
+        public void slotId(int id) {
+            from = to = id;
+            run();
+        }
 
-         if (this.type != null && this.from != -1 && this.to != -1) {
-            this.click(this.from);
-            if (this.two) {
-               this.click(this.to);
+        /**
+         * @param index The index of one of the slots within the inventory
+         */
+        public void slot(int index) {
+            slotId(SlotUtils.indexToId(index));
+        }
+
+        public void slotHotbar(@Range(from = 0, to = 8) int i) {
+            slot(SlotUtils.HOTBAR_START + i);
+        }
+
+        public void slotOffhand() {
+            slot(SlotUtils.OFFHAND);
+        }
+
+        public void slotMain(@Range(from = 0, to = 26) int i) {
+            slot(SlotUtils.MAIN_START + i);
+        }
+
+        /**
+         * @param i The entity slot id of one of the four humanoid armor pieces, as defined in {@link EquipmentSlot}
+         */
+        public void slotArmor(int i) {
+            slot(SlotUtils.ARMOR_START + (3 - i));
+        }
+
+        // Other
+
+        private void run() {
+            boolean hadEmptyCursor = mc.player.containerMenu.getCarried().isEmpty();
+
+            if (type == ContainerInput.SWAP) {
+                data = from;
+                from = to;
             }
-         }
 
-         ClickType preType = this.type;
-         boolean preTwo = this.two;
-         int preFrom = this.from;
-         int preTo = this.to;
-         this.type = null;
-         this.two = false;
-         this.from = -1;
-         this.to = -1;
-         this.data = 0;
-         if (!this.isRecursive
-            && hadEmptyCursor
-            && preType == ClickType.PICKUP
-            && preTwo
-            && preFrom != -1
-            && preTo != -1
-            && !SpecterCore.mc.player.containerMenu.getCarried().isEmpty()) {
-            this.isRecursive = true;
-            InvUtils.click().slotId(preFrom);
-            this.isRecursive = false;
-         }
-      }
+            if (type != null && from != -1 && to != -1) {
+                click(from);
+                if (two) click(to);
+            }
 
-      private void click(int id) {
-         SpecterCore.mc.gameMode.handleInventoryMouseClick(SpecterCore.mc.player.containerMenu.containerId, id, this.data, this.type, SpecterCore.mc.player);
-      }
-   }
+            ContainerInput preType = type;
+            boolean preTwo = two;
+            int preFrom = from;
+            int preTo = to;
+
+            type = null;
+            two = false;
+            from = -1;
+            to = -1;
+            data = 0;
+
+            if (!isRecursive && hadEmptyCursor && preType == ContainerInput.PICKUP && preTwo && (preFrom != -1 && preTo != -1) && !mc.player.containerMenu.getCarried().isEmpty()) {
+                isRecursive = true;
+                InvUtils.click().slotId(preFrom);
+                isRecursive = false;
+            }
+        }
+
+        private void click(int id) {
+            mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, id, data, type, mc.player);
+        }
+    }
 }

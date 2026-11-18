@@ -1,36 +1,38 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.files;
 
 import com.jfant.specter.core.SpecterCore;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import org.apache.commons.io.IOUtils;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+
 public class StreamUtils {
-   private StreamUtils() {
-   }
+    private StreamUtils() {
+    }
 
-   public static void copy(File from, File to) {
-      try (
-         InputStream in = new FileInputStream(from);
-         OutputStream out = new FileOutputStream(to);
-      ) {
-         in.transferTo(out);
-      } catch (IOException var10) {
-         SpecterCore.LOG.error("Error copying from file '{}' to file '{}'.", new Object[]{from.getName(), to.getName(), var10});
-      }
-   }
+    public static void copy(File from, File to) {
+        try {
+            Files.copy(from.toPath(), to.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            SpecterCore.LOG.error("Error copying from file '{}' to file '{}'.", from.getName(), to.getName(), e);
+        }
+    }
 
-   public static void copy(InputStream in, File to) {
-      try (OutputStream out = new FileOutputStream(to)) {
-         in.transferTo(out);
-      } catch (IOException var12) {
-         SpecterCore.LOG.error("Error writing to file '{}'.", to.getName());
-      } finally {
-         IOUtils.closeQuietly(in);
-      }
-   }
+    public static void copy(InputStream in, File to) {
+        try {
+            Files.copy(in, to.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException _) {
+            SpecterCore.LOG.error("Error writing to file '{}'.", to.getName());
+        } finally {
+            IOUtils.closeQuietly(in);
+        }
+    }
 }

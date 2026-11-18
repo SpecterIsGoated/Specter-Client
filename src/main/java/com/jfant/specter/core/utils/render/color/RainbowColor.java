@@ -1,58 +1,65 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.render.color;
 
 public class RainbowColor extends Color {
-   private double speed;
-   private static final float[] hsb = new float[3];
+    private double speed;
+    private static final float[] hsb = new float[3];
 
-   public double getSpeed() {
-      return this.speed;
-   }
+    public RainbowColor() {
+        super();
+    }
 
-   public RainbowColor setSpeed(double speed) {
-      this.speed = speed;
-      return this;
-   }
+    public double getSpeed() {
+        return speed;
+    }
 
-   public RainbowColor getNext() {
-      return this.getNext(1.0);
-   }
+    public RainbowColor setSpeed(double speed) {
+        this.speed = speed;
+        return this;
+    }
 
-   public RainbowColor getNext(double delta) {
-      if (this.speed > 0.0) {
-         java.awt.Color.RGBtoHSB(this.r, this.g, this.b, hsb);
-         int c = java.awt.Color.HSBtoRGB(hsb[0] + (float)(this.speed * delta), 1.0F, 1.0F);
-         this.r = toRGBAR(c);
-         this.g = toRGBAG(c);
-         this.b = toRGBAB(c);
-      }
+    public RainbowColor getNext() {
+        return getNext(1);
+    }
 
-      return this;
-   }
+    public RainbowColor getNext(double delta) {
+        if (speed > 0) {
+            java.awt.Color.RGBtoHSB(r, g, b, hsb);
+            int c = java.awt.Color.HSBtoRGB(hsb[0] + (float) (speed * delta), 1, 1);
 
-   public RainbowColor set(RainbowColor color) {
-      this.r = color.r;
-      this.g = color.g;
-      this.b = color.b;
-      this.a = color.a;
-      this.speed = color.speed;
-      return this;
-   }
+            r = toRGBAR(c);
+            g = toRGBAG(c);
+            b = toRGBAB(c);
+        }
+        return this;
+    }
 
-   @Override
-   public boolean equals(Object o) {
-      if (this == o) {
-         return true;
-      } else if (o == null || this.getClass() != o.getClass()) {
-         return false;
-      } else {
-         return !super.equals(o) ? false : Double.compare(((RainbowColor)o).speed, this.speed) == 0;
-      }
-   }
+    public RainbowColor set(RainbowColor color) {
+        this.r = color.r;
+        this.g = color.g;
+        this.b = color.b;
+        this.a = color.a;
+        this.speed = color.speed;
+        return this;
+    }
 
-   @Override
-   public int hashCode() {
-      int result = super.hashCode();
-      long temp = Double.doubleToLongBits(this.speed);
-      return 31 * result + (int)(temp ^ temp >>> 32);
-   }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        return Double.compare(((RainbowColor) o).speed, speed) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + Double.hashCode(speed);
+        return result;
+    }
 }

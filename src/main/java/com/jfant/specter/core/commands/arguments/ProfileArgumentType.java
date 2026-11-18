@@ -1,8 +1,11 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.commands.arguments;
 
 import com.google.common.collect.Streams;
-import com.jfant.specter.core.systems.profiles.Profile;
-import com.jfant.specter.core.systems.profiles.Profiles;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -10,45 +13,49 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.jfant.specter.core.systems.profiles.Profile;
+import com.jfant.specter.core.systems.profiles.Profiles;
+import net.minecraft.network.chat.Component;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.network.chat.Component;
+
+import static net.minecraft.commands.SharedSuggestionProvider.suggest;
 
 public class ProfileArgumentType implements ArgumentType<String> {
-   private static final ProfileArgumentType INSTANCE = new ProfileArgumentType();
-   private static final DynamicCommandExceptionType NO_SUCH_PROFILE = new DynamicCommandExceptionType(
-      name -> Component.literal("Profile with name " + name + " doesn't exist.")
-   );
-   private static final Collection<String> EXAMPLES = List.of("pvp", "anarchy");
+    private static final ProfileArgumentType INSTANCE = new ProfileArgumentType();
+    private static final DynamicCommandExceptionType NO_SUCH_PROFILE = new DynamicCommandExceptionType(name -> Component.literal("Profile with name " + name + " doesn't exist."));
 
-   public static ProfileArgumentType create() {
-      return INSTANCE;
-   }
+    private static final Collection<String> EXAMPLES = List.of("pvp", "anarchy");
 
-   public static Profile get(CommandContext<?> context) {
-      return Profiles.get().get((String)context.getArgument("profile", String.class));
-   }
+    public static ProfileArgumentType create() {
+        return INSTANCE;
+    }
 
-   private ProfileArgumentType() {
-   }
+    public static Profile get(CommandContext<?> context) {
+        return Profiles.get().get(context.getArgument("profile", String.class));
+    }
 
-   public String parse(StringReader reader) throws CommandSyntaxException {
-      String argument = reader.getRemaining();
-      reader.setCursor(reader.getTotalLength());
-      if (Profiles.get().get(argument) == null) {
-         throw NO_SUCH_PROFILE.create(argument);
-      } else {
-         return argument;
-      }
-   }
+    private ProfileArgumentType() {
+    }
 
-   public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-      return SharedSuggestionProvider.suggest(Streams.stream(Profiles.get()).map(profile -> profile.name.get()), builder);
-   }
+    @Override
+    public String parse(StringReader reader) throws CommandSyntaxException {
+        String argument = reader.getRemaining();
+        reader.setCursor(reader.getTotalLength());
+        if (Profiles.get().get(argument) == null) throw NO_SUCH_PROFILE.create(argument);
 
-   public Collection<String> getExamples() {
-      return EXAMPLES;
-   }
+        return argument;
+    }
+
+    @Override
+    public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
+        return suggest(Streams.stream(Profiles.get()).map(profile -> profile.name.get()), builder);
+    }
+
+    @Override
+    public Collection<String> getExamples() {
+        return EXAMPLES;
+    }
 }

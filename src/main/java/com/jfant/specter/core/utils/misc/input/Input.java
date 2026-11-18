@@ -1,70 +1,91 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.misc.input;
 
-import com.jfant.specter.core.SpecterCore;
+import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.cursor.CursorType;
+import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import com.jfant.specter.core.gui.GuiKeyEvents;
-import com.jfant.specter.core.mixin.KeyBindingAccessor;
-import com.jfant.specter.core.utils.misc.CursorStyle;
+import com.jfant.specter.core.mixin.KeyMappingAccessor;
 import net.minecraft.client.KeyMapping;
-import org.lwjgl.glfw.GLFW;
 
 public class Input {
-   private static final boolean[] keys = new boolean[512];
-   private static final boolean[] buttons = new boolean[16];
-   private static CursorStyle lastCursorStyle = CursorStyle.Default;
+    private static final boolean[] keys = new boolean[512];
+    private static final boolean[] buttons = new boolean[16];
 
-   private Input() {
-   }
+    private static final int MOD_KEYS = InputConstants.MOD_SHIFT
+        | InputConstants.MOD_CONTROL
+        | InputConstants.MOD_ALT
+        | InputConstants.MOD_SUPER;
 
-   public static void setKeyState(int key, boolean pressed) {
-      if (key >= 0 && key < keys.length) {
-         keys[key] = pressed;
-      }
-   }
+    private static CursorType lastCursorStyle = CursorTypes.ARROW;
 
-   public static void setButtonState(int button, boolean pressed) {
-      if (button >= 0 && button < buttons.length) {
-         buttons[button] = pressed;
-      }
-   }
+    private Input() {
+    }
 
-   public static int getKey(KeyMapping bind) {
-      return ((KeyBindingAccessor)bind).meteor$getKey().getValue();
-   }
+    public static void setKeyState(int key, boolean pressed) {
+        if (key >= 0 && key < keys.length) keys[key] = pressed;
+    }
 
-   public static void setKeyState(KeyMapping bind, boolean pressed) {
-      setKeyState(getKey(bind), pressed);
-   }
+    public static void setButtonState(int button, boolean pressed) {
+        if (button >= 0 && button < buttons.length) buttons[button] = pressed;
+    }
 
-   public static boolean isPressed(KeyMapping bind) {
-      return isKeyPressed(getKey(bind)) || isButtonPressed(getKey(bind));
-   }
+    public static int getKey(KeyMapping bind) {
+        return ((KeyMappingAccessor) bind).meteor$getKey().getValue();
+    }
 
-   public static boolean isKeyPressed(int key) {
-      if (!GuiKeyEvents.canUseKeys) {
-         return false;
-      } else {
-         return key == -1 ? false : key < keys.length && keys[key];
-      }
-   }
+    public static void setKeyState(KeyMapping bind, boolean pressed) {
+        setKeyState(getKey(bind), pressed);
+    }
 
-   public static boolean isButtonPressed(int button) {
-      return button == -1 ? false : button < buttons.length && buttons[button];
-   }
+    public static boolean isPressed(KeyMapping bind) {
+        return isKeyPressed(getKey(bind)) || isButtonPressed(getKey(bind));
+    }
 
-   public static void setCursorStyle(CursorStyle style) {
-      if (lastCursorStyle != style) {
-         GLFW.glfwSetCursor(SpecterCore.mc.getWindow().handle(), style.getGlfwCursor());
-         lastCursorStyle = style;
-      }
-   }
+    public static boolean isKeyPressed(int key) {
+        if (!GuiKeyEvents.canUseKeys) return false;
 
-   public static int getModifier(int key) {
-      return switch (key) {
-         case 340, 344 -> 1;
-         case 341, 345 -> 2;
-         case 342, 346 -> 4;
-         case 343, 347 -> 8;
-         default -> 0;
-      };
-   }
+        if (key == InputConstants.UNKNOWN.getValue()) return false;
+        return key < keys.length && keys[key];
+    }
+
+    public static boolean isButtonPressed(int button) {
+        if (button == -1) return false;
+        return button < buttons.length && buttons[button];
+    }
+
+    public static void setCursorStyle(CursorType style) {
+        if (lastCursorStyle != style) {
+            style.select();
+            lastCursorStyle = style;
+        }
+    }
+
+    public static int getModifier(int key) {
+        return switch (key) {
+            case InputConstants.KEY_LSHIFT, InputConstants.KEY_RSHIFT -> InputConstants.MOD_SHIFT;
+            case InputConstants.KEY_LCONTROL, InputConstants.KEY_RCONTROL -> InputConstants.MOD_CONTROL;
+            case InputConstants.KEY_LALT, InputConstants.KEY_RALT -> InputConstants.MOD_ALT;
+//            case InputConstants.KEY_LSUPER, InputConstants.KEY_RSUPER -> InputConstants.MOD_SUPER;
+            default -> 0;
+        };
+    }
+
+    public static boolean modsMatch(int currentMods, int... desiredMods) {
+        int desiredMask = 0;
+
+        for (int mod : desiredMods) {
+            // a required modifier isn't held
+            if ((currentMods & mod) == 0) return false;
+
+            desiredMask |= mod;
+        }
+
+        // nothing extra is held, discounting capslock & numlock
+        return (currentMods & MOD_KEYS & ~desiredMask) == 0;
+    }
 }

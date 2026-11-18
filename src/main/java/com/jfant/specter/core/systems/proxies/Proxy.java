@@ -1,16 +1,18 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.systems.proxies;
 
 import com.google.common.net.InetAddresses;
-import com.jfant.specter.core.settings.BoolSetting;
-import com.jfant.specter.core.settings.EnumSetting;
-import com.jfant.specter.core.settings.IntSetting;
-import com.jfant.specter.core.settings.Setting;
-import com.jfant.specter.core.settings.SettingGroup;
-import com.jfant.specter.core.settings.Settings;
-import com.jfant.specter.core.settings.StringSetting;
+import com.jfant.specter.core.settings.*;
 import com.jfant.specter.core.utils.Utils;
 import com.jfant.specter.core.utils.misc.ISerializable;
 import com.jfant.specter.core.utils.render.color.Color;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
@@ -21,252 +23,290 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 
 public class Proxy implements ISerializable<Proxy> {
-   public final Settings settings = new Settings();
-   private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
-   private final SettingGroup sgOptional = this.settings.createGroup("Optional");
-   public Setting<String> name = this.sgGeneral.add(new StringSetting.Builder().name("name").description("The name of the proxy.").build());
-   public Setting<ProxyType> type = this.sgGeneral
-      .add(
-         ((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)new EnumSetting.Builder().name("type")).description("The type of proxy."))
-               .defaultValue(ProxyType.Socks5))
-            .build()
-      );
-   public Setting<String> address = this.sgGeneral
-      .add(new StringSetting.Builder().name("address").description("The ip address of the proxy.").filter(Utils::ipFilter).build());
-   public Setting<Integer> port = this.sgGeneral
-      .add(new IntSetting.Builder().name("port").description("The port of the proxy.").defaultValue(0).range(0, 65535).sliderMax(65535).noSlider().build());
-   public Setting<Boolean> enabled = this.sgGeneral
-      .add(new BoolSetting.Builder().name("enabled").description("Whether the proxy is enabled.").defaultValue(true).build());
-   public Setting<String> username = this.sgOptional.add(new StringSetting.Builder().name("username").description("The username of the proxy.").build());
-   public Setting<String> password = this.sgOptional
-      .add(
-         new StringSetting.Builder().name("password").description("The password of the proxy.").visible(() -> this.type.get().equals(ProxyType.Socks5)).build()
-      );
-   public Proxy.Status status = Proxy.Status.UNCHECKED;
-   public long latency;
+    public final Settings settings = new Settings();
 
-   private Proxy() {
-   }
+    private final SettingGroup sgGeneral = settings.getDefaultGroup();
+    private final SettingGroup sgOptional = settings.createGroup("Optional");
 
-   public Proxy(Tag tag) {
-      this.fromTag((CompoundTag)tag);
-   }
+    public Setting<String> name = sgGeneral.add(new StringSetting.Builder()
+        .name("name")
+        .description("The name of the proxy.")
+        .build()
+    );
 
-   public boolean resolveAddress() {
-      return Utils.resolveAddress(this.address.get(), this.port.get());
-   }
+    public Setting<ProxyType> type = sgGeneral.add(new EnumSetting.Builder<ProxyType>()
+        .name("type")
+        .description("The type of proxy.")
+        .defaultValue(ProxyType.Socks5)
+        .build()
+    );
 
-   public int checkStatus() {
-      if (this.status == Proxy.Status.CHECKING) {
-         return 0;
-      } else {
-         this.status = Proxy.Status.CHECKING;
-         boolean timeout = false;
+    public Setting<String> address = sgGeneral.add(new StringSetting.Builder()
+        .name("address")
+        .description("The ip address of the proxy.")
+        .filter(Utils::ipFilter)
+        .build()
+    );
 
-         try {
+    public Setting<Integer> port = sgGeneral.add(new IntSetting.Builder()
+        .name("port")
+        .description("The port of the proxy.")
+        .defaultValue(0)
+        .range(0, 65535)
+        .sliderMax(65535)
+        .noSlider()
+        .build()
+    );
+
+    public Setting<Boolean> enabled = sgGeneral.add(new BoolSetting.Builder()
+        .name("enabled")
+        .description("Whether the proxy is enabled.")
+        .defaultValue(true)
+        .build()
+    );
+
+    // Optional
+
+    public Setting<String> username = sgOptional.add(new StringSetting.Builder()
+        .name("username")
+        .description("The username of the proxy.")
+        .build()
+    );
+
+    public Setting<String> password = sgOptional.add(new StringSetting.Builder()
+        .name("password")
+        .description("The password of the proxy.")
+        .visible(() -> type.get().equals(ProxyType.Socks5))
+        .build()
+    );
+
+    public Status status = Status.UNCHECKED;
+    public long latency;
+
+    // todo
+    //  - add more rigorous status checks - perhaps querying our 'mcauth.meteorclient.com' or ccbluex's 'ping.liquidproxy.net'
+    //  - the isSocks methods could be used to try and detect the version of added proxies when it's unclear -
+    //     the only complication would be that some ips seem to be valid for both 4 and 5
+
+    private Proxy() {
+    }
+
+    public Proxy(Tag tag) {
+        fromTag((CompoundTag) tag);
+    }
+
+    public boolean resolveAddress() {
+        return Utils.resolveAddress(this.address.get(), this.port.get());
+    }
+
+    /**
+     * Return codes: <br>
+     * 0: In the process of checking <br>
+     * 1: The proxy is alive <br>
+     * 2: The proxy is dead <br>
+     * 3: The check timed out
+     */
+    public int checkStatus() {
+        if (status == Status.CHECKING) return 0;
+        status = Status.CHECKING;
+
+        boolean timeout = false;
+
+        try {
             Instant before = Instant.now();
-            if (this.isSocks4()) {
-               this.status = Proxy.Status.ALIVE;
-               this.latency = Duration.between(before, Instant.now()).toMillis();
-               return 1;
+            if (isSocks4()) {
+                status = Status.ALIVE;
+                latency = Duration.between(before, Instant.now()).toMillis();
+                return 1;
             }
-         } catch (SocketTimeoutException var5) {
+        } catch (SocketTimeoutException _) {
             timeout = true;
-         } catch (IOException var6) {
-         }
+        } catch (IOException _) {
+        }
 
-         try {
+        try {
             Instant before = Instant.now();
-            if (this.isSocks5()) {
-               this.status = Proxy.Status.ALIVE;
-               this.latency = Duration.between(before, Instant.now()).toMillis();
-               return 1;
+            if (isSocks5()) {
+                status = Status.ALIVE;
+                latency = Duration.between(before, Instant.now()).toMillis();
+                return 1;
             }
-         } catch (SocketTimeoutException var3) {
+        } catch (SocketTimeoutException _) {
             timeout = true;
-         } catch (IOException var4) {
-         }
+        } catch (IOException _) {
+        }
 
-         this.status = Proxy.Status.DEAD;
-         return timeout ? 3 : 2;
-      }
-   }
+        status = Status.DEAD;
+        return timeout ? 3 : 2;
+    }
 
-   private boolean isSocks4() throws IOException {
-      byte[] u = this.username.get().getBytes();
-      ByteBuffer bb;
-      if (InetAddresses.isInetAddress(this.address.get())) {
-         bb = ByteBuffer.allocate(9 + u.length)
-            .put((byte)4)
-            .put((byte)1)
-            .putShort(this.port.get().shortValue())
-            .putInt(InetAddress.getByName(this.address.get()).hashCode())
-            .put(u)
-            .put((byte)0);
-      } else {
-         byte[] addr = this.address.get().getBytes();
-         bb = ByteBuffer.allocate(10 + u.length + addr.length)
-            .put((byte)4)
-            .put((byte)1)
-            .putShort(this.port.get().shortValue())
-            .put(new byte[]{0, 0, 0, 1})
-            .put(u)
-            .put((byte)0)
-            .put(addr)
-            .put((byte)0);
-      }
+    private boolean isSocks4() throws IOException {
+        ByteBuffer bb;
+        byte[] u = username.get().getBytes();
 
-      byte[] data = this.sendData(bb.array(), 8);
-      return data.length < 2 ? false : data[0] == 0 && data[1] == 90;
-   }
+        // SOCKS4
+        if (InetAddresses.isInetAddress(address.get())) {
+            bb = ByteBuffer.allocate(9 + u.length)
+                .put((byte) 4)
+                .put((byte) 1)
+                .putShort(port.get().shortValue())
+                .putInt(InetAddress.getByName(address.get()).hashCode()) // :clueless:
+                .put(u)
+                .put((byte) 0);
+        }
 
-   private boolean isSocks5() throws IOException {
-      ByteBuffer bb = ByteBuffer.allocate(4).put((byte)5).put((byte)2).put((byte)0).put((byte)2);
-      byte[] data = this.sendData(bb.array(), 2);
-      return data.length < 2 ? false : data[0] == 5 && (data[1] == 0 || data[1] == 2);
-   }
+        // SOCKS4a
+        else {
+            byte[] addr = address.get().getBytes();
+            bb = ByteBuffer.allocate(10 + u.length + addr.length)
+                .put((byte) 4)
+                .put((byte) 1)
+                .putShort(port.get().shortValue())
+                .put(new byte[]{0, 0, 0, 1})
+                .put(u)
+                .put((byte) 0)
+                .put(addr)
+                .put((byte) 0);
+        }
 
-   private byte[] sendData(byte[] data, int read) throws IOException {
-      byte[] var5;
-      try (Socket s = new Socket()) {
-         s.setSoTimeout(Proxies.get().timeout.get());
-         s.connect(new InetSocketAddress(this.address.get(), this.port.get()), Proxies.get().timeout.get());
-         OutputStream out = s.getOutputStream();
-         out.write(data);
-         var5 = s.getInputStream().readNBytes(read);
-      }
+        byte[] data = sendData(bb.array(), 8);
 
-      return var5;
-   }
+        if (data.length < 2) return false;
+        return data[0] == 0 && data[1] == 90;
+    }
 
-   @Override
-   public CompoundTag toTag() {
-      CompoundTag tag = new CompoundTag();
-      tag.put("settings", this.settings.toTag());
-      return tag;
-   }
+    private boolean isSocks5() throws IOException {
+        ByteBuffer bb = ByteBuffer.allocate(4)
+            .put((byte) 5)
+            .put((byte) 2)
+            .put((byte) 0)
+            .put((byte) 2);
 
-   public Proxy fromTag(CompoundTag tag) {
-      tag.getCompound("settings").ifPresent(this.settings::fromTag);
-      return this;
-   }
+        byte[] data = sendData(bb.array(), 2);
 
-   @Override
-   public boolean equals(Object o) {
-      if (this == o) {
-         return true;
-      } else if (o != null && this.getClass() == o.getClass()) {
-         Proxy proxy = (Proxy)o;
-         return Objects.equals(proxy.address.get(), this.address.get()) && Objects.equals(proxy.port.get(), this.port.get());
-      } else {
-         return false;
-      }
-   }
+        if (data.length < 2) return false;
+        return data[0] == 5 && (data[1] == 0 || data[1] == 2);
+    }
 
-   public static class Builder {
-      protected ProxyType type = ProxyType.Socks5;
-      protected String address = "";
-      protected int port = 0;
-      protected String name = "";
-      protected String username = "";
-      protected String password = "";
-      protected boolean enabled = false;
+    private byte[] sendData(byte[] data, int read) throws IOException {
+        try (Socket s = new Socket()) {
+            s.setSoTimeout(Proxies.get().timeout.get());
+            s.connect(new InetSocketAddress(address.get(), port.get()), Proxies.get().timeout.get());
+            OutputStream out = s.getOutputStream();
 
-      public Proxy.Builder type(ProxyType type) {
-         this.type = type;
-         return this;
-      }
+            out.write(data);
 
-      public Proxy.Builder address(String address) {
-         this.address = address;
-         return this;
-      }
+            return s.getInputStream().readNBytes(read);
+        }
+    }
 
-      public Proxy.Builder port(int port) {
-         this.port = port;
-         return this;
-      }
+    public static class Builder {
+        protected ProxyType type = ProxyType.Socks5;
+        protected String address = "";
+        protected int port = 0;
+        protected String name = "";
+        protected String username = "";
+        protected String password = "";
+        protected boolean enabled = false;
 
-      public Proxy.Builder name(String name) {
-         this.name = name;
-         return this;
-      }
+        public Builder type(ProxyType type) {
+            this.type = type;
+            return this;
+        }
 
-      public Proxy.Builder username(String username) {
-         this.username = username;
-         return this;
-      }
+        public Builder address(String address) {
+            this.address = address;
+            return this;
+        }
 
-      public Proxy.Builder password(String password) {
-         this.password = password;
-         return this;
-      }
+        public Builder port(int port) {
+            this.port = port;
+            return this;
+        }
 
-      public Proxy.Builder enabled(boolean enabled) {
-         this.enabled = enabled;
-         return this;
-      }
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
 
-      public Proxy build() {
-         Proxy proxy = new Proxy();
-         if (!this.type.equals(proxy.type.getDefaultValue())) {
-            proxy.type.set(this.type);
-         }
+        public Builder username(String username) {
+            this.username = username;
+            return this;
+        }
 
-         if (!this.address.equals(proxy.address.getDefaultValue())) {
-            proxy.address.set(this.address);
-         }
+        public Builder password(String password) {
+            this.password = password;
+            return this;
+        }
 
-         if (this.port != proxy.port.getDefaultValue()) {
-            proxy.port.set(this.port);
-         }
+        public Builder enabled(boolean enabled) {
+            this.enabled = enabled;
+            return this;
+        }
 
-         if (!this.name.equals(proxy.name.getDefaultValue())) {
-            proxy.name.set(this.name);
-         }
+        public Proxy build() {
+            Proxy proxy = new Proxy();
 
-         if (!this.username.equals(proxy.username.getDefaultValue())) {
-            proxy.username.set(this.username);
-         }
+            if (!type.equals(proxy.type.getDefaultValue())) proxy.type.set(type);
+            if (!address.equals(proxy.address.getDefaultValue())) proxy.address.set(address);
+            if (port != proxy.port.getDefaultValue()) proxy.port.set(port);
+            if (!name.equals(proxy.name.getDefaultValue())) proxy.name.set(name);
+            if (!username.equals(proxy.username.getDefaultValue())) proxy.username.set(username);
+            if (!password.equals(proxy.password.getDefaultValue())) proxy.password.set(password);
+            if (enabled != proxy.enabled.getDefaultValue()) proxy.enabled.set(enabled);
 
-         if (!this.password.equals(proxy.password.getDefaultValue())) {
-            proxy.password.set(this.password);
-         }
+            return proxy;
+        }
+    }
 
-         if (this.enabled != proxy.enabled.getDefaultValue()) {
-            proxy.enabled.set(this.enabled);
-         }
+    @Override
+    public CompoundTag toTag() {
+        CompoundTag tag = new CompoundTag();
 
-         return proxy;
-      }
-   }
+        tag.put("settings", settings.toTag());
 
-   public static enum Status {
-      UNCHECKED,
-      CHECKING,
-      DEAD,
-      ALIVE;
+        return tag;
+    }
 
-      @Override
-      public String toString() {
-         return switch (this) {
-            case UNCHECKED -> "";
-            case CHECKING -> "...";
-            case DEAD -> "X";
-            case ALIVE -> "O";
-         };
-      }
+    @Override
+    public Proxy fromTag(CompoundTag tag) {
+        tag.getCompound("settings").ifPresent(settings::fromTag);
 
-      public Color getColor() {
-         return switch (this) {
-            case UNCHECKED, CHECKING -> Color.GRAY;
-            case DEAD -> Color.RED;
-            case ALIVE -> Color.GREEN;
-         };
-      }
-   }
+        return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Proxy proxy = (Proxy) o;
+        return Objects.equals(proxy.address.get(), this.address.get()) && Objects.equals(proxy.port.get(), this.port.get());
+    }
+
+    public enum Status {
+        UNCHECKED,
+        CHECKING,
+        DEAD,
+        ALIVE;
+
+        @Override
+        public String toString() {
+            return switch (this) {
+                case UNCHECKED -> "";
+                case CHECKING -> "...";
+                case DEAD -> "X";
+                case ALIVE -> "O";
+            };
+        }
+
+        public Color getColor() {
+            return switch (this) {
+                case UNCHECKED, CHECKING -> Color.GRAY;
+                case DEAD -> Color.RED;
+                case ALIVE -> Color.GREEN;
+            };
+        }
+    }
 }

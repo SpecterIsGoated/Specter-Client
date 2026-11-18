@@ -1,65 +1,71 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.world;
 
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.events.game.GameJoinedEvent;
 import com.jfant.specter.core.events.packets.PacketEvent;
 import com.jfant.specter.core.utils.Utils;
-import java.util.Arrays;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
 import net.minecraft.util.Mth;
 
+import java.util.Arrays;
+
+/**
+ * Copied from <a href="https://github.com/S-B99/kamiblue/blob/feature/master/src/main/java/me/zeroeightsix/kami/util/LagCompensator.java">KAMI Blue</a>
+ */
 public class TickRate {
-   public static TickRate INSTANCE = new TickRate();
-   private final float[] tickRates = new float[20];
-   private int nextIndex = 0;
-   private long timeLastTimeUpdate = -1L;
-   private long timeGameJoined;
+    public static TickRate INSTANCE = new TickRate();
 
-   private TickRate() {
-      SpecterCore.EVENT_BUS.subscribe(this);
-   }
+    private final float[] tickRates = new float[20];
+    private int nextIndex = 0;
+    private long timeLastTimeUpdate = -1;
+    private long timeGameJoined;
 
-   @EventHandler
-   private void onReceivePacket(PacketEvent.Receive event) {
-      if (event.packet instanceof ClientboundSetTimePacket) {
-         long now = System.currentTimeMillis();
-         float timeElapsed = (float)(now - this.timeLastTimeUpdate) / 1000.0F;
-         this.tickRates[this.nextIndex] = Mth.clamp(20.0F / timeElapsed, 0.0F, 20.0F);
-         this.nextIndex = (this.nextIndex + 1) % this.tickRates.length;
-         this.timeLastTimeUpdate = now;
-      }
-   }
+    private TickRate() {
+        SpecterCore.EVENT_BUS.subscribe(this);
+    }
 
-   @EventHandler
-   private void onGameJoined(GameJoinedEvent event) {
-      Arrays.fill(this.tickRates, 0.0F);
-      this.nextIndex = 0;
-      this.timeGameJoined = this.timeLastTimeUpdate = System.currentTimeMillis();
-   }
+    @EventHandler
+    private void onReceivePacket(PacketEvent.Receive event) {
+        if (event.packet instanceof ClientboundSetTimePacket) {
+            long now = System.currentTimeMillis();
+            float timeElapsed = (now - timeLastTimeUpdate) / 1000.0F;
+            tickRates[nextIndex] = Mth.clamp(20.0f / timeElapsed, 0.0f, 20.0f);
+            nextIndex = (nextIndex + 1) % tickRates.length;
+            timeLastTimeUpdate = now;
+        }
+    }
 
-   public float getTickRate() {
-      if (!Utils.canUpdate()) {
-         return 0.0F;
-      } else if (System.currentTimeMillis() - this.timeGameJoined < 4000L) {
-         return 20.0F;
-      } else {
-         int numTicks = 0;
-         float sumTickRates = 0.0F;
+    @EventHandler
+    private void onGameJoined(GameJoinedEvent event) {
+        Arrays.fill(tickRates, 0);
+        nextIndex = 0;
+        timeGameJoined = timeLastTimeUpdate = System.currentTimeMillis();
+    }
 
-         for (float tickRate : this.tickRates) {
-            if (tickRate > 0.0F) {
-               sumTickRates += tickRate;
-               numTicks++;
+    public float getTickRate() {
+        if (!Utils.canUpdate()) return 0;
+        if (System.currentTimeMillis() - timeGameJoined < 4000) return 20;
+
+        int numTicks = 0;
+        float sumTickRates = 0.0f;
+        for (float tickRate : tickRates) {
+            if (tickRate > 0) {
+                sumTickRates += tickRate;
+                numTicks++;
             }
-         }
+        }
+        return sumTickRates / numTicks;
+    }
 
-         return sumTickRates / numTicks;
-      }
-   }
-
-   public float getTimeSinceLastTick() {
-      long now = System.currentTimeMillis();
-      return now - this.timeGameJoined < 4000L ? 0.0F : (float)(now - this.timeLastTimeUpdate) / 1000.0F;
-   }
+    public float getTimeSinceLastTick() {
+        long now = System.currentTimeMillis();
+        if (now - timeGameJoined < 4000) return 0;
+        return (now - timeLastTimeUpdate) / 1000f;
+    }
 }

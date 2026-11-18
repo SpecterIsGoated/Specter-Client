@@ -1,18 +1,24 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.events.entity.player;
 
 import com.jfant.specter.core.events.Cancellable;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.InteractionHand;
 
 public class InteractEntityEvent extends Cancellable {
-   private static final InteractEntityEvent INSTANCE = new InteractEntityEvent();
-   public Entity entity;
-   public InteractionHand hand;
+    private static final InteractEntityEvent INSTANCE = new InteractEntityEvent();
 
-   public static InteractEntityEvent get(Entity entity, InteractionHand hand) {
-      INSTANCE.setCancelled(false);
-      INSTANCE.entity = entity;
-      INSTANCE.hand = hand;
-      return INSTANCE;
-   }
+    public Entity entity;
+    public InteractionHand hand;
+
+    public static InteractEntityEvent get(Entity entity, InteractionHand hand) {
+        INSTANCE.setCancelled(false);
+        INSTANCE.entity = entity;
+        INSTANCE.hand = hand;
+        return INSTANCE;
+    }
 }

@@ -1,14 +1,11 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.settings;
 
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import java.lang.reflect.AccessFlag;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
@@ -21,107 +18,109 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 
+import java.lang.reflect.AccessFlag;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
 public class EnchantmentListSetting extends Setting<Set<ResourceKey<Enchantment>>> {
-   public EnchantmentListSetting(
-      String name,
-      String description,
-      Set<ResourceKey<Enchantment>> defaultValue,
-      Consumer<Set<ResourceKey<Enchantment>>> onChanged,
-      Consumer<Setting<Set<ResourceKey<Enchantment>>>> onModuleActivated,
-      IVisible visible
-   ) {
-      super(name, description, defaultValue, onChanged, onModuleActivated, visible);
-   }
+    public EnchantmentListSetting(String name, String description, Set<ResourceKey<Enchantment>> defaultValue, Consumer<Set<ResourceKey<Enchantment>>> onChanged, Consumer<Setting<Set<ResourceKey<Enchantment>>>> onModuleActivated, IVisible visible) {
+        super(name, description, defaultValue, onChanged, onModuleActivated, visible);
+    }
 
-   @Override
-   public void resetImpl() {
-      this.value = new ObjectOpenHashSet(this.defaultValue);
-   }
+    @Override
+    public void resetImpl() {
+        value = new ObjectOpenHashSet<>(defaultValue);
+    }
 
-   protected Set<ResourceKey<Enchantment>> parseImpl(String str) {
-      String[] values = str.split(",");
-      Set<ResourceKey<Enchantment>> enchs = new ObjectOpenHashSet(values.length);
+    @Override
+    protected Set<ResourceKey<Enchantment>> parseImpl(String str) {
+        String[] values = str.split(",");
+        Set<ResourceKey<Enchantment>> enchs = new ObjectOpenHashSet<>(values.length);
 
-      for (String value : values) {
-         String name = value.trim();
-         Identifier id;
-         if (name.contains(":")) {
-            id = Identifier.parse(name);
-         } else {
-            id = Identifier.withDefaultNamespace(name);
-         }
+        for (String value : values) {
+            String name = value.trim();
 
-         enchs.add(ResourceKey.create(Registries.ENCHANTMENT, id));
-      }
+            Identifier id;
+            if (name.contains(":")) id = Identifier.parse(name);
+            else id = Identifier.withDefaultNamespace(name);
 
-      return enchs;
-   }
+            enchs.add(ResourceKey.create(Registries.ENCHANTMENT, id));
+        }
 
-   protected boolean isValueValid(Set<ResourceKey<Enchantment>> value) {
-      return true;
-   }
+        return enchs;
+    }
 
-   @Override
-   public Iterable<Identifier> getIdentifierSuggestions() {
-      return Optional.ofNullable(Minecraft.getInstance().getConnection())
-         .flatMap(networkHandler -> networkHandler.registryAccess().lookup(Registries.ENCHANTMENT))
-         .map(Registry::keySet)
-         .orElse(Set.of());
-   }
+    @Override
+    protected boolean isValueValid(Set<ResourceKey<Enchantment>> value) {
+        return true;
+    }
 
-   @Override
-   public CompoundTag save(CompoundTag tag) {
-      ListTag valueTag = new ListTag();
+    @Override
+    public Iterable<Identifier> getIdentifierSuggestions() {
+        return Optional.ofNullable(Minecraft.getInstance().getConnection())
+            .flatMap(networkHandler -> networkHandler.registryAccess().lookup(Registries.ENCHANTMENT))
+            .map(Registry::keySet).orElse(Set.of());
+    }
 
-      for (ResourceKey<Enchantment> ench : this.get()) {
-         valueTag.add(StringTag.valueOf(ench.identifier().toString()));
-      }
+    @Override
+    public CompoundTag save(CompoundTag tag) {
+        ListTag valueTag = new ListTag();
+        for (ResourceKey<Enchantment> ench : get()) {
+            valueTag.add(StringTag.valueOf(ench.identifier().toString()));
+        }
+        tag.put("value", valueTag);
 
-      tag.put("value", valueTag);
-      return tag;
-   }
+        return tag;
+    }
 
-   public Set<ResourceKey<Enchantment>> load(CompoundTag tag) {
-      this.get().clear();
+    @Override
+    public Set<ResourceKey<Enchantment>> load(CompoundTag tag) {
+        get().clear();
 
-      for (Tag tagI : tag.getListOrEmpty("value")) {
-         this.get().add(ResourceKey.create(Registries.ENCHANTMENT, Identifier.parse(tagI.asString().orElse(""))));
-      }
+        for (Tag tagI : tag.getListOrEmpty("value")) {
+            get().add(ResourceKey.create(Registries.ENCHANTMENT, Identifier.parse(tagI.asString().orElse(""))));
+        }
 
-      return this.get();
-   }
+        return get();
+    }
 
-   public static class Builder extends Setting.SettingBuilder<EnchantmentListSetting.Builder, Set<ResourceKey<Enchantment>>, EnchantmentListSetting> {
-      private static final Set<ResourceKey<Enchantment>> VANILLA_DEFAULTS = Arrays.stream(Enchantments.class.getDeclaredFields())
-         .filter(field -> field.accessFlags().containsAll(List.of(AccessFlag.PUBLIC, AccessFlag.STATIC, AccessFlag.FINAL)))
-         .filter(field -> field.getType() == ResourceKey.class)
-         .map(field -> {
-            try {
-               return field.get(null);
-            } catch (IllegalAccessException var2) {
-               return null;
-            }
-         })
-         .filter(Objects::nonNull)
-         .map(ResourceKey.class::cast)
-         .filter(registryKey -> registryKey.registryKey() == Registries.ENCHANTMENT)
-         .collect(Collectors.toSet());
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static class Builder extends SettingBuilder<Builder, Set<ResourceKey<Enchantment>>, EnchantmentListSetting> {
+        private static final Set<ResourceKey<Enchantment>> VANILLA_DEFAULTS;
 
-      public Builder() {
-         super(new ObjectOpenHashSet());
-      }
+        public Builder() {
+            super(new ObjectOpenHashSet<>());
+        }
 
-      public EnchantmentListSetting.Builder vanillaDefaults() {
-         return this.defaultValue(VANILLA_DEFAULTS);
-      }
+        public Builder vanillaDefaults() {
+            return defaultValue(VANILLA_DEFAULTS);
+        }
 
-      @SafeVarargs
-      public final EnchantmentListSetting.Builder defaultValue(ResourceKey<Enchantment>... defaults) {
-         return this.defaultValue(defaults != null ? new ObjectOpenHashSet(defaults) : new ObjectOpenHashSet());
-      }
+        @SafeVarargs
+        public final Builder defaultValue(ResourceKey<Enchantment>... defaults) {
+            return defaultValue(defaults != null ? new ObjectOpenHashSet<>(defaults) : new ObjectOpenHashSet<>());
+        }
 
-      public EnchantmentListSetting build() {
-         return new EnchantmentListSetting(this.name, this.description, this.defaultValue, this.onChanged, this.onModuleActivated, this.visible);
-      }
-   }
+        @Override
+        public EnchantmentListSetting build() {
+            return new EnchantmentListSetting(name, description, defaultValue, onChanged, onModuleActivated, visible);
+        }
+
+        static {
+            VANILLA_DEFAULTS = (Set) Arrays.stream(Enchantments.class.getDeclaredFields())
+                .filter(field -> field.accessFlags().containsAll(List.of(AccessFlag.PUBLIC, AccessFlag.STATIC, AccessFlag.FINAL)))
+                .filter(field -> field.getType() == ResourceKey.class)
+                .map(field -> {
+                    try {
+                        return field.get(null);
+                    } catch (IllegalAccessException _) {
+                        return null;
+                    }
+                }).filter(Objects::nonNull)
+                .map(ResourceKey.class::cast)
+                .filter(registryKey -> registryKey.registryKey() == Registries.ENCHANTMENT)
+                .collect(Collectors.toSet());
+        }
+    }
 }

@@ -1,120 +1,131 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.systems.friends;
 
+import com.mojang.util.UndashedUuid;
 import com.jfant.specter.core.systems.System;
 import com.jfant.specter.core.systems.Systems;
 import com.jfant.specter.core.utils.misc.NbtUtils;
 import com.jfant.specter.core.utils.network.MeteorExecutor;
-import com.mojang.util.UndashedUuid;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.player.Player;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 public class Friends extends System<Friends> implements Iterable<Friend> {
-   private final List<Friend> friends = new ArrayList<>();
+    private final List<Friend> friends = new ArrayList<>();
 
-   public Friends() {
-      super("friends");
-   }
+    public Friends() {
+        super("friends");
+    }
 
-   public static Friends get() {
-      return Systems.get(Friends.class);
-   }
+    public static Friends get() {
+        return Systems.get(Friends.class);
+    }
 
-   public boolean add(Friend friend) {
-      if (friend.name.isEmpty() || friend.name.contains(" ")) {
-         return false;
-      } else if (this.get(friend.name) != null) {
-         return false;
-      } else {
-         this.friends.add(friend);
-         this.save();
-         return true;
-      }
-   }
+    public boolean add(Friend friend) {
+        if (friend.name.isEmpty() || friend.name.contains(" ")) return false;
+        if (get(friend.name) != null) return false;
 
-   public boolean remove(Friend friend) {
-      if (this.friends.remove(friend)) {
-         this.save();
-         return true;
-      } else {
-         return false;
-      }
-   }
+        friends.add(friend);
+        save();
 
-   public Friend get(String name) {
-      for (Friend friend : this.friends) {
-         if (friend.name.equalsIgnoreCase(name)) {
-            return friend;
-         }
-      }
+        return true;
+    }
 
-      return null;
-   }
+    public boolean remove(Friend friend) {
+        if (friends.remove(friend)) {
+            save();
+            return true;
+        }
 
-   public Friend get(Player player) {
-      return this.get(player.getName().getString());
-   }
+        return false;
+    }
 
-   public Friend get(PlayerInfo player) {
-      return this.get(player.getProfile().name());
-   }
-
-   public boolean isFriend(Player player) {
-      return player != null && this.get(player) != null;
-   }
-
-   public boolean isFriend(PlayerInfo player) {
-      return this.get(player) != null;
-   }
-
-   public boolean shouldAttack(Player player) {
-      return !this.isFriend(player);
-   }
-
-   public int count() {
-      return this.friends.size();
-   }
-
-   public boolean isEmpty() {
-      return this.friends.isEmpty();
-   }
-
-   @NotNull
-   @Override
-   public Iterator<Friend> iterator() {
-      return this.friends.iterator();
-   }
-
-   @Override
-   public CompoundTag toTag() {
-      CompoundTag tag = new CompoundTag();
-      tag.put("friends", NbtUtils.listToTag(this.friends));
-      return tag;
-   }
-
-   public Friends fromTag(CompoundTag tag) {
-      this.friends.clear();
-
-      for (Tag itemTag : tag.getListOrEmpty("friends")) {
-         CompoundTag friendTag = (CompoundTag)itemTag;
-         if (friendTag.contains("name")) {
-            String name = friendTag.getStringOr("name", "");
-            if (this.get(name) == null) {
-               String uuid = friendTag.getStringOr("id", "");
-               Friend friend = !uuid.isBlank() ? new Friend(name, UndashedUuid.fromStringLenient(uuid)) : new Friend(name);
-               this.friends.add(friend);
+    public Friend get(String name) {
+        for (Friend friend : friends) {
+            if (friend.name.equalsIgnoreCase(name)) {
+                return friend;
             }
-         }
-      }
+        }
 
-      Collections.sort(this.friends);
-      MeteorExecutor.execute(() -> this.friends.forEach(Friend::updateInfo));
-      return this;
-   }
+        return null;
+    }
+
+    public Friend get(Player player) {
+        return get(player.getName().getString());
+    }
+
+    public Friend get(PlayerInfo player) {
+        return get(player.getProfile().name());
+    }
+
+    public boolean isFriend(Player player) {
+        return player != null && get(player) != null;
+    }
+
+    public boolean isFriend(PlayerInfo player) {
+        return get(player) != null;
+    }
+
+    public boolean shouldAttack(Player player) {
+        return !isFriend(player);
+    }
+
+    public int count() {
+        return friends.size();
+    }
+
+    public boolean isEmpty() {
+        return friends.isEmpty();
+    }
+
+    @Override
+    public @NonNull Iterator<Friend> iterator() {
+        return friends.iterator();
+    }
+
+    @Override
+    public CompoundTag toTag() {
+        CompoundTag tag = new CompoundTag();
+
+        tag.put("friends", NbtUtils.listToTag(friends));
+
+        return tag;
+    }
+
+    @Override
+    public Friends fromTag(CompoundTag tag) {
+        friends.clear();
+
+        for (Tag itemTag : tag.getListOrEmpty("friends")) {
+            CompoundTag friendTag = (CompoundTag) itemTag;
+            if (!friendTag.contains("name")) continue;
+
+            String name = friendTag.getStringOr("name", "");
+            if (get(name) != null) continue;
+
+            String uuid = friendTag.getStringOr("id", "");
+            Friend friend = !uuid.isBlank()
+                ? new Friend(name, UndashedUuid.fromStringLenient(uuid))
+                : new Friend(name);
+
+            friends.add(friend);
+        }
+
+        Collections.sort(friends);
+
+        MeteorExecutor.execute(() -> friends.forEach(Friend::updateInfo));
+
+        return this;
+    }
 }

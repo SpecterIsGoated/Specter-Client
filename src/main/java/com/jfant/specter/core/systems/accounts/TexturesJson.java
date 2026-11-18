@@ -1,13 +1,18 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.systems.accounts;
 
 public class TexturesJson {
-   public TexturesJson.Textures textures;
+    public Textures textures;
 
-   public static class Texture {
-      public String url;
-   }
+    public static class Textures {
+        public Texture SKIN;
+    }
 
-   public static class Textures {
-      public TexturesJson.Texture SKIN;
-   }
+    public static class Texture {
+        public String url;
+    }
 }

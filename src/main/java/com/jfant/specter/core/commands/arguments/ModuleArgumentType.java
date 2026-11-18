@@ -1,7 +1,10 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.commands.arguments;
 
-import com.jfant.specter.core.systems.modules.Module;
-import com.jfant.specter.core.systems.modules.Modules;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -9,45 +12,51 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import java.util.Collection;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
+import com.jfant.specter.core.systems.modules.Module;
+import com.jfant.specter.core.systems.modules.Modules;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 
+import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
+
 public class ModuleArgumentType implements ArgumentType<Module> {
-   private static final ModuleArgumentType INSTANCE = new ModuleArgumentType();
-   private static final DynamicCommandExceptionType NO_SUCH_MODULE = new DynamicCommandExceptionType(
-      name -> Component.literal("Module with name " + name + " doesn't exist.")
-   );
-   private static final Collection<String> EXAMPLES = Modules.get().getAll().stream().limit(3L).map(module -> module.name).collect(Collectors.toList());
+    private static final ModuleArgumentType INSTANCE = new ModuleArgumentType();
+    private static final DynamicCommandExceptionType NO_SUCH_MODULE = new DynamicCommandExceptionType(name -> Component.literal("Module with name " + name + " doesn't exist."));
 
-   public static ModuleArgumentType create() {
-      return INSTANCE;
-   }
+    private static final Collection<String> EXAMPLES = Modules.get().getAll()
+        .stream()
+        .limit(3)
+        .map(module -> module.name)
+        .toList();
 
-   public static Module get(CommandContext<?> context) {
-      return (Module)context.getArgument("module", Module.class);
-   }
+    public static ModuleArgumentType create() {
+        return INSTANCE;
+    }
 
-   private ModuleArgumentType() {
-   }
+    public static Module get(CommandContext<?> context) {
+        return context.getArgument("module", Module.class);
+    }
 
-   public Module parse(StringReader reader) throws CommandSyntaxException {
-      String argument = reader.readString();
-      Module module = Modules.get().get(argument);
-      if (module == null) {
-         throw NO_SUCH_MODULE.create(argument);
-      } else {
-         return module;
-      }
-   }
+    private ModuleArgumentType() {
+    }
 
-   public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-      return SharedSuggestionProvider.suggest(Modules.get().getAll().stream().map(module -> module.name), builder);
-   }
+    @Override
+    public Module parse(StringReader reader) throws CommandSyntaxException {
+        String argument = reader.readString();
+        Module module = Modules.get().get(argument);
+        if (module == null) throw NO_SUCH_MODULE.create(argument);
 
-   public Collection<String> getExamples() {
-      return EXAMPLES;
-   }
+        return module;
+    }
+
+    @Override
+    public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
+        return SharedSuggestionProvider.suggest(Modules.get().getAll().stream().map(module -> module.name), builder);
+    }
+
+    @Override
+    public Collection<String> getExamples() {
+        return EXAMPLES;
+    }
 }

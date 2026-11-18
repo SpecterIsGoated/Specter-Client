@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.utils;
 
 import com.jfant.specter.core.gui.GuiTheme;
@@ -5,35 +10,39 @@ import com.jfant.specter.core.gui.widgets.WWidget;
 import com.jfant.specter.core.gui.widgets.containers.WTable;
 import com.jfant.specter.core.settings.Setting;
 import com.jfant.specter.core.settings.Settings;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
 public abstract class SettingsWidgetFactory {
-   private static final Map<Class<?>, Function<GuiTheme, SettingsWidgetFactory.Factory>> customFactories = new HashMap<>();
-   protected final GuiTheme theme;
-   protected final Map<Class<?>, SettingsWidgetFactory.Factory> factories = new HashMap<>();
+    private static final Map<Class<?>, Function<GuiTheme, Factory>> customFactories = new HashMap<>();
 
-   public SettingsWidgetFactory(GuiTheme theme) {
-      this.theme = theme;
-   }
+    protected final GuiTheme theme;
+    protected final Map<Class<?>, Factory> factories = new HashMap<>();
 
-   public static void registerCustomFactory(Class<?> settingClass, Function<GuiTheme, SettingsWidgetFactory.Factory> factoryFunction) {
-      customFactories.put(settingClass, factoryFunction);
-   }
+    public SettingsWidgetFactory(GuiTheme theme) {
+        this.theme = theme;
+    }
 
-   public static void unregisterCustomFactory(Class<?> settingClass) {
-      customFactories.remove(settingClass);
-   }
+    /** {@code SettingsWidgetFactory.registerCustomFactory(SomeSetting.class, (theme) -> (table, setting) -> {//create widget})} */
+    public static void registerCustomFactory(Class<?> settingClass, Function<GuiTheme, Factory> factoryFunction) {
+        customFactories.put(settingClass, factoryFunction);
+    }
 
-   public abstract WWidget create(GuiTheme var1, Settings var2, String var3);
+    public static void unregisterCustomFactory(Class<?> settingClass) {
+        customFactories.remove(settingClass);
+    }
 
-   protected SettingsWidgetFactory.Factory getFactory(Class<?> settingClass) {
-      return customFactories.containsKey(settingClass) ? customFactories.get(settingClass).apply(this.theme) : this.factories.get(settingClass);
-   }
+    public abstract WWidget create(GuiTheme theme, Settings settings, String filter);
 
-   @FunctionalInterface
-   public interface Factory {
-      void create(WTable var1, Setting<?> var2);
-   }
+    protected Factory getFactory(Class<?> settingClass) {
+        if (customFactories.containsKey(settingClass)) return customFactories.get(settingClass).apply(theme);
+        return factories.get(settingClass);
+    }
+
+    @FunctionalInterface
+    public interface Factory {
+        void create(WTable table, Setting<?> setting);
+    }
 }

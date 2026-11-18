@@ -1,194 +1,193 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui.utils;
 
 import com.jfant.specter.core.gui.widgets.WWidget;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class Cell<T extends WWidget> {
-   private final T widget;
-   public double x;
-   public double y;
-   public double width;
-   public double height;
-   private AlignmentX alignX = AlignmentX.Left;
-   private AlignmentY alignY = AlignmentY.Top;
-   private double padTop;
-   private double padRight;
-   private double padBottom;
-   private double padLeft;
-   private double marginTop;
-   private boolean expandWidgetX;
-   private boolean expandWidgetY;
-   public boolean expandCellX;
-   @Nullable
-   public String group;
+    private final T widget;
 
-   public Cell(T widget) {
-      this.widget = widget;
-   }
+    public double x, y;
+    public double width, height;
 
-   public T widget() {
-      return this.widget;
-   }
+    private AlignmentX alignX = AlignmentX.Left;
+    private AlignmentY alignY = AlignmentY.Top;
 
-   public void move(double deltaX, double deltaY) {
-      this.x += deltaX;
-      this.y += deltaY;
-      this.widget.move(deltaX, deltaY);
-   }
+    private double padTop, padRight, padBottom, padLeft;
+    private double marginTop;
 
-   public Cell<T> minWidth(double width) {
-      this.widget.minWidth = width;
-      return this;
-   }
+    private boolean expandWidgetX;
+    private boolean expandWidgetY;
 
-   public Cell<T> centerX() {
-      this.alignX = AlignmentX.Center;
-      return this;
-   }
+    public boolean expandCellX;
 
-   public Cell<T> right() {
-      this.alignX = AlignmentX.Right;
-      return this;
-   }
+    public @Nullable String group;
 
-   public Cell<T> centerY() {
-      this.alignY = AlignmentY.Center;
-      return this;
-   }
+    public Cell(T widget) {
+        this.widget = widget;
+    }
 
-   public Cell<T> bottom() {
-      this.alignY = AlignmentY.Bottom;
-      return this;
-   }
+    public T widget() {
+        return widget;
+    }
 
-   public Cell<T> center() {
-      this.alignX = AlignmentX.Center;
-      this.alignY = AlignmentY.Center;
-      return this;
-   }
+    public void move(double deltaX, double deltaY) {
+        x += deltaX;
+        y += deltaY;
 
-   public Cell<T> top() {
-      this.alignY = AlignmentY.Top;
-      return this;
-   }
+        widget.move(deltaX, deltaY);
+    }
 
-   public Cell<T> padTop(double pad) {
-      this.padTop = pad;
-      return this;
-   }
+    public Cell<T> minWidth(double width) {
+        widget.minWidth = width;
+        return this;
+    }
 
-   public Cell<T> padRight(double pad) {
-      this.padRight = pad;
-      return this;
-   }
+    // Alignment
 
-   public Cell<T> padBottom(double pad) {
-      this.padBottom = pad;
-      return this;
-   }
+    public Cell<T> centerX() {
+        alignX = AlignmentX.Center;
+        return this;
+    }
 
-   public Cell<T> padLeft(double pad) {
-      this.padLeft = pad;
-      return this;
-   }
+    public Cell<T> right() {
+        alignX = AlignmentX.Right;
+        return this;
+    }
 
-   public Cell<T> padHorizontal(double pad) {
-      this.padRight = this.padLeft = pad;
-      return this;
-   }
+    public Cell<T> centerY() {
+        alignY = AlignmentY.Center;
+        return this;
+    }
 
-   public Cell<T> padVertical(double pad) {
-      this.padTop = this.padBottom = pad;
-      return this;
-   }
+    public Cell<T> bottom() {
+        alignY = AlignmentY.Bottom;
+        return this;
+    }
 
-   public Cell<T> pad(double pad) {
-      this.padTop = this.padRight = this.padBottom = this.padLeft = pad;
-      return this;
-   }
+    public Cell<T> center() {
+        alignX = AlignmentX.Center;
+        alignY = AlignmentY.Center;
+        return this;
+    }
 
-   public double padTop() {
-      return this.s(this.padTop);
-   }
+    public Cell<T> top() {
+        alignY = AlignmentY.Top;
+        return this;
+    }
 
-   public double padRight() {
-      return this.s(this.padRight);
-   }
+    // Padding
 
-   public double padBottom() {
-      return this.s(this.padBottom);
-   }
+    public Cell<T> padTop(double pad) {
+        padTop = pad;
+        return this;
+    }
+    public Cell<T> padRight(double pad) {
+        padRight = pad;
+        return this;
+    }
+    public Cell<T> padBottom(double pad) {
+        padBottom = pad;
+        return this;
+    }
+    public Cell<T> padLeft(double pad) {
+        padLeft = pad;
+        return this;
+    }
 
-   public double padLeft() {
-      return this.s(this.padLeft);
-   }
+    public Cell<T> padHorizontal(double pad) {
+        padRight = padLeft = pad;
+        return this;
+    }
+    public Cell<T> padVertical(double pad) {
+        padTop = padBottom = pad;
+        return this;
+    }
+    public Cell<T> pad(double pad) {
+        padTop = padRight = padBottom = padLeft = pad;
+        return this;
+    }
 
-   public Cell<T> marginTop(double m) {
-      this.marginTop = m;
-      return this;
-   }
+    public double padTop() {
+        return s(padTop);
+    }
+    public double padRight() {
+        return s(padRight);
+    }
+    public double padBottom() {
+        return s(padBottom);
+    }
+    public double padLeft() {
+        return s(padLeft);
+    }
 
-   public Cell<T> expandWidgetX() {
-      this.expandWidgetX = true;
-      return this;
-   }
+    // Margin
 
-   public Cell<T> expandWidgetY() {
-      this.expandWidgetY = true;
-      return this;
-   }
+    public Cell<T> marginTop(double m) {
+        marginTop = m;
+        return this;
+    }
 
-   public Cell<T> expandCellX() {
-      this.expandCellX = true;
-      return this;
-   }
+    // Expand
 
-   public Cell<T> expandX() {
-      this.expandWidgetX = true;
-      this.expandCellX = true;
-      return this;
-   }
+    public Cell<T> expandWidgetX() {
+        expandWidgetX = true;
+        return this;
+    }
 
-   public Cell<T> group(String group) {
-      this.group = group;
-      return this;
-   }
+    public Cell<T> expandWidgetY() {
+        expandWidgetY = true;
+        return this;
+    }
 
-   public void alignWidget() {
-      if (this.expandWidgetX) {
-         this.widget.x = this.x;
-         this.widget.width = this.width;
-      } else {
-         switch (this.alignX) {
-            case Left:
-               this.widget.x = this.x;
-               break;
-            case Center:
-               this.widget.x = this.x + this.width / 2.0 - this.widget.width / 2.0;
-               break;
-            case Right:
-               this.widget.x = this.x + this.width - this.widget.width;
-         }
-      }
+    public Cell<T> expandCellX() {
+        expandCellX = true;
+        return this;
+    }
 
-      if (this.expandWidgetY) {
-         this.widget.y = this.y;
-         this.widget.height = this.height;
-      } else {
-         switch (this.alignY) {
-            case Top:
-               this.widget.y = this.y + this.s(this.marginTop);
-               break;
-            case Center:
-               this.widget.y = this.y + this.height / 2.0 - this.widget.height / 2.0;
-               break;
-            case Bottom:
-               this.widget.y = this.y + this.height - this.widget.height;
-         }
-      }
-   }
+    public Cell<T> expandX() {
+        expandWidgetX = true;
+        expandCellX = true;
+        return this;
+    }
 
-   private double s(double value) {
-      return this.widget.theme.scale(value);
-   }
+    // Other
+
+    /// Makes this cell's width match the largest cell in the group
+    public Cell<T> group(String group) {
+        this.group = group;
+        return this;
+    }
+
+    public void alignWidget() {
+        if (expandWidgetX) {
+            widget.x = x;
+            widget.width = width;
+        } else {
+            switch (alignX) {
+                case Left -> widget.x = x;
+                case Center -> widget.x = x + width / 2 - widget.width / 2;
+                case Right -> widget.x = x + width - widget.width;
+            }
+        }
+
+        if (expandWidgetY) {
+            widget.y = y;
+            widget.height = height;
+        } else {
+            switch (alignY) {
+                case Top -> widget.y = y + s(marginTop);
+                case Center -> widget.y = y + height / 2 - widget.height / 2;
+                case Bottom -> widget.y = y + height - widget.height;
+            }
+        }
+    }
+
+    private double s(double value) {
+        return widget.theme.scale(value);
+    }
 }

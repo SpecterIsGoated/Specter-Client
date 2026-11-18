@@ -1,3 +1,8 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.gui;
 
 import com.jfant.specter.core.gui.renderer.packer.GuiTexture;
@@ -9,38 +14,10 @@ import com.jfant.specter.core.gui.tabs.TabScreen;
 import com.jfant.specter.core.gui.utils.CharFilter;
 import com.jfant.specter.core.gui.utils.SettingsWidgetFactory;
 import com.jfant.specter.core.gui.utils.WindowConfig;
-import com.jfant.specter.core.gui.widgets.WAccount;
-import com.jfant.specter.core.gui.widgets.WHorizontalSeparator;
-import com.jfant.specter.core.gui.widgets.WItem;
-import com.jfant.specter.core.gui.widgets.WItemWithLabel;
-import com.jfant.specter.core.gui.widgets.WKeybind;
-import com.jfant.specter.core.gui.widgets.WLabel;
-import com.jfant.specter.core.gui.widgets.WQuad;
-import com.jfant.specter.core.gui.widgets.WTexture;
-import com.jfant.specter.core.gui.widgets.WTooltip;
-import com.jfant.specter.core.gui.widgets.WTopBar;
-import com.jfant.specter.core.gui.widgets.WVerticalSeparator;
-import com.jfant.specter.core.gui.widgets.WWidget;
-import com.jfant.specter.core.gui.widgets.containers.WHorizontalList;
-import com.jfant.specter.core.gui.widgets.containers.WSection;
-import com.jfant.specter.core.gui.widgets.containers.WTable;
-import com.jfant.specter.core.gui.widgets.containers.WVerticalList;
-import com.jfant.specter.core.gui.widgets.containers.WView;
-import com.jfant.specter.core.gui.widgets.containers.WWindow;
-import com.jfant.specter.core.gui.widgets.input.WBlockPosEdit;
-import com.jfant.specter.core.gui.widgets.input.WDoubleEdit;
-import com.jfant.specter.core.gui.widgets.input.WDropdown;
-import com.jfant.specter.core.gui.widgets.input.WIntEdit;
-import com.jfant.specter.core.gui.widgets.input.WSlider;
-import com.jfant.specter.core.gui.widgets.input.WTextBox;
-import com.jfant.specter.core.gui.widgets.pressable.WButton;
-import com.jfant.specter.core.gui.widgets.pressable.WCheckbox;
-import com.jfant.specter.core.gui.widgets.pressable.WConfirmedButton;
-import com.jfant.specter.core.gui.widgets.pressable.WConfirmedMinus;
-import com.jfant.specter.core.gui.widgets.pressable.WFavorite;
-import com.jfant.specter.core.gui.widgets.pressable.WMinus;
-import com.jfant.specter.core.gui.widgets.pressable.WPlus;
-import com.jfant.specter.core.gui.widgets.pressable.WTriangle;
+import com.jfant.specter.core.gui.widgets.*;
+import com.jfant.specter.core.gui.widgets.containers.*;
+import com.jfant.specter.core.gui.widgets.input.*;
+import com.jfant.specter.core.gui.widgets.pressable.*;
 import com.jfant.specter.core.renderer.Texture;
 import com.jfant.specter.core.renderer.text.TextRenderer;
 import com.jfant.specter.core.settings.Settings;
@@ -50,333 +27,359 @@ import com.jfant.specter.core.utils.misc.ISerializable;
 import com.jfant.specter.core.utils.misc.Keybind;
 import com.jfant.specter.core.utils.misc.Names;
 import com.jfant.specter.core.utils.render.color.Color;
-import java.util.HashMap;
-import java.util.Map;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public abstract class GuiTheme implements ISerializable<GuiTheme> {
-   public static final double TITLE_TEXT_SCALE = 1.25;
-   public final String name;
-   public final Settings settings = new Settings();
-   public boolean disableHoverColor;
-   protected SettingsWidgetFactory settingsFactory;
-   protected final Map<String, WindowConfig> windowConfigs = new HashMap<>();
+    public static final double TITLE_TEXT_SCALE = 1.25;
 
-   public GuiTheme(String name) {
-      this.name = name;
-   }
+    public final String name;
+    public final Settings settings = new Settings();
 
-   public void beforeRender() {
-      this.disableHoverColor = false;
-   }
+    public boolean disableHoverColor;
 
-   public abstract WWindow window(WWidget var1, String var2);
+    protected SettingsWidgetFactory settingsFactory;
 
-   public WWindow window(String title) {
-      return this.window(null, title);
-   }
+    protected final Map<String, WindowConfig> windowConfigs = new HashMap<>();
 
-   public abstract WLabel label(String var1, boolean var2, double var3);
+    public GuiTheme(String name) {
+        this.name = name;
+    }
 
-   public WLabel label(String text, boolean title) {
-      return this.label(text, title, 0.0);
-   }
+    public void beforeRender() {
+        disableHoverColor = false;
+    }
 
-   public WLabel label(String text, double maxWidth) {
-      return this.label(text, false, maxWidth);
-   }
+    // Widgets
 
-   public WLabel label(String text) {
-      return this.label(text, false);
-   }
+    public abstract WWindow window(WWidget icon, String title);
 
-   public abstract WHorizontalSeparator horizontalSeparator(String var1);
+    public WWindow window(String title) {
+        return window(null, title);
+    }
 
-   public WHorizontalSeparator horizontalSeparator() {
-      return this.horizontalSeparator(null);
-   }
+    public abstract WLabel label(String text, boolean title, double maxWidth);
 
-   public abstract WVerticalSeparator verticalSeparator();
+    public WLabel label(String text, boolean title) {
+        return label(text, title, 0);
+    }
 
-   protected abstract WButton button(String var1, GuiTexture var2);
+    public WLabel label(String text, double maxWidth) {
+        return label(text, false, maxWidth);
+    }
 
-   public WButton button(String text) {
-      return this.button(text, null);
-   }
+    public WLabel label(String text) {
+        return label(text, false);
+    }
 
-   public WButton button(GuiTexture texture) {
-      return this.button(null, texture);
-   }
+    public abstract WHorizontalSeparator horizontalSeparator(String text);
 
-   protected abstract WConfirmedButton confirmedButton(String var1, String var2, GuiTexture var3);
+    public WHorizontalSeparator horizontalSeparator() {
+        return horizontalSeparator(null);
+    }
 
-   public WConfirmedButton confirmedButton(String text, String confirmText) {
-      return this.confirmedButton(text, confirmText, null);
-   }
+    public abstract WVerticalSeparator verticalSeparator();
 
-   public WConfirmedButton confirmedButton(GuiTexture texture) {
-      return this.confirmedButton(null, null, texture);
-   }
+    protected abstract WButton button(String text, GuiTexture texture);
 
-   public abstract WMinus minus();
+    public WButton button(String text) {
+        return button(text, null);
+    }
 
-   public abstract WConfirmedMinus confirmedMinus();
+    public WButton button(GuiTexture texture) {
+        return button(null, texture);
+    }
 
-   public abstract WPlus plus();
+    protected abstract WConfirmedButton confirmedButton(String text, String confirmText, GuiTexture texture);
 
-   public abstract WCheckbox checkbox(boolean var1);
+    public WConfirmedButton confirmedButton(String text, String confirmText) {
+        return confirmedButton(text, confirmText, null);
+    }
 
-   public abstract WSlider slider(double var1, double var3, double var5);
+    public WConfirmedButton confirmedButton(GuiTexture texture) {
+        return confirmedButton(null, null, texture);
+    }
 
-   public abstract WTextBox textBox(String var1, String var2, CharFilter var3, Class<? extends WTextBox.Renderer> var4);
+    public abstract WMinus minus();
 
-   public WTextBox textBox(String text, CharFilter filter, Class<? extends WTextBox.Renderer> renderer) {
-      return this.textBox(text, null, filter, renderer);
-   }
+    public abstract WConfirmedMinus confirmedMinus();
 
-   public WTextBox textBox(String text, String placeholder, CharFilter filter) {
-      return this.textBox(text, placeholder, filter, null);
-   }
+    public abstract WPlus plus();
 
-   public WTextBox textBox(String text, CharFilter filter) {
-      return this.textBox(text, filter, null);
-   }
+    public abstract WCheckbox checkbox(boolean checked);
 
-   public WTextBox textBox(String text, String placeholder) {
-      return this.textBox(text, placeholder, (text1, c) -> true, null);
-   }
+    public abstract WSlider slider(double value, double min, double max);
 
-   public WTextBox textBox(String text) {
-      return this.textBox(text, (text1, c) -> true, null);
-   }
+    public abstract WTextBox textBox(String text, String placeholder, CharFilter filter, Class<? extends WTextBox.Renderer> renderer);
 
-   public abstract <T> WDropdown<T> dropdown(T[] var1, T var2);
+    public WTextBox textBox(String text, CharFilter filter, Class<? extends WTextBox.Renderer> renderer) {
+        return textBox(text, null, filter, renderer);
+    }
 
-   public <T extends Enum<?>> WDropdown<T> dropdown(T value) {
-      Class<?> klass = value.getDeclaringClass();
-      T[] values = (T[])klass.getEnumConstants();
-      return this.dropdown(values, value);
-   }
+    public WTextBox textBox(String text, String placeholder, CharFilter filter) {
+        return textBox(text, placeholder, filter, null);
+    }
 
-   public abstract WTriangle triangle();
+    public WTextBox textBox(String text, CharFilter filter) {
+        return textBox(text, filter, null);
+    }
 
-   public abstract WTooltip tooltip(String var1);
+    public WTextBox textBox(String text, String placeholder) {
+        return textBox(text, placeholder, (_, _) -> true, null);
+    }
 
-   public abstract WView view();
+    public WTextBox textBox(String text) {
+        return textBox(text, (_, _) -> true, null);
+    }
 
-   public WVerticalList verticalList() {
-      return this.w(new WVerticalList());
-   }
+    public abstract <T> WDropdown<T> dropdown(T[] values, T value);
 
-   public WHorizontalList horizontalList() {
-      return this.w(new WHorizontalList());
-   }
+    @SuppressWarnings("unchecked")
+    public <T extends Enum<?>> WDropdown<T> dropdown(T value) {
+        Class<?> klass = value.getDeclaringClass();
+        T[] values = (T[]) klass.getEnumConstants();
+        return dropdown(values, value);
+    }
 
-   public WTable table() {
-      return this.w(new WTable());
-   }
+    public abstract WTriangle triangle();
 
-   public abstract WSection section(String var1, boolean var2, WWidget var3);
+    public abstract WTooltip tooltip(String text);
 
-   public WSection section(String title, boolean expanded) {
-      return this.section(title, expanded, null);
-   }
+    public abstract WView view();
 
-   public WSection section(String title) {
-      return this.section(title, true);
-   }
+    public WVerticalList verticalList() {
+        return w(new WVerticalList());
+    }
 
-   public abstract WAccount account(WidgetScreen var1, Account<?> var2);
+    public WHorizontalList horizontalList() {
+        return w(new WHorizontalList());
+    }
 
-   public WWidget module(Module module) {
-      return this.module(module, module.title);
-   }
+    public WTable table() {
+        return w(new WTable());
+    }
 
-   public abstract WWidget module(Module var1, String var2);
+    public abstract WSection section(String title, boolean expanded, WWidget headerWidget);
 
-   public abstract WQuad quad(Color var1);
+    public WSection section(String title, boolean expanded) {
+        return section(title, expanded, null);
+    }
 
-   public abstract WTopBar topBar();
+    public WSection section(String title) {
+        return section(title, true);
+    }
 
-   public abstract WFavorite favorite(boolean var1);
+    public abstract WAccount account(WidgetScreen screen, Account<?> account);
 
-   public WItem item(ItemStack itemStack) {
-      return this.w(new WItem(itemStack));
-   }
+    public WWidget module(Module module) {
+        return module(module, module.title);
+    }
 
-   public WItemWithLabel itemWithLabel(ItemStack stack, String name) {
-      return this.w(new WItemWithLabel(stack, name));
-   }
+    public abstract WWidget module(Module module, String title);
 
-   public WItemWithLabel itemWithLabel(ItemStack stack) {
-      return this.itemWithLabel(stack, Names.get(stack.getItem()));
-   }
+    public abstract WQuad quad(Color color);
 
-   public WTexture texture(double width, double height, double rotation, Texture texture) {
-      return this.w(new WTexture(width, height, rotation, texture));
-   }
+    public abstract WTopBar topBar();
 
-   public WIntEdit intEdit(int value, int min, int max, int sliderMin, int sliderMax, boolean noSlider) {
-      return this.w(new WIntEdit(value, min, max, sliderMin, sliderMax, noSlider));
-   }
+    public abstract WFavorite favorite(boolean checked);
 
-   public WIntEdit intEdit(int value, int min, int max, int sliderMin, int sliderMax) {
-      return this.w(new WIntEdit(value, min, max, sliderMin, sliderMax, false));
-   }
+    public WItem item(ItemStack itemStack) {
+        return w(new WItem(itemStack));
+    }
 
-   public WIntEdit intEdit(int value, int min, int max, boolean noSlider) {
-      return this.w(new WIntEdit(value, min, max, 0, 0, noSlider));
-   }
+    public WItemWithLabel itemWithLabel(ItemStack stack, String name) {
+        return w(new WItemWithLabel(stack, name));
+    }
 
-   public WDoubleEdit doubleEdit(double value, double min, double max, double sliderMin, double sliderMax, int decimalPlaces, boolean noSlider) {
-      return this.w(new WDoubleEdit(value, min, max, sliderMin, sliderMax, decimalPlaces, noSlider));
-   }
+    public WItemWithLabel itemWithLabel(ItemStack stack) {
+        return itemWithLabel(stack, Names.get(stack.getItem()));
+    }
 
-   public WDoubleEdit doubleEdit(double value, double min, double max, double sliderMin, double sliderMax) {
-      return this.w(new WDoubleEdit(value, min, max, sliderMin, sliderMax, 3, false));
-   }
+    public WTexture texture(double width, double height, double rotation, Texture texture) {
+        return w(new WTexture(width, height, rotation, texture));
+    }
 
-   public WDoubleEdit doubleEdit(double value, double min, double max) {
-      return this.w(new WDoubleEdit(value, min, max, 0.0, 10.0, 3, false));
-   }
+    public WIntEdit intEdit(int value, int min, int max, int sliderMin, int sliderMax, boolean noSlider) {
+        return w(new WIntEdit(value, min, max, sliderMin, sliderMax, noSlider));
+    }
 
-   public WBlockPosEdit blockPosEdit(BlockPos value) {
-      return this.w(new WBlockPosEdit(value));
-   }
+    public WIntEdit intEdit(int value, int min, int max, int sliderMin, int sliderMax) {
+        return w(new WIntEdit(value, min, max, sliderMin, sliderMax, false));
+    }
 
-   public WKeybind keybind(Keybind keybind) {
-      return this.keybind(keybind, Keybind.none());
-   }
+    public WIntEdit intEdit(int value, int min, int max, boolean noSlider) {
+        return w(new WIntEdit(value, min, max, 0, 0, noSlider));
+    }
 
-   public WKeybind keybind(Keybind keybind, Keybind defaultValue) {
-      return this.w(new WKeybind(keybind, defaultValue));
-   }
+    public WLongEdit longEdit(long value, long min, long max) {
+        return w(new WLongEdit(value, min, max));
+    }
 
-   public WWidget settings(Settings settings, String filter) {
-      return this.settingsFactory.create(this, settings, filter);
-   }
+    public WDoubleEdit doubleEdit(double value, double min, double max, double sliderMin, double sliderMax, int decimalPlaces, boolean noSlider) {
+        return w(new WDoubleEdit(value, min, max, sliderMin, sliderMax, decimalPlaces, noSlider));
+    }
 
-   public WWidget settings(Settings settings) {
-      return this.settings(settings, "");
-   }
+    public WDoubleEdit doubleEdit(double value, double min, double max, double sliderMin, double sliderMax) {
+        return w(new WDoubleEdit(value, min, max, sliderMin, sliderMax, 3, false));
+    }
 
-   public TabScreen modulesScreen() {
-      return new ModulesScreen(this);
-   }
+    public WDoubleEdit doubleEdit(double value, double min, double max) {
+        return w(new WDoubleEdit(value, min, max, 0, 10, 3, false));
+    }
 
-   public boolean isModulesScreen(Screen screen) {
-      return screen instanceof ModulesScreen;
-   }
+    public WBlockPosEdit blockPosEdit(BlockPos value) {
+        return w(new WBlockPosEdit(value));
+    }
 
-   public WidgetScreen moduleScreen(Module module) {
-      return new ModuleScreen(this, module);
-   }
+    public WKeybind keybind(Keybind keybind) {
+        return keybind(keybind, Keybind.none());
+    }
 
-   public WidgetScreen accountsScreen() {
-      return new AccountsScreen(this);
-   }
+    public WKeybind keybind(Keybind keybind, Keybind defaultValue) {
+        return w(new WKeybind(keybind, defaultValue));
+    }
 
-   public WidgetScreen proxiesScreen() {
-      return new ProxiesScreen(this);
-   }
+    public WWidget settings(Settings settings, String filter) {
+        return settingsFactory.create(this, settings, filter);
+    }
 
-   public abstract Color textColor();
+    public WWidget settings(Settings settings) {
+        return settings(settings, "");
+    }
 
-   public abstract Color textSecondaryColor();
+    // Screens
 
-   public abstract Color starscriptTextColor();
+    public TabScreen modulesScreen() {
+        return new ModulesScreen(this);
+    }
 
-   public abstract Color starscriptBraceColor();
+    public boolean isModulesScreen(Screen screen) {
+        return screen instanceof ModulesScreen;
+    }
 
-   public abstract Color starscriptParenthesisColor();
+    public WidgetScreen moduleScreen(Module module) {
+        return new ModuleScreen(this, module);
+    }
 
-   public abstract Color starscriptDotColor();
+    public WidgetScreen accountsScreen() {
+        return new AccountsScreen(this);
+    }
 
-   public abstract Color starscriptCommaColor();
+    public WidgetScreen proxiesScreen() {
+        return new ProxiesScreen(this);
+    }
 
-   public abstract Color starscriptOperatorColor();
+    // Colors
 
-   public abstract Color starscriptStringColor();
+    public abstract Color textColor();
 
-   public abstract Color starscriptNumberColor();
+    public abstract Color textSecondaryColor();
 
-   public abstract Color starscriptKeywordColor();
+    //     Starscript
 
-   public abstract Color starscriptAccessedObjectColor();
+    public abstract Color starscriptTextColor();
 
-   public abstract TextRenderer textRenderer();
+    public abstract Color starscriptBraceColor();
 
-   public abstract double scale(double var1);
+    public abstract Color starscriptParenthesisColor();
 
-   public abstract boolean categoryIcons();
+    public abstract Color starscriptDotColor();
 
-   public abstract boolean hideHUD();
+    public abstract Color starscriptCommaColor();
 
-   public double textWidth(String text, int length, boolean title) {
-      return this.scale(this.textRenderer().getWidth(text, length, false) * (title ? 1.25 : 1.0));
-   }
+    public abstract Color starscriptOperatorColor();
 
-   public double textWidth(String text) {
-      return this.textWidth(text, text.length(), false);
-   }
+    public abstract Color starscriptStringColor();
 
-   public double textHeight(boolean title) {
-      return this.scale(this.textRenderer().getHeight() * (title ? 1.25 : 1.0));
-   }
+    public abstract Color starscriptNumberColor();
 
-   public double textHeight() {
-      return this.textHeight(false);
-   }
+    public abstract Color starscriptKeywordColor();
 
-   public double pad() {
-      return this.scale(6.0);
-   }
+    public abstract Color starscriptAccessedObjectColor();
 
-   public WindowConfig getWindowConfig(String id) {
-      WindowConfig config = this.windowConfigs.get(id);
-      if (config != null) {
-         return config;
-      } else {
-         config = new WindowConfig();
-         this.windowConfigs.put(id, config);
-         return config;
-      }
-   }
+    // Other
 
-   public void clearWindowConfigs() {
-      this.windowConfigs.clear();
-   }
+    public abstract TextRenderer textRenderer();
 
-   protected <T extends WWidget> T w(T widget) {
-      widget.theme = this;
-      return widget;
-   }
+    public abstract double scale(double value);
 
-   @Override
-   public CompoundTag toTag() {
-      CompoundTag tag = new CompoundTag();
-      tag.putString("name", this.name);
-      tag.put("settings", this.settings.toTag());
-      CompoundTag configs = new CompoundTag();
+    public abstract boolean categoryIcons();
 
-      for (String id : this.windowConfigs.keySet()) {
-         configs.put(id, this.windowConfigs.get(id).toTag());
-      }
+    public abstract boolean modulesHelpText();
 
-      tag.put("windowConfigs", configs);
-      return tag;
-   }
+    public abstract boolean hideHUD();
 
-   public GuiTheme fromTag(CompoundTag tag) {
-      tag.getCompound("settings").ifPresent(this.settings::fromTag);
-      tag.getCompound("windowConfigs").ifPresent(configs -> {
-         for (String id : configs.keySet()) {
-            this.windowConfigs.put(id, new WindowConfig().fromTag(configs.getCompound(id).get()));
-         }
-      });
-      return this;
-   }
+    public double textWidth(String text, int length, boolean title) {
+        return scale(textRenderer().getWidth(text, length, false) * (title ? TITLE_TEXT_SCALE : 1));
+    }
+
+    public double textWidth(String text) {
+        return textWidth(text, text.length(), false);
+    }
+
+    public double textHeight(boolean title) {
+        return scale(textRenderer().getHeight() * (title ? TITLE_TEXT_SCALE : 1));
+    }
+
+    public double textHeight() {
+        return textHeight(false);
+    }
+
+    public double pad() {
+        return scale(6);
+    }
+
+    public WindowConfig getWindowConfig(String id) {
+        WindowConfig config = windowConfigs.get(id);
+        if (config != null) return config;
+
+        config = new WindowConfig();
+        windowConfigs.put(id, config);
+        return config;
+    }
+
+    public void clearWindowConfigs() {
+        windowConfigs.clear();
+    }
+
+    protected <T extends WWidget> T w(T widget) {
+        widget.theme = this;
+        return widget;
+    }
+
+    // Saving / Loading
+
+    @Override
+    public CompoundTag toTag() {
+        CompoundTag tag = new CompoundTag();
+
+        tag.putString("name", name);
+        tag.put("settings", settings.toTag());
+
+        CompoundTag configs = new CompoundTag();
+        for (var entry : windowConfigs.entrySet()) {
+            configs.put(entry.getKey(), entry.getValue().toTag());
+        }
+        tag.put("windowConfigs", configs);
+
+        return tag;
+    }
+
+    @Override
+    public GuiTheme fromTag(CompoundTag tag) {
+        tag.getCompound("settings").ifPresent(settings::fromTag);
+
+        tag.getCompound("windowConfigs").ifPresent(configs -> {
+            for (String id : configs.keySet()) {
+                windowConfigs.put(id, new WindowConfig().fromTag(configs.getCompound(id).get()));
+            }
+        });
+
+        return this;
+    }
 }

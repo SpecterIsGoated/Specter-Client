@@ -1,43 +1,53 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
 package com.jfant.specter.core.utils.world;
 
-import com.jfant.specter.core.mixin.ChunkAccessor;
-import java.util.Iterator;
-import java.util.Map;
-import net.minecraft.core.BlockPos;
+import com.jfant.specter.core.mixin.ChunkAccessAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.chunk.ChunkAccess;
 
+import java.util.Iterator;
+import java.util.Map;
+
 public class BlockEntityIterator implements Iterator<BlockEntity> {
-   private final Iterator<ChunkAccess> chunks = new ChunkIterator(false);
-   private Iterator<BlockEntity> blockEntities;
+    private final Iterator<ChunkAccess> chunks;
+    private Iterator<BlockEntity> blockEntities;
 
-   public BlockEntityIterator() {
-      this.nextChunk();
-   }
+    public BlockEntityIterator() {
+        chunks = new ChunkIterator(false);
 
-   private void nextChunk() {
-      while (this.chunks.hasNext()) {
-         Map<BlockPos, BlockEntity> blockEntityMap = ((ChunkAccessor)this.chunks.next()).getBlockEntities();
-         if (!blockEntityMap.isEmpty()) {
-            this.blockEntities = blockEntityMap.values().iterator();
-            break;
-         }
-      }
-   }
+        nextChunk();
+    }
 
-   @Override
-   public boolean hasNext() {
-      if (this.blockEntities == null) {
-         return false;
-      } else if (this.blockEntities.hasNext()) {
-         return true;
-      } else {
-         this.nextChunk();
-         return this.blockEntities.hasNext();
-      }
-   }
+    private void nextChunk() {
+        while (true) {
+            if (!chunks.hasNext()) break;
 
-   public BlockEntity next() {
-      return this.blockEntities.next();
-   }
+            Map<BlockPos, BlockEntity> blockEntityMap = ((ChunkAccessAccessor) chunks.next()).getBlockEntities();
+
+            if (!blockEntityMap.isEmpty()) {
+                blockEntities = blockEntityMap.values().iterator();
+                break;
+            }
+        }
+    }
+
+    @Override
+    public boolean hasNext() {
+        if (blockEntities == null) return false;
+        if (blockEntities.hasNext()) return true;
+
+        nextChunk();
+
+        return blockEntities.hasNext();
+    }
+
+    @Override
+    public BlockEntity next() {
+        return blockEntities.next();
+    }
 }
