@@ -1,4 +1,5 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : require
 
 // Specter sky, the sky itself (drawn in vanilla's sky pass, before the sun, moon and terrain):
 //  - Atmosphere's day sky: scattering, sun glow, sunrise and sunset colour, weather, custom colours;
@@ -6,25 +7,17 @@
 //    dust, horizon glow, aurora, constellations and shooting stars.
 // With Atmosphere off it only darkens vanilla's night sky and adds Nebula Night on top (premultiplied alpha).
 
-#moj_import <specter-client:specter_sky.glsl>
+#include <specter-client:specter_sky.glsl>
 
-layout(std140) uniform Fog {
-    vec4 FogColor;
-    float FogEnvironmentalStart;
-    float FogEnvironmentalEnd;
-    float FogRenderDistanceStart;
-    float FogRenderDistanceEnd;
-    float FogSkyEnd;
-    float FogCloudsEnd;
-};
+#include <minecraft:fog.glsl>
 
 uniform sampler2D Sampler1;   // Milky Way, colour
 uniform sampler2D Sampler2;   // nebula masks: r first colour, g second colour, b dust
 
-in vec4 nearPoint;
-in vec4 farPoint;
+layout(location = 0) in vec4 nearPoint;
+layout(location = 1) in vec4 farPoint;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 // ---- the sky sphere ----
 

@@ -16,20 +16,36 @@ import com.jfant.specter.lyrics.Lrc;
 import com.jfant.specter.lyrics.Lyrics;
 import com.jfant.specter.lyrics.LyricsFinder;
 import com.jfant.specter.lyrics.SpotifyClock;
-import com.jfant.specter.mixin.RenderLayerInvoker;
 import com.jfant.specter.render.BorrowedTexture;
-import com.mojang.blaze3d.pipeline.BlendFunction;
+import com.jfant.specter.render.GpuKit;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.MeshData;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+import com.mojang.renderpearl.api.commands.CommandEncoder;
+import com.mojang.renderpearl.api.commands.RenderPass;
+import com.mojang.renderpearl.api.pipeline.BlendFunction;
+import com.mojang.renderpearl.api.pipeline.ColorTargetState;
+import com.mojang.renderpearl.api.pipeline.CompareOp;
+import com.mojang.renderpearl.api.pipeline.DepthStencilState;
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
 import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.textures.FilterMode;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import net.minecraft.client.renderer.BindGroupLayouts;
+import net.minecraft.client.renderer.texture.AbstractTexture;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
-import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.vertex.VertexFormat.Mode;
 import de.labystudio.spotifyapi.SpotifyAPI;
 import de.labystudio.spotifyapi.SpotifyAPIFactory;
 import de.labystudio.spotifyapi.SpotifyListenerAdapter;
@@ -49,9 +65,6 @@ import java.util.ArrayList;
 import java.util.List;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.Camera;
-import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
-import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -73,32 +86,32 @@ public class SkyLyrics extends Module {
    private static final double ROW_INDENT = 0.22;
    private static final int MAX_ROW_CHARS = 26;
    private static final int ATLAS_MAX_WIDTH = 4096;
+   // 26.x: drawn directly in a render pass (the RenderType/BufferSource route was reworked). Reversed Z, so the plain
+   // pipeline's "nearer or equal" test is GREATER_THAN_OR_EQUAL; the solid-only one tests depth in its shader.
    private static final RenderPipeline SOLID_ONLY = RenderPipeline.builder()
       .withLocation(Identifier.fromNamespaceAndPath("specter-client", "pipeline/sky_lyrics"))
-      .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
-      .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+      .withBindGroupLayout(BindGroupLayouts.DYNAMIC_TRANSFORMS)
+      .withBindGroupLayout(BindGroupLayouts.PROJECTION)
+      .withBindGroupLayout(BindGroupLayouts.SAMPLER0_SAMPLER1)
       .withVertexShader(Identifier.fromNamespaceAndPath("specter-client", "core/sky_lyrics"))
       .withFragmentShader(Identifier.fromNamespaceAndPath("specter-client", "core/sky_lyrics"))
-      .withSampler("Sampler0")
-      .withSampler("Sampler1")
-      .withBlend(BlendFunction.TRANSLUCENT)
-      .withDepthWrite(false)
+      .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
       .withCull(false)
-      .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-      .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, Mode.QUADS)
+      .withVertexBinding(0, DefaultVertexFormat.POSITION_TEX_COLOR)
+      .withPrimitiveTopology(PrimitiveTopology.QUADS)
       .build();
    private static final RenderPipeline PLAIN = RenderPipeline.builder()
       .withLocation(Identifier.fromNamespaceAndPath("specter-client", "pipeline/sky_lyrics_plain"))
-      .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
-      .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+      .withBindGroupLayout(BindGroupLayouts.DYNAMIC_TRANSFORMS)
+      .withBindGroupLayout(BindGroupLayouts.PROJECTION)
+      .withBindGroupLayout(BindGroupLayouts.SAMPLER0)
       .withVertexShader("core/position_tex_color")
       .withFragmentShader("core/position_tex_color")
-      .withSampler("Sampler0")
-      .withBlend(BlendFunction.TRANSLUCENT)
-      .withDepthWrite(false)
+      .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+      .withDepthStencilState(new DepthStencilState(CompareOp.GREATER_THAN_OR_EQUAL, false))
       .withCull(false)
-      .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
-      .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, Mode.QUADS)
+      .withVertexBinding(0, DefaultVertexFormat.POSITION_TEX_COLOR)
+      .withPrimitiveTopology(PrimitiveTopology.QUADS)
       .build();
    private static final Identifier SOLID_DEPTH = Identifier.fromNamespaceAndPath("specter-client", "sky_lyrics/solid_depth");
    private static final long SEEK_BACK_MS = 2500L;
@@ -308,13 +321,7 @@ public class SkyLyrics extends Module {
 
    private void copyDepth() {
       RenderTarget main = this.mc.gameRenderer.mainRenderTarget();
-      if (this.solidDepth == null) {
-         this.solidDepth = new TextureTarget("specter-sky-lyrics-depth", main.width, main.height, true);
-      } else if (this.solidDepth.width != main.width || this.solidDepth.height != main.height) {
-         this.solidDepth.resize(main.width, main.height);
-      }
-
-      this.solidDepth.copyDepthFrom(main);
+      this.solidDepth = GpuKit.copyDepth(this.solidDepth, "specter-sky-lyrics-depth", main);
       if (this.solidDepthTexture == null) {
          this.solidDepthTexture = new BorrowedTexture();
          this.mc.getTextureManager().register(SOLID_DEPTH, this.solidDepthTexture);
@@ -409,7 +416,7 @@ public class SkyLyrics extends Module {
 
                lineAlpha *= Mth.clamp((float)(now - this.shown.appearedAt) / 350.0F, 0.0F, 1.0F);
                if (!(lineAlpha <= 0.01F)) {
-                  this.draw(this.shown, position, lineAlpha, tanY, solidOnly ? this.shown.layer : this.shown.plainLayer);
+                  this.draw(this.shown, position, lineAlpha, tanY, solidOnly);
                }
             }
          }
@@ -493,16 +500,16 @@ public class SkyLyrics extends Module {
       return right.normalize();
    }
 
-   private void draw(SkyLyrics.Line line, long position, float lineAlpha, double tanY, RenderType layer) {
-      double distance = this.mc.gameRenderer.getDepthFar() * 0.6;
+   private void draw(SkyLyrics.Line line, long position, float lineAlpha, double tanY, boolean solidOnly) {
+      double distance = Math.max(this.mc.options.getEffectiveRenderDistance() * 16.0F * 4.0F, this.mc.options.cloudRange().get() * 16.0F) * 0.6;
       double perPixel = 2.0 * distance * tanY / line.pixelHeight;
       Vector3d spot = direction(-this.skyHeight.get(), line.anchorYaw);
       Vector3d right = right(spot);
       Vector3d up = new Vector3d(right).cross(spot).normalize();
       Vector3d center = new Vector3d(spot).mul(distance);
       double base = this.baseSize(line.pixelHeight);
-      BufferSource immediate = this.mc.renderBuffers().bufferSource();
-      VertexConsumer buffer = immediate.getBuffer(layer);
+      ByteBufferBuilder bytes = new ByteBufferBuilder(DefaultVertexFormat.POSITION_TEX_COLOR.getVertexSize() * 4 * Math.max(1, line.words.size()));
+      BufferBuilder buffer = new BufferBuilder(bytes, PrimitiveTopology.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
 
       for (SkyLyrics.Word word : line.words) {
          float wordAlpha = Mth.clamp((float)(position - word.revealAt()) / 260.0F, 0.0F, 1.0F);
@@ -525,7 +532,48 @@ public class SkyLyrics extends Module {
          }
       }
 
-      immediate.endBatch(layer);
+      try (MeshData mesh = buffer.build()) {
+         if (mesh != null) {
+            this.submit(line, mesh, solidOnly);
+         }
+      } finally {
+         bytes.close();
+      }
+   }
+
+   private void submit(SkyLyrics.Line line, MeshData mesh, boolean solidOnly) {
+      AbstractTexture words = this.mc.getTextureManager().getTexture(line.texture);
+      if (words == null || words.getTextureView() == null || solidOnly && (this.solidDepth == null || !this.depthCaptured)) {
+         return;
+      }
+
+      RenderPipeline pipeline = solidOnly ? SOLID_ONLY : PLAIN;
+      int indexCount = mesh.drawState().indexCount();
+      RenderSystem.AutoStorageIndexBuffer quadIndices = RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
+      GpuBuffer indices = quadIndices.getBuffer(indexCount);
+      GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
+         .writeTransform(RenderSystem.getModelViewMatrixCopy(), new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f());
+      RenderTarget main = this.mc.gameRenderer.mainRenderTarget();
+      CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
+
+      try (GpuBuffer vertices = RenderSystem.getDevice().createBuffer(() -> "Specter sky lyrics", GpuBuffer.USAGE_VERTEX, mesh.vertexBuffer())) {
+         try (RenderPass pass = pipeline.wantsDepthTexture()
+               ? encoder.createRenderPass(() -> "Specter sky lyrics", main.getColorTextureView(), Optional.empty(), main.getDepthTextureView(), OptionalDouble.empty())
+               : encoder.createRenderPass(() -> "Specter sky lyrics", main.getColorTextureView(), Optional.empty())) {
+            pass.setPipeline(RenderSystem.getCompiledPipeline(pipeline));
+            RenderSystem.bindDefaultUniforms(pass);
+            pass.setUniform("DynamicTransforms", transforms);
+            pass.setUniform("Sampler0", words.getTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+            if (solidOnly) {
+               GpuTextureView depth = this.solidDepth.getDepthTextureView();
+               pass.setUniform("Sampler1", depth, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+            }
+
+            pass.setVertexBuffer(0, vertices.slice());
+            pass.setIndexBuffer(indices, quadIndices.type());
+            pass.drawIndexed(indexCount, 1, 0, 0, 0);
+         }
+      }
    }
 
    private static void corner(
@@ -639,23 +687,8 @@ public class SkyLyrics extends Module {
 
          Identifier id = Identifier.fromNamespaceAndPath("specter-client", "sky_lyrics/line_" + this.textureCounter++);
          this.mc.getTextureManager().register(id, new DynamicTexture(() -> "specter-sky-lyrics-line", pixels));
-         RenderType layer = RenderLayerInvoker.specter$of(
-            "specter_sky_lyrics",
-            RenderSetup.builder(SOLID_ONLY)
-               .withTexture("Sampler0", id, () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
-               .withTexture("Sampler1", SOLID_DEPTH, () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST))
-               .sortOnUpload()
-               .createRenderSetup()
-         );
-         RenderType plainLayer = RenderLayerInvoker.specter$of(
-            "specter_sky_lyrics_plain",
-            RenderSetup.builder(PLAIN)
-               .withTexture("Sampler0", id, () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
-               .sortOnUpload()
-               .createRenderSetup()
-         );
          SkyLyrics.Line line = new SkyLyrics.Line(
-            song, index, pixelHeight, words, (minX + maxX) / 2.0, (minY + maxY) / 2.0, lyric.timeMs(), endMs, id, atlasWidth, atlasHeight, layer, plainLayer
+            song, index, pixelHeight, words, (minX + maxX) / 2.0, (minY + maxY) / 2.0, lyric.timeMs(), endMs, id, atlasWidth, atlasHeight
          );
          line.anchorYaw = this.mc.gameRenderer.mainCamera().yRot();
          line.appearedAt = System.currentTimeMillis() - 350L;
@@ -888,8 +921,6 @@ public class SkyLyrics extends Module {
       final long startMs;
       final long endMs;
       final Identifier texture;
-      final RenderType layer;
-      final RenderType plainLayer;
       float anchorYaw;
       long appearedAt;
       long offscreenSince = -1L;
@@ -906,9 +937,7 @@ public class SkyLyrics extends Module {
          long endMs,
          Identifier texture,
          int atlasWidth,
-         int atlasHeight,
-         RenderType layer,
-         RenderType plainLayer
+         int atlasHeight
       ) {
          this.song = song;
          this.index = index;
@@ -921,8 +950,6 @@ public class SkyLyrics extends Module {
          this.texture = texture;
          this.atlasWidth = atlasWidth;
          this.atlasHeight = atlasHeight;
-         this.layer = layer;
-         this.plainLayer = plainLayer;
       }
    }
 

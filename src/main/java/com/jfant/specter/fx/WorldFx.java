@@ -8,40 +8,37 @@ import com.jfant.specter.core.utils.render.RenderUtils;
 import com.jfant.specter.modules.Bioluminescence;
 import com.jfant.specter.modules.ColorGrading;
 import com.jfant.specter.modules.MarineLayer;
-import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.jfant.specter.render.GpuKit;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.buffers.Std140SizeCalculator;
-import com.mojang.blaze3d.buffers.GpuBuffer.MappedView;
-import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
-import com.mojang.renderpearl.api.pipeline.RenderPipeline.Builder;
-import com.mojang.blaze3d.platform.DepthTestFunction;
-import com.mojang.blaze3d.platform.DestFactor;
 import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.platform.SourceFactor;
-import com.mojang.blaze3d.platform.NativeImage.Format;
-import com.mojang.blaze3d.shaders.UniformType;
-import com.mojang.blaze3d.systems.CommandEncoder;
-import com.mojang.blaze3d.systems.GpuDevice;
-import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.FilterMode;
-import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormat.Mode;
+import com.mojang.renderpearl.api.GpuFormat;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice.MappedView;
+import com.mojang.renderpearl.api.commands.CommandEncoder;
+import com.mojang.renderpearl.api.commands.RenderPass;
+import com.mojang.renderpearl.api.device.GpuDevice;
+import com.mojang.renderpearl.api.pipeline.BindGroupLayout;
+import com.mojang.renderpearl.api.pipeline.BlendFactor;
+import com.mojang.renderpearl.api.pipeline.BlendFunction;
+import com.mojang.renderpearl.api.pipeline.ColorTargetState;
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.textures.FilterMode;
+import com.mojang.renderpearl.api.textures.GpuTexture;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Optional;
-import java.util.OptionalDouble;
-import java.util.OptionalInt;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.BindGroupLayouts;
 import net.minecraft.client.renderer.MappableRingBuffer;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
@@ -53,7 +50,6 @@ import net.minecraft.world.level.dimension.DimensionType.Skybox;
 import net.minecraft.world.level.material.FogType;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,18 +58,15 @@ public final class WorldFx {
    private static final String NS = "specter-client";
    private static final Identifier NOISE = Identifier.fromNamespaceAndPath("specter-client", "textures/sky/noise.png");
    public static final double WRAP = 4096.0;
-   private static final RenderPipeline BIO = base("specter_bio")
-      .withSampler("Sampler0")
-      .withSampler("Sampler1")
-      .withSampler("Sampler2")
-      .withBlend(new BlendFunction(SourceFactor.ONE, DestFactor.ONE))
-      .build();
-   private static final RenderPipeline MARINE = base("specter_marine")
-      .withSampler("Sampler0")
-      .withSampler("Sampler1")
-      .withBlend(new BlendFunction(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA, SourceFactor.ZERO, DestFactor.ONE))
-      .build();
-   private static final RenderPipeline GRADE = base("specter_grade").withSampler("Sampler0").withoutBlend().build();
+   // 26.x: uniforms are declared through bind-group layouts; no depth state means no depth test or write.
+   private static final BindGroupLayout FX_UBO = GpuKit.ubo("SpecterFx");
+   private static final RenderPipeline BIO = base("specter_bio", BindGroupLayouts.SAMPLER0_SAMPLER1_SAMPLER2, new ColorTargetState(new BlendFunction(BlendFactor.ONE, BlendFactor.ONE)));
+   private static final RenderPipeline MARINE = base(
+      "specter_marine",
+      BindGroupLayouts.SAMPLER0_SAMPLER1,
+      new ColorTargetState(new BlendFunction(BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA, BlendFactor.ZERO, BlendFactor.ONE))
+   );
+   private static final RenderPipeline GRADE = base("specter_grade", BindGroupLayouts.SAMPLER0, ColorTargetState.DEFAULT);
    private static final int UBO_SIZE = uboSize();
    private static final FxParams params = new FxParams();
    private static final Matrix4f scratch = new Matrix4f();
@@ -92,16 +85,18 @@ public final class WorldFx {
    private static boolean failed;
    private static boolean subscribed;
 
-   private static Builder base(String name) {
+   private static RenderPipeline base(String name, BindGroupLayout samplers, ColorTargetState color) {
       return RenderPipeline.builder()
          .withLocation(Identifier.fromNamespaceAndPath("specter-client", "pipeline/" + name))
-         .withUniform("SpecterFx", UniformType.UNIFORM_BUFFER)
+         .withBindGroupLayout(FX_UBO)
+         .withBindGroupLayout(samplers)
          .withVertexShader(Identifier.fromNamespaceAndPath("specter-client", "core/specter_fx"))
          .withFragmentShader(Identifier.fromNamespaceAndPath("specter-client", "core/" + name))
-         .withDepthWrite(false)
-         .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+         .withColorTargetState(color)
          .withCull(false)
-         .withVertexFormat(DefaultVertexFormat.POSITION, Mode.TRIANGLES);
+         .withVertexBinding(0, DefaultVertexFormat.POSITION)
+         .withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
+         .build();
    }
 
    private WorldFx() {
@@ -246,7 +241,7 @@ public final class WorldFx {
       p.night = t * t * (3.0F - 2.0F * t);
       p.underwater = camera.getFluidInCamera() == FogType.WATER;
       p.rain = world.getRainLevel(tickProgress);
-      p.renderDistance = mc.gameRenderer.getRenderDistance();
+      p.renderDistance = mc.options.getEffectiveRenderDistance() * 16.0F;
       RenderTarget main = mc.gameRenderer.mainRenderTarget();
       p.aspect = main.height == 0 ? 1.0F : (float)main.width / main.height;
       p.overworld = world.dimensionType().skybox() == Skybox.OVERWORLD;
@@ -282,7 +277,7 @@ public final class WorldFx {
    private static void upload() {
       ubo.rotate();
 
-      try (MappedView view = RenderSystem.getDevice().createCommandEncoder().mapBuffer(ubo.currentBuffer(), false, true)) {
+      try (MappedView view = ubo.currentBuffer().map(false, true)) {
          Std140Builder b = Std140Builder.intoBuffer(view.data());
          FxParams p = params;
          b.putMat4f(p.invViewProj);
@@ -319,37 +314,30 @@ public final class WorldFx {
    ) {
       CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
 
-      try (RenderPass pass = encoder.createRenderPass(() -> label, target, OptionalInt.empty(), null, OptionalDouble.empty())) {
-         pass.setPipeline(pipeline);
+      try (RenderPass pass = encoder.createRenderPass(() -> label, target, Optional.empty())) {
+         pass.setPipeline(RenderSystem.getCompiledPipeline(pipeline));
          pass.setUniform("SpecterFx", ubo.currentBuffer());
          boolean frame = pipeline == GRADE;
-         pass.bindTexture(
+         pass.setUniform(
             "Sampler0",
             sampler0,
             frame ? RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST) : RenderSystem.getSamplerCache().getRepeat(FilterMode.LINEAR, true)
          );
          if (sampler1 != null) {
-            pass.bindTexture("Sampler1", sampler1, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+            pass.setUniform("Sampler1", sampler1, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
          }
 
          if (sampler2 != null) {
-            pass.bindTexture("Sampler2", sampler2, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+            pass.setUniform("Sampler2", sampler2, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
          }
 
-         pass.setVertexBuffer(0, triangle);
-         pass.draw(0, 3);
+         pass.setVertexBuffer(0, triangle.slice());
+         pass.draw(3, 1, 0, 0);
       }
    }
 
    private static TextureTarget copyDepth(TextureTarget copy, String name, RenderTarget main) {
-      if (copy == null) {
-         copy = new TextureTarget(name, main.width, main.height, true);
-      } else if (copy.width != main.width || copy.height != main.height) {
-         copy.resize(main.width, main.height);
-      }
-
-      copy.copyDepthFrom(main);
-      return copy;
+      return GpuKit.copyDepth(copy, name, main);
    }
 
    private static void copyFrame(RenderTarget main) {
@@ -363,7 +351,7 @@ public final class WorldFx {
             frameCopy.close();
          }
 
-         frameCopy = device.createTexture(() -> "Specter fx frame copy", 5, TextureFormat.RGBA8, main.width, main.height, 1, 1);
+         frameCopy = device.createTexture(() -> "Specter fx frame copy", GpuTexture.USAGE_COPY_DST | GpuTexture.USAGE_TEXTURE_BINDING, GpuFormat.RGBA8_UNORM, main.width, main.height, 1, 1);
          frameCopyView = device.createTextureView(frameCopy);
       }
 
@@ -373,27 +361,11 @@ public final class WorldFx {
    private static void ensureResources(Minecraft mc) {
       GpuDevice device = RenderSystem.getDevice();
       if (ubo == null) {
-         ubo = new MappableRingBuffer(() -> "Specter fx UBO", 130, UBO_SIZE);
+         ubo = GpuKit.uniformRing("Specter fx UBO", UBO_SIZE);
       }
 
       if (triangle == null) {
-         ByteBuffer data = MemoryUtil.memAlloc(36);
-
-         try {
-            data.putFloat(-1.0F)
-               .putFloat(-1.0F)
-               .putFloat(0.0F)
-               .putFloat(3.0F)
-               .putFloat(-1.0F)
-               .putFloat(0.0F)
-               .putFloat(-1.0F)
-               .putFloat(3.0F)
-               .putFloat(0.0F)
-               .flip();
-            triangle = device.createBuffer(() -> "Specter fx triangle", 32, data);
-         } finally {
-            MemoryUtil.memFree(data);
-         }
+         triangle = GpuKit.fullscreenTriangle("Specter fx triangle");
       }
 
       if (noise == null) {
@@ -411,61 +383,16 @@ public final class WorldFx {
          level.setPixel(0, 0, -8355712);
       } else {
          try (InputStream in = resource.get().open()) {
-            level = NativeImage.read(Format.RGBA, in);
+            level = NativeImage.read(in);
          } catch (Exception var15) {
             throw new IllegalStateException("Could not read " + NOISE, var15);
          }
       }
 
-      int levels = 1 + Mth.log2(Math.max(1, Math.min(level.getWidth(), level.getHeight())));
-      GpuTexture texture = RenderSystem.getDevice()
-         .createTexture(() -> "Specter fx noise", 5, TextureFormat.RGBA8, level.getWidth(), level.getHeight(), 1, levels);
-      CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
-
-      try {
-         for (int i = 0; i < levels; i++) {
-            encoder.writeToTexture(texture, level, i, 0, 0, 0, level.getWidth(), level.getHeight(), 0, 0);
-            if (i + 1 < levels) {
-               NativeImage next = halve(level);
-               level.close();
-               level = next;
-            }
-         }
-      } finally {
-         level.close();
-      }
-
-      return texture;
+      return GpuKit.uploadMipmapped("Specter fx noise", level);
    }
 
-   private static NativeImage halve(NativeImage src) {
-      int w = Math.max(1, src.getWidth() / 2);
-      int h = Math.max(1, src.getHeight() / 2);
-      NativeImage out = new NativeImage(w, h, false);
 
-      for (int y = 0; y < h; y++) {
-         for (int x = 0; x < w; x++) {
-            int a = 0;
-            int r = 0;
-            int g = 0;
-            int b = 0;
-
-            for (int dy = 0; dy < 2; dy++) {
-               for (int dx = 0; dx < 2; dx++) {
-                  int c = src.getPixel(Math.min(src.getWidth() - 1, x * 2 + dx), Math.min(src.getHeight() - 1, y * 2 + dy));
-                  a += c >>> 24;
-                  r += c >> 16 & 0xFF;
-                  g += c >> 8 & 0xFF;
-                  b += c & 0xFF;
-               }
-            }
-
-            out.setPixel(x, y, (a + 2) / 4 << 24 | (r + 2) / 4 << 16 | (g + 2) / 4 << 8 | (b + 2) / 4);
-         }
-      }
-
-      return out;
-   }
 
    public static void release() {
       if (!anyOn() && RenderSystem.isOnRenderThread()) {

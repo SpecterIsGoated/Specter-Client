@@ -1,20 +1,22 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : require
 
 // Specter sky, cloud shadows: for every solid pixel, find where the sunlight that reaches it crossed the cloud layer
 // and darken it by how much cloud is there. Multiplied over the frame (blend DST_COLOR x source), right after the
 // solid terrain, using the copy of the depth taken at that moment.
 
-#moj_import <specter-client:specter_sky.glsl>
+#include <specter-client:specter_sky.glsl>
 
 uniform sampler2D Sampler1;   // the solid-only depth copy
 
-in vec4 nearPoint;
-in vec4 farPoint;
+layout(location = 0) in vec4 nearPoint;
+layout(location = 1) in vec4 farPoint;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 void main() {
-    float z = texelFetch(Sampler1, ivec2(gl_FragCoord.xy), 0).r;
+    // Reversed Z in 26.x: flipped back so 0 is the near plane and 1 the far plane, as the maths below expects.
+    float z = 1.0 - texelFetch(Sampler1, ivec2(gl_FragCoord.xy), 0).r;
     if (z >= 0.999999) discard;
     vec3 sun = SunDir.xyz;
     float strength = Cloud2.y * Cloud.y * State.z * smoothstep(0.04, 0.25, sun.y);

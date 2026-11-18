@@ -7,7 +7,8 @@ import java.util.Arrays;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;
-import net.minecraft.client.gui.render.state.GuiElementRenderState;
+import net.minecraft.client.renderer.state.gui.GuiElementRenderState;
+import com.jfant.specter.core.mixin.GuiGraphicsExtractorAccessor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.resources.Identifier;
@@ -42,7 +43,7 @@ public final class QuadBatch {
    }
 
    public static QuadBatch colored(GuiGraphicsExtractor ctx) {
-      return new QuadBatch(RenderPipelines.GUI, TextureSetup.noTexture(), false, new Matrix3x2f(ctx.pose()), ctx.scissorStack.peek());
+      return new QuadBatch(RenderPipelines.GUI, TextureSetup.noTexture(), false, new Matrix3x2f(ctx.pose()), ((GuiGraphicsExtractorAccessor)ctx).getScissorStack().peek());
    }
 
    @Nullable
@@ -54,7 +55,7 @@ public final class QuadBatch {
             TextureSetup.singleTexture(tex.getTextureView(), tex.getSampler()),
             true,
             new Matrix3x2f(ctx.pose()),
-            ctx.scissorStack.peek()
+            ((GuiGraphicsExtractorAccessor)ctx).getScissorStack().peek()
          )
          : null;
    }
@@ -139,8 +140,8 @@ public final class QuadBatch {
          }
 
          if (bounds != null) {
-            ctx.guiRenderState
-               .submitGuiElement(
+            ((GuiGraphicsExtractorAccessor)ctx).getGuiRenderState()
+               .addGuiElement(
                   new QuadBatch.Element(
                      this.pipeline,
                      this.textures,

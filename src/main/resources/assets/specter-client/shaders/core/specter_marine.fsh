@@ -1,4 +1,5 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : require
 
 // Specter Marine Layer: a bank of sea fog lying low over the world. It is thick at its base and thins with height,
 // it is patchy and drifts, and it glows where the sun or moon is behind it.
@@ -7,22 +8,23 @@
 // between the eye and whatever is there - land, water, or nothing but sky, in which case the walk goes on to the
 // distance where the bank meets the horizon. Blended over the finished world, before your hand is drawn.
 
-#moj_import <specter-client:specter_fx.glsl>
+#include <specter-client:specter_fx.glsl>
 
 uniform sampler2D Sampler0;   // tiling noise (r big shapes, g puffy cells, b fine detail)
 uniform sampler2D Sampler1;   // the depth of the finished world
 
-in vec4 nearPoint;
-in vec4 farPoint;
-in vec2 screenUv;
+layout(location = 0) in vec4 nearPoint;
+layout(location = 1) in vec4 farPoint;
+layout(location = 2) in vec2 screenUv;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 void main() {
     float strength = FogTune.w;
     if (strength <= 0.001 || Fog.x <= 0.0) discard;
 
-    float z = texelFetch(Sampler1, ivec2(gl_FragCoord.xy), 0).r;
+    // Reversed Z in 26.x: flipped back so 0 is the near plane and 1 the far plane, as the maths below expects.
+    float z = 1.0 - texelFetch(Sampler1, ivec2(gl_FragCoord.xy), 0).r;
     vec3 rd = normalize(farPoint.xyz / farPoint.w);
     bool sky = z >= 0.999999;
     float dist = FogDrift.w;

@@ -342,12 +342,13 @@ public final class Orders {
                               throw fail("Expected the review menu, got " + view.describe());
                            } else {
                               this.checkItem(view);
+                              final Dialogs.View review = view;
                               String problem = this.checkReview(view, price);
                               if (problem != null) {
                                  Dialogs.Button cancel = view.labelled("cancel");
                                  if (cancel != null) {
                                     this.hand.waitTurn();
-                                    this.worker.call(() -> Dialogs.press(view, cancel, Map.of()));
+                                    this.worker.call(() -> Dialogs.press(review, cancel, Map.of()));
                                     this.hand.rest();
                                  }
 
@@ -359,14 +360,14 @@ public final class Orders {
                                     throw fail("No Create Order button, " + view.describe());
                                  } else {
                                     this.hand.waitTurn();
-                                    if (!this.worker.call(() -> Dialogs.press(view, createButton, Map.of()))) {
+                                    if (!this.worker.call(() -> Dialogs.press(review, createButton, Map.of()))) {
                                        throw fail("The review menu closed");
                                     } else {
                                        this.hand.rest();
                                        this.worker.waitFor(() -> {
                                           if (this.orderedAt < mark && this.poorAt < mark) {
                                              Dialogs.View now = Dialogs.current();
-                                             return now == null || now.dialog() != view.dialog();
+                                             return now == null || now.dialog() != review.dialog();
                                           } else {
                                              return true;
                                           }

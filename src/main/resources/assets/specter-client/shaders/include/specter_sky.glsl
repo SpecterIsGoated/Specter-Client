@@ -1,4 +1,3 @@
-#version 330
 
 // Specter sky: what Atmosphere and Nebula Night share. The Java side (com.jfant.specter.sky.SkyRenderer) fills
 // SpecterSky once a frame in exactly this order (std140); every pass of the sky reads the same block, so the day

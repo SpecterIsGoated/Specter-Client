@@ -1,19 +1,20 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : require
 
 // Specter Color Grading: the finished picture of the world (terrain, sky, entities, your hand - not the HUD) put
 // through a small colour pipeline, in the order a photo editor would: exposure and white balance on the light itself,
 // then tone (shadows, highlights, contrast), then colour (saturation, vibrance, split toning), then finish (fade,
 // vignette, grain). Grade3.y cross-fades between the untouched picture and the graded one.
 
-#moj_import <specter-client:specter_fx.glsl>
+#include <specter-client:specter_fx.glsl>
 
 uniform sampler2D Sampler0;   // a copy of the frame
 
-in vec4 nearPoint;
-in vec4 farPoint;
-in vec2 screenUv;
+layout(location = 0) in vec4 nearPoint;
+layout(location = 1) in vec4 farPoint;
+layout(location = 2) in vec2 screenUv;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 void main() {
     vec3 original = texelFetch(Sampler0, ivec2(gl_FragCoord.xy), 0).rgb;

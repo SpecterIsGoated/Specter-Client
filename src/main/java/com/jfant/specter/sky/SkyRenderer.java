@@ -5,41 +5,40 @@ import com.jfant.specter.core.utils.render.RenderUtils;
 import com.jfant.specter.mixin.ClientWorldInvoker;
 import com.jfant.specter.modules.Atmosphere;
 import com.jfant.specter.modules.NebulaNight;
-import com.mojang.blaze3d.buffers.GpuBuffer;
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.jfant.specter.render.GpuKit;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.buffers.Std140SizeCalculator;
-import com.mojang.blaze3d.buffers.GpuBuffer.MappedView;
-import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
-import com.mojang.blaze3d.platform.DepthTestFunction;
-import com.mojang.blaze3d.platform.DestFactor;
 import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.platform.SourceFactor;
-import com.mojang.blaze3d.platform.NativeImage.Format;
-import com.mojang.blaze3d.shaders.UniformType;
-import com.mojang.blaze3d.systems.CommandEncoder;
-import com.mojang.blaze3d.systems.GpuDevice;
-import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.AddressMode;
-import com.mojang.blaze3d.textures.FilterMode;
-import com.mojang.blaze3d.textures.GpuSampler;
-import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormat.Mode;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice.MappedView;
+import com.mojang.renderpearl.api.commands.CommandEncoder;
+import com.mojang.renderpearl.api.commands.RenderPass;
+import com.mojang.renderpearl.api.device.GpuDevice;
+import com.mojang.renderpearl.api.pipeline.BindGroupLayout;
+import com.mojang.renderpearl.api.pipeline.BlendFactor;
+import com.mojang.renderpearl.api.pipeline.BlendFunction;
+import com.mojang.renderpearl.api.pipeline.ColorTargetState;
+import com.mojang.renderpearl.api.pipeline.CompareOp;
+import com.mojang.renderpearl.api.pipeline.DepthStencilState;
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.textures.AddressMode;
+import com.mojang.renderpearl.api.textures.FilterMode;
+import com.mojang.renderpearl.api.textures.GpuSampler;
+import com.mojang.renderpearl.api.textures.GpuTexture;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.util.Optional;
 import java.util.OptionalDouble;
-import java.util.OptionalInt;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.BindGroupLayouts;
 import net.minecraft.client.renderer.MappableRingBuffer;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
@@ -50,7 +49,6 @@ import net.minecraft.world.level.MoonPhase;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
-import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,51 +59,49 @@ public final class SkyRenderer {
    private static final Identifier MILKY_WAY = Identifier.fromNamespaceAndPath("specter-client", "textures/sky/milkyway.png");
    private static final Identifier NEBULA = Identifier.fromNamespaceAndPath("specter-client", "textures/sky/nebula.png");
    public static final double WRAP = 10240.0;
+   // 26.x: uniforms are declared through bind-group layouts, depth state through DepthStencilState (reversed Z,
+   // so "nearer or equal" is GREATER_THAN_OR_EQUAL), and no depth state at all means no depth test or write.
+   private static final BindGroupLayout SKY_UBO = GpuKit.ubo("SpecterSky");
    private static final RenderPipeline SKY = RenderPipeline.builder()
       .withLocation(Identifier.fromNamespaceAndPath("specter-client", "pipeline/specter_sky"))
-      .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
-      .withUniform("Projection", UniformType.UNIFORM_BUFFER)
-      .withUniform("Fog", UniformType.UNIFORM_BUFFER)
-      .withUniform("SpecterSky", UniformType.UNIFORM_BUFFER)
+      .withBindGroupLayout(BindGroupLayouts.DYNAMIC_TRANSFORMS)
+      .withBindGroupLayout(BindGroupLayouts.PROJECTION)
+      .withBindGroupLayout(BindGroupLayouts.FOG)
+      .withBindGroupLayout(SKY_UBO)
+      .withBindGroupLayout(BindGroupLayouts.SAMPLER0_SAMPLER1_SAMPLER2)
       .withVertexShader(Identifier.fromNamespaceAndPath("specter-client", "core/specter_sky"))
       .withFragmentShader(Identifier.fromNamespaceAndPath("specter-client", "core/specter_sky"))
-      .withSampler("Sampler0")
-      .withSampler("Sampler1")
-      .withSampler("Sampler2")
-      .withBlend(BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA)
-      .withDepthWrite(false)
-      .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+      .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA))
       .withCull(false)
-      .withVertexFormat(DefaultVertexFormat.POSITION, Mode.TRIANGLES)
+      .withVertexBinding(0, DefaultVertexFormat.POSITION)
+      .withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
       .build();
    private static final RenderPipeline CLOUDS = RenderPipeline.builder()
       .withLocation(Identifier.fromNamespaceAndPath("specter-client", "pipeline/specter_clouds"))
-      .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
-      .withUniform("Projection", UniformType.UNIFORM_BUFFER)
-      .withUniform("SpecterSky", UniformType.UNIFORM_BUFFER)
+      .withBindGroupLayout(BindGroupLayouts.DYNAMIC_TRANSFORMS)
+      .withBindGroupLayout(BindGroupLayouts.PROJECTION)
+      .withBindGroupLayout(SKY_UBO)
+      .withBindGroupLayout(BindGroupLayouts.SAMPLER0)
       .withVertexShader(Identifier.fromNamespaceAndPath("specter-client", "core/specter_sky"))
       .withFragmentShader(Identifier.fromNamespaceAndPath("specter-client", "core/specter_clouds"))
-      .withSampler("Sampler0")
-      .withBlend(BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA)
-      .withDepthWrite(false)
-      .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
+      .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA))
+      .withDepthStencilState(new DepthStencilState(CompareOp.GREATER_THAN_OR_EQUAL, false))
       .withCull(false)
-      .withVertexFormat(DefaultVertexFormat.POSITION, Mode.TRIANGLES)
+      .withVertexBinding(0, DefaultVertexFormat.POSITION)
+      .withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
       .build();
    private static final RenderPipeline SHADOWS = RenderPipeline.builder()
       .withLocation(Identifier.fromNamespaceAndPath("specter-client", "pipeline/specter_cloud_shadow"))
-      .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
-      .withUniform("Projection", UniformType.UNIFORM_BUFFER)
-      .withUniform("SpecterSky", UniformType.UNIFORM_BUFFER)
+      .withBindGroupLayout(BindGroupLayouts.DYNAMIC_TRANSFORMS)
+      .withBindGroupLayout(BindGroupLayouts.PROJECTION)
+      .withBindGroupLayout(SKY_UBO)
+      .withBindGroupLayout(BindGroupLayouts.SAMPLER0_SAMPLER1)
       .withVertexShader(Identifier.fromNamespaceAndPath("specter-client", "core/specter_sky"))
       .withFragmentShader(Identifier.fromNamespaceAndPath("specter-client", "core/specter_cloud_shadow"))
-      .withSampler("Sampler0")
-      .withSampler("Sampler1")
-      .withBlend(new BlendFunction(SourceFactor.DST_COLOR, DestFactor.ZERO))
-      .withDepthWrite(false)
-      .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+      .withColorTargetState(new ColorTargetState(new BlendFunction(BlendFactor.DST_COLOR, BlendFactor.ZERO)))
       .withCull(false)
-      .withVertexFormat(DefaultVertexFormat.POSITION, Mode.TRIANGLES)
+      .withVertexBinding(0, DefaultVertexFormat.POSITION)
+      .withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
       .build();
    private static final int UBO_SIZE = uboSize();
    private static final SkyParams params = new SkyParams();
@@ -211,39 +207,35 @@ public final class SkyRenderer {
 
    private static void draw(String label, RenderPipeline pipeline, GpuTextureView color, GpuTextureView depth, boolean skyTextures, boolean depthSampler) {
       GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
-         .writeTransform(RenderSystem.getModelViewMatrix(), new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f());
+         .writeTransform(RenderSystem.getModelViewMatrixCopy(), new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f());
       CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
 
-      try (RenderPass pass = encoder.createRenderPass(() -> label, color, OptionalInt.empty(), depth, OptionalDouble.empty())) {
-         pass.setPipeline(pipeline);
+      try (RenderPass pass = depth != null
+            ? encoder.createRenderPass(() -> label, color, Optional.empty(), depth, OptionalDouble.empty())
+            : encoder.createRenderPass(() -> label, color, Optional.empty())) {
+         pass.setPipeline(RenderSystem.getCompiledPipeline(pipeline));
          RenderSystem.bindDefaultUniforms(pass);
          pass.setUniform("DynamicTransforms", transforms);
          pass.setUniform("SpecterSky", ubo.currentBuffer());
-         pass.bindTexture("Sampler0", noiseView, RenderSystem.getSamplerCache().getRepeat(FilterMode.LINEAR, true));
+         pass.setUniform("Sampler0", noiseView, RenderSystem.getSamplerCache().getRepeat(FilterMode.LINEAR, true));
          if (skyTextures) {
             GpuSampler wrapAround = RenderSystem.getSamplerCache()
                .getSampler(AddressMode.REPEAT, AddressMode.CLAMP_TO_EDGE, FilterMode.LINEAR, FilterMode.LINEAR, false);
-            pass.bindTexture("Sampler1", milkyWayView, wrapAround);
-            pass.bindTexture("Sampler2", nebulaView, wrapAround);
+            pass.setUniform("Sampler1", milkyWayView, wrapAround);
+            pass.setUniform("Sampler2", nebulaView, wrapAround);
          }
 
          if (depthSampler) {
-            pass.bindTexture("Sampler1", depthCopy.getDepthTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+            pass.setUniform("Sampler1", depthCopy.getDepthTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
          }
 
-         pass.setVertexBuffer(0, triangle);
-         pass.draw(0, 3);
+         pass.setVertexBuffer(0, triangle.slice());
+         pass.draw(3, 1, 0, 0);
       }
    }
 
    private static void copyDepth(RenderTarget main) {
-      if (depthCopy == null) {
-         depthCopy = new TextureTarget("specter-sky-depth", main.width, main.height, true);
-      } else if (depthCopy.width != main.width || depthCopy.height != main.height) {
-         depthCopy.resize(main.width, main.height);
-      }
-
-      depthCopy.copyDepthFrom(main);
+      depthCopy = GpuKit.copyDepth(depthCopy, "specter-sky-depth", main);
    }
 
    private static void fail(Throwable e) {
@@ -281,7 +273,7 @@ public final class SkyRenderer {
       params.camX = (float)(x - Math.floor(x / 10240.0) * 10240.0);
       params.camY = (float)y;
       params.camZ = (float)(z - Math.floor(z / 10240.0) * 10240.0);
-      params.renderDistance = mc.gameRenderer.getRenderDistance();
+      params.renderDistance = mc.options.getEffectiveRenderDistance() * 16.0F;
       params.starRot.identity().rotateX(-starAngle).rotateY(1.5707964F);
       params.starRot.mulLocal(NebulaNight.galaxyFrame());
    }
@@ -328,7 +320,7 @@ public final class SkyRenderer {
    private static void upload() {
       ubo.rotate();
 
-      try (MappedView view = RenderSystem.getDevice().createCommandEncoder().mapBuffer(ubo.currentBuffer(), false, true)) {
+      try (MappedView view = ubo.currentBuffer().map(false, true)) {
          Std140Builder b = Std140Builder.intoBuffer(view.data());
          SkyParams p = params;
          b.putVec4(p.sunX, p.sunY, p.sunZ, p.seconds);
@@ -370,31 +362,15 @@ public final class SkyRenderer {
    private static void ensureResources(Minecraft mc) {
       GpuDevice device = RenderSystem.getDevice();
       if (ubo == null) {
-         ubo = new MappableRingBuffer(() -> "Specter sky UBO", 130, UBO_SIZE);
+         ubo = GpuKit.uniformRing("Specter sky UBO", UBO_SIZE);
       }
 
       if (triangle == null) {
-         ByteBuffer data = MemoryUtil.memAlloc(36);
-
-         try {
-            data.putFloat(-1.0F)
-               .putFloat(-1.0F)
-               .putFloat(0.0F)
-               .putFloat(3.0F)
-               .putFloat(-1.0F)
-               .putFloat(0.0F)
-               .putFloat(-1.0F)
-               .putFloat(3.0F)
-               .putFloat(0.0F)
-               .flip();
-            triangle = device.createBuffer(() -> "Specter sky triangle", 32, data);
-         } finally {
-            MemoryUtil.memFree(data);
-         }
+         triangle = GpuKit.fullscreenTriangle("Specter sky triangle");
       }
 
       if (noise == null) {
-         noise = loadMipmapped(mc, NOISE, "Specter sky noise");
+         noise = GpuKit.uploadMipmapped("Specter sky noise", read(mc, NOISE));
          noiseView = device.createTextureView(noise);
       }
 
@@ -420,7 +396,7 @@ public final class SkyRenderer {
          try {
             NativeImage var4;
             try (InputStream in = resource.get().open()) {
-               var4 = NativeImage.read(Format.RGBA, in);
+               var4 = NativeImage.read(in);
             }
 
             return var4;
@@ -431,66 +407,14 @@ public final class SkyRenderer {
    }
 
    private static GpuTexture load(Minecraft mc, Identifier id, String label) {
-      GpuTexture var5;
       try (NativeImage image = read(mc, id)) {
-         GpuTexture texture = RenderSystem.getDevice().createTexture(() -> label, 5, TextureFormat.RGBA8, image.getWidth(), image.getHeight(), 1, 1);
-         RenderSystem.getDevice().createCommandEncoder().writeToTexture(texture, image);
-         var5 = texture;
+         return GpuKit.upload(label, image);
       }
-
-      return var5;
    }
 
-   private static GpuTexture loadMipmapped(Minecraft mc, Identifier id, String label) {
-      NativeImage level = read(mc, id);
-      int levels = 1 + Mth.log2(Math.max(1, Math.min(level.getWidth(), level.getHeight())));
-      GpuTexture texture = RenderSystem.getDevice().createTexture(() -> label, 5, TextureFormat.RGBA8, level.getWidth(), level.getHeight(), 1, levels);
-      CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
 
-      try {
-         for (int i = 0; i < levels; i++) {
-            encoder.writeToTexture(texture, level, i, 0, 0, 0, level.getWidth(), level.getHeight(), 0, 0);
-            if (i + 1 < levels) {
-               NativeImage next = halve(level);
-               level.close();
-               level = next;
-            }
-         }
-      } finally {
-         level.close();
-      }
 
-      return texture;
-   }
 
-   private static NativeImage halve(NativeImage src) {
-      int w = Math.max(1, src.getWidth() / 2);
-      int h = Math.max(1, src.getHeight() / 2);
-      NativeImage out = new NativeImage(w, h, false);
-
-      for (int y = 0; y < h; y++) {
-         for (int x = 0; x < w; x++) {
-            int a = 0;
-            int r = 0;
-            int g = 0;
-            int b = 0;
-
-            for (int dy = 0; dy < 2; dy++) {
-               for (int dx = 0; dx < 2; dx++) {
-                  int c = src.getPixel(Math.min(src.getWidth() - 1, x * 2 + dx), Math.min(src.getHeight() - 1, y * 2 + dy));
-                  a += c >>> 24;
-                  r += c >> 16 & 0xFF;
-                  g += c >> 8 & 0xFF;
-                  b += c & 0xFF;
-               }
-            }
-
-            out.setPixel(x, y, (a + 2) / 4 << 24 | (r + 2) / 4 << 16 | (g + 2) / 4 << 8 | (b + 2) / 4);
-         }
-      }
-
-      return out;
-   }
 
    public static void release() {
       if (!Atmosphere.on() && !NebulaNight.on()) {

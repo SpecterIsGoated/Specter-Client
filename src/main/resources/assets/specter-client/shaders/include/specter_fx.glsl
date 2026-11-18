@@ -1,4 +1,3 @@
-#version 330
 
 // Specter world effects: what Bioluminescence, Marine Layer and Color Grading share. The Java side
 // (com.jfant.specter.fx.WorldFx) fills SpecterFx once a frame in exactly this order (std140).

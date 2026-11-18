@@ -60,6 +60,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.entity.BlockEntityTypes;
 import net.minecraft.world.level.chunk.ChunkSource;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
@@ -552,7 +553,7 @@ public class BaseEsp extends Module {
             this.take(inner);
          }
       } else if (packet instanceof ClientboundLevelChunkWithLightPacket data) {
-         data.chunkData().getBlockEntitiesTagsConsumer(data.x(), data.z()).accept((pos, type, nbt) -> this.recordEntity(pos, type));
+         data.chunkData().forEachBlockEntityTag(data.x(), data.z(), (pos, type, nbt) -> this.recordEntity(pos, type));
       } else if (packet instanceof ClientboundBlockEntityDataPacket update) {
          this.recordEntity(update.getPos(), update.getType());
       } else if (packet instanceof ClientboundBlockEventPacket lid && this.openedStorage.get()) {
@@ -602,34 +603,34 @@ public class BaseEsp extends Module {
    }
 
    private static Block blockOf(BlockEntityType<?> type) {
-      if (type == BlockEntityType.CHEST) {
+      if (type == BlockEntityTypes.CHEST) {
          return Blocks.CHEST;
-      } else if (type == BlockEntityType.TRAPPED_CHEST) {
+      } else if (type == BlockEntityTypes.TRAPPED_CHEST) {
          return Blocks.TRAPPED_CHEST;
-      } else if (type == BlockEntityType.ENDER_CHEST) {
+      } else if (type == BlockEntityTypes.ENDER_CHEST) {
          return Blocks.ENDER_CHEST;
-      } else if (type == BlockEntityType.SHULKER_BOX) {
+      } else if (type == BlockEntityTypes.SHULKER_BOX) {
          return Blocks.SHULKER_BOX;
-      } else if (type == BlockEntityType.BARREL) {
+      } else if (type == BlockEntityTypes.BARREL) {
          return Blocks.BARREL;
-      } else if (type == BlockEntityType.HOPPER) {
+      } else if (type == BlockEntityTypes.HOPPER) {
          return Blocks.HOPPER;
-      } else if (type == BlockEntityType.MOB_SPAWNER) {
+      } else if (type == BlockEntityTypes.MOB_SPAWNER) {
          return Blocks.SPAWNER;
-      } else if (type == BlockEntityType.FURNACE) {
+      } else if (type == BlockEntityTypes.FURNACE) {
          return Blocks.FURNACE;
-      } else if (type == BlockEntityType.SMOKER) {
+      } else if (type == BlockEntityTypes.SMOKER) {
          return Blocks.SMOKER;
-      } else if (type == BlockEntityType.BLAST_FURNACE) {
+      } else if (type == BlockEntityTypes.BLAST_FURNACE) {
          return Blocks.BLAST_FURNACE;
-      } else if (type == BlockEntityType.ENCHANTING_TABLE) {
+      } else if (type == BlockEntityTypes.ENCHANTING_TABLE) {
          return Blocks.ENCHANTING_TABLE;
-      } else if (type == BlockEntityType.DISPENSER) {
+      } else if (type == BlockEntityTypes.DISPENSER) {
          return Blocks.DISPENSER;
-      } else if (type == BlockEntityType.DROPPER) {
+      } else if (type == BlockEntityTypes.DROPPER) {
          return Blocks.DROPPER;
       } else {
-         return type == BlockEntityType.CRAFTER ? Blocks.CRAFTER : null;
+         return type == BlockEntityTypes.CRAFTER ? Blocks.CRAFTER : null;
       }
    }
 

@@ -1,4 +1,5 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : require
 
 // Specter sky, Atmosphere's clouds. Drawn after the solid terrain with a depth test at the far plane, so only sky
 // pixels pay for them (in front of the sun and moon, behind everything solid, under water and glass drawn later).
@@ -7,12 +8,12 @@
 //  - High clouds: thin cirrus streaks on a higher shell.
 // Output is premultiplied: light and coverage.
 
-#moj_import <specter-client:specter_sky.glsl>
+#include <specter-client:specter_sky.glsl>
 
-in vec4 nearPoint;
-in vec4 farPoint;
+layout(location = 0) in vec4 nearPoint;
+layout(location = 1) in vec4 farPoint;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 float hgPhase(float c, float g) {
     return miePhase(c, g);

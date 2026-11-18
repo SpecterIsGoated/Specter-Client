@@ -1,4 +1,5 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : require
 
 // Specter Bioluminescence: water that glows blue-green at night, the way a plankton bloom does - not as a flat tint
 // but where the water is stirred: along the shore where small waves break, in drifting patches, as pinpoint sparks,
@@ -12,17 +13,17 @@
 // With the camera under water the same pass adds drifting motes of light in the water and a soft moving glow on the
 // sea floor.
 
-#moj_import <specter-client:specter_fx.glsl>
+#include <specter-client:specter_fx.glsl>
 
 uniform sampler2D Sampler0;   // tiling noise (r big shapes, g puffy cells, b fine detail)
 uniform sampler2D Sampler1;   // depth of the solid world only (before water was drawn)
 uniform sampler2D Sampler2;   // depth of the finished world
 
-in vec4 nearPoint;
-in vec4 farPoint;
-in vec2 screenUv;
+layout(location = 0) in vec4 nearPoint;
+layout(location = 1) in vec4 farPoint;
+layout(location = 2) in vec2 screenUv;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 vec3 relAt(float z) {
     vec4 h = mix(nearPoint, farPoint, z);
@@ -89,8 +90,9 @@ void main() {
     if (strength <= 0.001) discard;
 
     ivec2 pixel = ivec2(gl_FragCoord.xy);
-    float zSolid = texelFetch(Sampler1, pixel, 0).r;
-    float zAll = texelFetch(Sampler2, pixel, 0).r;
+    // Reversed Z in 26.x: flipped back so 0 is the near plane and 1 the far plane, as the maths below expects.
+    float zSolid = 1.0 - texelFetch(Sampler1, pixel, 0).r;
+    float zAll = 1.0 - texelFetch(Sampler2, pixel, 0).r;
     bool under = FxState.x > 0.5;
     float reach = BioTune.x;
     vec3 col = vec3(0.0);

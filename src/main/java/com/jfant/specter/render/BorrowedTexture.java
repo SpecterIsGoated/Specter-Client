@@ -2,7 +2,7 @@ package com.jfant.specter.render;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.FilterMode;
+import com.mojang.renderpearl.api.textures.FilterMode;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 
 public final class BorrowedTexture extends AbstractTexture {

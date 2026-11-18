@@ -1,26 +1,22 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : require
 
 // Sky Lyrics, vertex stage: places the word quads and hands their texture spot and colour on.
 // Minecraft fills these blocks by name; only the first members are needed, laid out as the game writes them.
-layout(std140) uniform DynamicTransforms {
-    mat4 cameraFromWorld;
-    vec4 tint;
-};
-layout(std140) uniform Projection {
-    mat4 screenFromCamera;
-};
+#include <minecraft:dynamictransforms.glsl>
+#include <minecraft:projection.glsl>
 
 // Named as the vertex format names them.
-in vec3 Position;
-in vec2 UV0;
-in vec4 Color;
+layout(location = 0) in vec3 Position;
+layout(location = 1) in vec2 UV0;
+layout(location = 2) in vec4 Color;
 
-out vec2 glyphUv;
-out vec4 shade;
+layout(location = 0) out vec2 glyphUv;
+layout(location = 1) out vec4 shade;
 
 void main() {
-    vec4 inCamera = cameraFromWorld * vec4(Position, 1.0);
-    gl_Position = screenFromCamera * inCamera;
+    vec4 inCamera = ModelViewMat * vec4(Position, 1.0);
+    gl_Position = ProjMat * inCamera;
     glyphUv = UV0;
     shade = Color;
 }
