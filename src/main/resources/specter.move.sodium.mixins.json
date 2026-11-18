@@ -1,0 +1,18 @@
+{
+  "required": false,
+  "package": "com.jfant.specter.mixin.move.sodium",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.jfant.specter.mixin.move.MovePlugin",
+  "client": [
+    "SodiumXrayBlockRendererMixin",
+    "SodiumXrayContextMixin",
+    "SodiumXrayFluidImplMixin",
+    "SodiumXrayFluidMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixinextras": {
+    "minVersion": "0.5.0"
+  }
+}

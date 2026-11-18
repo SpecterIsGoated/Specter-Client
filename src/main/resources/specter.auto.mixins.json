@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "com.jfant.specter.mixin.auto",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "LivingEntityFlagsAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

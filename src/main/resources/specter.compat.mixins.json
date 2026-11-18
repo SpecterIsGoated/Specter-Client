@@ -1,0 +1,11 @@
+{
+  "required": false,
+  "package": "com.jfant.specter.mixin.compat",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "CirrusLightningRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

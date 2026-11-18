@@ -1,0 +1,20 @@
+{
+  "required": true,
+  "package": "com.jfant.specter.mixin.move",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MoveClientPlayerInvoker",
+    "MoveEntityMixin",
+    "MoveLightmapMixin",
+    "MoveSprintMixin",
+    "XrayBlockModelRendererMixin",
+    "XrayBlockRenderLayersMixin",
+    "XrayFluidRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixinextras": {
+    "minVersion": "0.5.0"
+  }
+}

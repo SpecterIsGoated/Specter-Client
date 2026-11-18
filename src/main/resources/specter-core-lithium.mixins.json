@@ -1,0 +1,12 @@
+{
+  "required": false,
+  "package": "com.jfant.specter.core.mixin.lithium",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.jfant.specter.core.MixinPlugin",
+  "client": [
+    "ChunkAwareBlockCollisionSweeperMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

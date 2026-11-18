@@ -1,0 +1,14 @@
+package com.jfant.specter.core.gui.themes.meteor.widgets.pressable;
+
+import com.jfant.specter.core.gui.renderer.GuiRenderer;
+import com.jfant.specter.core.gui.themes.meteor.MeteorWidget;
+import com.jfant.specter.core.gui.widgets.pressable.WTriangle;
+
+public class WMeteorTriangle extends WTriangle implements MeteorWidget {
+   @Override
+   protected void onRender(GuiRenderer renderer, double mouseX, double mouseY, double delta) {
+      renderer.rotatedQuad(
+         this.x, this.y, this.width, this.height, this.rotation, GuiRenderer.TRIANGLE, this.theme().backgroundColor.get(this.pressed, this.mouseOver)
+      );
+   }
+}

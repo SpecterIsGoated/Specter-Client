@@ -1,0 +1,18 @@
+package com.jfant.specter.core.events.entity.player;
+
+import com.jfant.specter.core.events.Cancellable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.Block;
+
+public class PlaceBlockEvent extends Cancellable {
+   private static final PlaceBlockEvent INSTANCE = new PlaceBlockEvent();
+   public BlockPos blockPos;
+   public Block block;
+
+   public static PlaceBlockEvent get(BlockPos blockPos, Block block) {
+      INSTANCE.setCancelled(false);
+      INSTANCE.blockPos = blockPos;
+      INSTANCE.block = block;
+      return INSTANCE;
+   }
+}

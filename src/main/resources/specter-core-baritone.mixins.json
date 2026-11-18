@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "com.jfant.specter.core.mixin.baritone",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.jfant.specter.core.MixinPlugin",
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

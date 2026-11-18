@@ -1,0 +1,84 @@
+package com.jfant.specter.fx;
+
+import java.util.Arrays;
+import org.joml.Matrix4f;
+
+public final class FxParams {
+   public static final int WAKES = 12;
+   public final Matrix4f invViewProj = new Matrix4f();
+   public float camX;
+   public float camY;
+   public float camZ;
+   public double worldX;
+   public double worldY;
+   public double worldZ;
+   public float seconds;
+   public float sunX;
+   public float sunY;
+   public float sunZ;
+   public float night;
+   public float moonX;
+   public float moonY;
+   public float moonZ;
+   public float moonBright;
+   public boolean underwater;
+   public float rain;
+   public float renderDistance;
+   public float aspect;
+   public boolean overworld;
+   public boolean bio;
+   public float bioStrength;
+   public float bioShore;
+   public float bioSparkle;
+   public float bioPatches;
+   public final float[] bioDeep = new float[3];
+   public final float[] bioBright = new float[3];
+   public float bioWake;
+   public float bioMotes;
+   public float bioReach;
+   public float bioWaveSpeed;
+   public float bioFloor;
+   public final float[] wakes = new float[48];
+   public boolean fog;
+   public float fogDensity;
+   public float fogBase;
+   public float fogFalloff;
+   public float fogMaxCover;
+   public final float[] fogColor = new float[3];
+   public float fogSunGlow;
+   public float fogStart;
+   public float fogPatchiness;
+   public float fogPatchSize;
+   public float fogStrength;
+   public float fogDriftX;
+   public float fogDriftZ;
+   public float fogChurn;
+   public float fogSkyReach;
+   public float fogCamU;
+   public float fogCamV;
+   public boolean grade;
+   public float exposure;
+   public float brightness;
+   public float contrast = 1.0F;
+   public float saturation = 1.0F;
+   public float temperature;
+   public float tint;
+   public float gamma = 1.0F;
+   public float vibrance;
+   public float highlights;
+   public float shadows;
+   public float vignette;
+   public float grain;
+   public float fade;
+   public float gradeMix;
+   public final float[] shadowTint = new float[]{0.5F, 0.5F, 0.5F};
+   public final float[] highlightTint = new float[]{0.5F, 0.5F, 0.5F};
+   public float shadowTintAmount;
+   public float highlightTintAmount;
+
+   void reset() {
+      this.bio = this.fog = this.grade = false;
+      this.bioStrength = this.fogStrength = this.gradeMix = 0.0F;
+      Arrays.fill(this.wakes, 0.0F);
+   }
+}

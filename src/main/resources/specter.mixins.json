@@ -1,0 +1,42 @@
+{
+  "required": true,
+  "package": "com.jfant.specter.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "CameraMixin",
+    "ClientPlayerHitParticlesMixin",
+    "ClientWorldInvoker",
+    "CloudRendererMixin",
+    "DialogScreenAccessor",
+    "DisconnectedScreenMixin",
+    "DrawContextMixin",
+    "EnvironmentAttributeInterpolatorMixin",
+    "GameRendererMixin",
+    "GuiThemeAccessor",
+    "ImmediateLayerMixin",
+    "InGameHudMixin",
+    "LightningEntityRendererMixin",
+    "MouseMixin",
+    "NoInvLeakHudMixin",
+    "NoInvLeakScreenMixin",
+    "NameProtectBossBarMixin",
+    "NameProtectChatMixin",
+    "NameProtectHudMixin",
+    "NameProtectNameTagMixin",
+    "NameProtectNetworkMixin",
+    "NameProtectTabMixin",
+    "NameProtectTextDisplayMixin",
+    "PlayerBypassNetworkMixin",
+    "ScreenMixin",
+    "ParticleAccessor",
+    "RenderLayerInvoker",
+    "SkyRenderingMixin",
+    "ArmSwingLengthMixin",
+    "ReachMixin",
+    "WorldFxMixin",
+    "TitleScreenSnowMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

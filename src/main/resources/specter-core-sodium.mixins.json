@@ -1,0 +1,16 @@
+{
+  "required": false,
+  "package": "com.jfant.specter.core.mixin.sodium",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.jfant.specter.core.MixinPlugin",
+  "client": [
+    "MeshVertexConsumerMixin",
+    "SodiumInnerPartitionBSPNodeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixinextras": {
+    "minVersion": "0.5.0"
+  }
+}

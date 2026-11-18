@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "name": "Specter Client",
+  "id": "specter",
+  "version": "0.93.5",
+  "description": "Specter: a standalone client. Built on the Meteor Client framework (GPL-3.0, https://github.com/MeteorDevelopment/meteor-client).",
+  "authors": [
+    "Specter"
+  ],
+  "contact": {},
+  "license": "GPL-3.0-only",
+  "icon": "assets/specter/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.jfant.specter.core.SpecterCore"
+    ],
+    "modmenu": [
+      "com.jfant.specter.core.modintegration.ModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    "specter-core.mixins.json",
+    "specter-core-baritone.mixins.json",
+    "specter-core-indigo.mixins.json",
+    "specter-core-sodium.mixins.json",
+    "specter-core-lithium.mixins.json",
+    "specter.mixins.json",
+    "specter.compat.mixins.json",
+    "specter.auto.mixins.json",
+    "specter.move.mixins.json",
+    "specter.move.sodium.mixins.json"
+  ],
+  "accessWidener": "specter.classtweaker",
+  "custom": {
+    "specter:build_number": "",
+    "specter:color": "150,90,220",
+    "specter:commit": "",
+    "badoptimizations:cache_hooks": {
+      "lightmap": "com.jfant.specter.core.modintegration.BadOptimizationsHook"
+    }
+  },
+  "depends": {
+    "java": "\u003e\u003d21",
+    "minecraft": [
+      "1.21.11"
+    ],
+    "fabricloader": "\u003e\u003d0.18.2"
+  },
+  "breaks": {
+    "optifabric": "*",
+    "feather": "*",
+    "origins": "*",
+    "sodium": "\u003c0.8.7",
+    "morechathistory": "*",
+    "lithium": "\u003c0.21.3"
+  },
+  "contributors": [
+    "Meteor Development (MineGame159, squidoodly, seasnail) - original Meteor Client framework"
+  ]
+}
