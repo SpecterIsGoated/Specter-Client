@@ -62,7 +62,7 @@ public class ScoreStore {
    private int[][] countsScratch = new int[0][];
 
    public static long key(int chunkX, int chunkZ) {
-      return ChunkPos.asLong(chunkX, chunkZ);
+      return ChunkPos.pack(chunkX, chunkZ);
    }
 
    public static int chunkX(long key) {

@@ -3,7 +3,7 @@ package com.jfant.specter.gui.screen;
 import com.jfant.specter.render.PurpleCard;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.item.ItemStack;
 
 final class OpenCard extends Card {
@@ -42,7 +42,7 @@ final class OpenCard extends Card {
    }
 
    @Override
-   void content(GuiGraphics ctx, int mx, int my, boolean hover) {
+   void content(GuiGraphicsExtractor ctx, int mx, int my, boolean hover) {
       int textY = Ui.textY(this.y, this.h);
       int right = this.x + this.w - 6;
       String text = this.value.get();

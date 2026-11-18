@@ -24,8 +24,8 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.PlayerFaceRenderer;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
@@ -433,16 +433,16 @@ public class MediaBaseFinder extends Module {
    @EventHandler
    private void onRender2D(Render2DEvent event) {
       if (this.mc.player != null && this.mc.level != null) {
-         this.drawBigText(event.drawContext);
-         if (this.card.get() && !this.mc.options.hideGui && !this.mc.debugEntries.isOverlayVisible()) {
+         this.drawBigText(event.graphics);
+         if (this.card.get() && !this.mc.gui.hud.isHidden() && !this.mc.debugEntries.isOverlayVisible()) {
             if (!this.hideWhenClear.get() || this.settle <= 0 && !this.here.isEmpty()) {
-               this.drawCard(event.drawContext);
+               this.drawCard(event.graphics);
             }
          }
       }
    }
 
-   private void drawCard(GuiGraphics ctx) {
+   private void drawCard(GuiGraphicsExtractor ctx) {
       List<String> rows = new ArrayList<>(this.here);
       int more = Math.max(0, rows.size() - 8);
       if (more > 0) {
@@ -478,7 +478,7 @@ public class MediaBaseFinder extends Module {
          for (String name : rows) {
             PlayerInfo entry = handler == null ? null : handler.getPlayerInfo(name);
             PlayerSkin skin = entry != null ? entry.getSkin() : DefaultPlayerSkin.getDefaultSkin();
-            PlayerFaceRenderer.draw(ctx, skin, 0, rowY, 8, -1);
+            PlayerFaceExtractor.extractRenderState(ctx, skin, 0, rowY, 8, -1);
             CardText.draw(ctx, CardText.fit(name, innerWidth - 8 - 4), 12.0F, (float)rowY, -1, true);
             rowY += 12;
          }
@@ -491,11 +491,11 @@ public class MediaBaseFinder extends Module {
       matrices.popMatrix();
    }
 
-   private void drawBigText(GuiGraphics ctx) {
+   private void drawBigText(GuiGraphicsExtractor ctx) {
       if (this.bigTitle != null) {
          long now = System.currentTimeMillis();
          if (this.bigStart == 0L) {
-            if (this.mc.screen != null) {
+            if (this.mc.gui.screen() != null) {
                return;
             }
 

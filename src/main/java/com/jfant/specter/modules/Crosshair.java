@@ -12,7 +12,7 @@ import com.jfant.specter.core.systems.modules.Module;
 import com.jfant.specter.core.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -122,11 +122,11 @@ public class Crosshair extends Module {
       return instance != null && instance.isActive();
    }
 
-   public static void draw(GuiGraphics ctx, float tickProgress) {
+   public static void draw(GuiGraphicsExtractor ctx, float tickProgress) {
       instance.render(ctx, tickProgress);
    }
 
-   private void render(GuiGraphics ctx, float tickProgress) {
+   private void render(GuiGraphicsExtractor ctx, float tickProgress) {
       Minecraft client = Minecraft.getInstance();
       if (client.player != null && client.gameMode != null && client.options.getCameraType().isFirstPerson()) {
          if (client.gameMode.getPlayerMode() != GameType.SPECTATOR) {
@@ -214,7 +214,7 @@ public class Crosshair extends Module {
       return (int)Math.round(this.spread);
    }
 
-   private void cooldownBar(GuiGraphics ctx, int cx, int y, float charge) {
+   private void cooldownBar(GuiGraphicsExtractor ctx, int cx, int y, float charge) {
       if (!(charge >= 1.0F)) {
          int width = 10;
          int filled = Math.round(width * charge);
@@ -223,7 +223,7 @@ public class Crosshair extends Module {
       }
    }
 
-   private void rect(GuiGraphics ctx, int x, int y, int w, int h, int c) {
+   private void rect(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int c) {
       if (w > 0 && h > 0) {
          if (this.outline.get()) {
             ctx.fill(x - 1, y - 1, x + w + 1, y + h + 1, outlineColor(c));
@@ -233,7 +233,7 @@ public class Crosshair extends Module {
       }
    }
 
-   private void line(GuiGraphics ctx, int x0, int y0, int x1, int y1, int t, int c) {
+   private void line(GuiGraphicsExtractor ctx, int x0, int y0, int x1, int y1, int t, int c) {
       if (this.outline.get()) {
          plot(ctx, x0, y0, x1, y1, t + 2, outlineColor(c));
       }
@@ -241,7 +241,7 @@ public class Crosshair extends Module {
       plot(ctx, x0, y0, x1, y1, t, c);
    }
 
-   private static void plot(GuiGraphics ctx, int x0, int y0, int x1, int y1, int t, int c) {
+   private static void plot(GuiGraphicsExtractor ctx, int x0, int y0, int x1, int y1, int t, int c) {
       int dx = Math.abs(x1 - x0);
       int dy = -Math.abs(y1 - y0);
       int sx = x0 < x1 ? 1 : -1;
@@ -268,7 +268,7 @@ public class Crosshair extends Module {
       }
    }
 
-   private void ring(GuiGraphics ctx, int cx, int cy, int radius, int t, int c, float part) {
+   private void ring(GuiGraphicsExtractor ctx, int cx, int cy, int radius, int t, int c, float part) {
       int steps = Math.max(24, radius * 8);
       int drawn = Math.round(steps * Mth.clamp(part, 0.0F, 1.0F));
       int lastX = -2147483648;

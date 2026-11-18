@@ -2,8 +2,8 @@ package com.jfant.specter.staff;
 
 import com.jfant.specter.render.CardText;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.PlayerFaceRenderer;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.sounds.SoundEvent;
@@ -53,7 +53,7 @@ public final class WatchingAlert {
       this.active = false;
    }
 
-   public void render(GuiGraphics ctx) {
+   public void render(GuiGraphicsExtractor ctx) {
       if (this.active) {
          long t = System.currentTimeMillis() - this.start;
          if (t >= 5100L) {
@@ -79,7 +79,7 @@ public final class WatchingAlert {
                m.pushMatrix();
                m.translate(centerX, top + 24.0F);
                m.scale(size / 48.0F, size / 48.0F);
-               PlayerFaceRenderer.draw(ctx, this.skin, -24, -24, 48, alpha(headAlpha) | 16777215);
+               PlayerFaceExtractor.extractRenderState(ctx, this.skin, -24, -24, 48, alpha(headAlpha) | 16777215);
                m.popMatrix();
             }
 

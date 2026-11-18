@@ -247,8 +247,8 @@ public class DrownedDripstone extends Module {
    private void onChunkData(ChunkDataEvent event) {
       LevelChunk chunk = event.chunk();
       this.submitScan(chunk);
-      int chunkX = chunk.getPos().x;
-      int chunkZ = chunk.getPos().z;
+      int chunkX = chunk.getPos().x();
+      int chunkZ = chunk.getPos().z();
       long due = System.currentTimeMillis() + 2000L;
       this.rescanIfMissing(chunkX + 1, chunkZ, 1, due);
       this.rescanIfMissing(chunkX - 1, chunkZ, 2, due);
@@ -373,8 +373,8 @@ public class DrownedDripstone extends Module {
 
    private void submitScan(LevelChunk chunk) {
       if (this.mc.level != null) {
-         int chunkX = chunk.getPos().x;
-         int chunkZ = chunk.getPos().z;
+         int chunkX = chunk.getPos().x();
+         int chunkZ = chunk.getPos().z();
          long key = ScoreStore.key(chunkX, chunkZ);
          LevelChunk west = this.loadedChunk(chunkX - 1, chunkZ);
          LevelChunk east = this.loadedChunk(chunkX + 1, chunkZ);

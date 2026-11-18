@@ -4,7 +4,7 @@ import com.jfant.specter.render.CardText;
 import com.jfant.specter.render.PurpleCard;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.toasts.Toast;
 import net.minecraft.client.gui.components.toasts.ToastManager;
 import net.minecraft.client.gui.components.toasts.Toast.Visibility;
@@ -49,7 +49,7 @@ public class BypassToast implements Toast {
       if (!mc.isSameThread()) {
          mc.execute(() -> addOrUpdate(icon, title, message, sound));
       } else {
-         ToastManager toasts = mc.getToastManager();
+         ToastManager toasts = mc.gui.toastManager();
          BypassToast toast = toasts.getToast(BypassToast.class, title);
          if (toast == null) {
             toasts.addToast(new BypassToast(title, icon, Component.literal(title), message, sound));
@@ -108,12 +108,12 @@ public class BypassToast implements Toast {
    public void onFinishedRendering() {
       if (this.changed) {
          this.hiding = false;
-         Minecraft.getInstance().getToastManager().addToast(this);
+         Minecraft.getInstance().gui.toastManager().addToast(this);
       }
    }
 
    @Override
-   public void render(GuiGraphics graphics, Font font, long visibleFor) {
+   public void render(GuiGraphicsExtractor graphics, Font font, long visibleFor) {
       int right = this.width - 3;
       int bottom = 31;
       PurpleCard.card(graphics, 0, 1, right, bottom);
@@ -127,8 +127,8 @@ public class BypassToast implements Toast {
       graphics.renderItem(this.icon, 8, 8);
    }
 
-   private void drawTimer(GuiGraphics graphics, long visibleFor, int right, int bottom) {
-      double duration = 5000.0 * Minecraft.getInstance().getToastManager().getNotificationDisplayTimeMultiplier();
+   private void drawTimer(GuiGraphicsExtractor graphics, long visibleFor, int right, int bottom) {
+      double duration = 5000.0 * Minecraft.getInstance().gui.toastManager().getNotificationDisplayTimeMultiplier();
       float left = 1.0F - (float)Mth.clamp((visibleFor - this.changedAt) / duration, 0.0, 1.0);
       int x0 = 5;
       int x1 = right - 5;
@@ -137,7 +137,7 @@ public class BypassToast implements Toast {
       graphics.fill(x0, y, x0 + Math.round((x1 - x0) * left), y + 1, -523789323);
    }
 
-   private void drawText(GuiGraphics graphics, Component text, String suffix, int y, int color) {
+   private void drawText(GuiGraphicsExtractor graphics, Component text, String suffix, int y, int color) {
       int room = this.width - 3 - 30 - 7 - CardText.width(suffix);
       FormattedCharSequence shown = CardText.clip(text, room);
       CardText.draw(graphics, shown, 30.0F, (float)y, color, true);

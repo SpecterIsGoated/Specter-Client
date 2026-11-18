@@ -18,7 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
@@ -74,9 +74,9 @@ public final class HudAddPanel extends Screen {
    }
 
    @Override
-   public void renderBackground(GuiGraphics context, int mouseX, int mouseY, float deltaTicks) {
+   public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float deltaTicks) {
       if (this.minecraft.level == null) {
-         this.renderPanorama(context, deltaTicks);
+         this.extractPanorama(context, deltaTicks);
       }
    }
 
@@ -138,10 +138,10 @@ public final class HudAddPanel extends Screen {
             card.owner().toggle();
          }
 
-         SpecterCore.mc.setScreen(this.parent);
+         SpecterCore.mc.gui.setScreen(this.parent);
       } else if (object instanceof HudElementInfo<?>.Preset preset) {
          Hud.get().add(preset, this.x, this.y);
-         SpecterCore.mc.setScreen(this.parent);
+         SpecterCore.mc.gui.setScreen(this.parent);
       } else if (object instanceof HudElementInfo<?> info) {
          if (info.hasPresets()) {
             if (!this.open.remove(info)) {
@@ -149,7 +149,7 @@ public final class HudAddPanel extends Screen {
             }
          } else {
             Hud.get().add(info, this.x, this.y);
-            SpecterCore.mc.setScreen(this.parent);
+            SpecterCore.mc.gui.setScreen(this.parent);
          }
       }
    }
@@ -165,7 +165,7 @@ public final class HudAddPanel extends Screen {
    }
 
    @Override
-   public void render(GuiGraphics ctx, int mouseX, int mouseY, float deltaTicks) {
+   public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float deltaTicks) {
       this.renderBackground(ctx, mouseX, mouseY, deltaTicks);
       this.layout();
       Ui.hint = "";
@@ -232,7 +232,7 @@ public final class HudAddPanel extends Screen {
       int my = (int)click.y();
       Focus.touched = false;
       if (!Ui.in(mx, my, this.wx, this.wy, this.ww, this.wh)) {
-         SpecterCore.mc.setScreen(this.parent);
+         SpecterCore.mc.gui.setScreen(this.parent);
          return true;
       } else {
          if (!this.search.click(mx, my) && click.button() != 1 && Ui.in(mx, my, this.wx + 4, this.listTop, this.ww - 8, this.listBottom - this.listTop)) {
@@ -267,7 +267,7 @@ public final class HudAddPanel extends Screen {
       Focusable focused = Focus.get();
       if (focused == null) {
          if (input.key() == 256) {
-            SpecterCore.mc.setScreen(this.parent);
+            SpecterCore.mc.gui.setScreen(this.parent);
             return true;
          } else {
             return false;

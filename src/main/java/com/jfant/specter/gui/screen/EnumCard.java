@@ -6,7 +6,7 @@ import com.jfant.specter.anim.Motion;
 import com.jfant.specter.anim.Spec;
 import com.jfant.specter.core.settings.EnumSetting;
 import com.jfant.specter.render.QuadBatch;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 final class EnumCard extends Card {
    private final EnumSetting<?> setting;
@@ -48,7 +48,7 @@ final class EnumCard extends Card {
    }
 
    @Override
-   void content(GuiGraphics ctx, int mx, int my, boolean hover) {
+   void content(GuiGraphicsExtractor ctx, int mx, int my, boolean hover) {
       int textY = Ui.textY(this.y, this.h);
       String value = this.setting.get().toString();
       Ui.text(ctx, Ui.fit(this.label, Math.max(20, this.w - 12 - Ui.width(value) - 2 * Ui.width("<") - 12)), this.x + 6, textY, -1911561);

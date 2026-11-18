@@ -3,9 +3,9 @@ package com.jfant.specter.mixin;
 import com.jfant.specter.modules.NoInvLeak;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.sugar.Local;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -34,7 +34,7 @@ public abstract class NoInvLeakHudMixin {
       at = {@At("HEAD")},
       cancellable = true
    )
-   private void specter$noItemName(GuiGraphics context, CallbackInfo ci) {
+   private void specter$noItemName(GuiGraphicsExtractor context, CallbackInfo ci) {
       if (NoInvLeak.hidesItemName()) {
          ci.cancel();
       }
@@ -44,10 +44,10 @@ public abstract class NoInvLeakHudMixin {
       method = {"renderItemHotbar"},
       at = {@At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/gui/GuiGraphics;blitSprite(Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/resources/Identifier;IIII)V"
+         target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;blitSprite(Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/resources/Identifier;IIII)V"
       )}
    )
-   private boolean specter$noSelection(GuiGraphics context, RenderPipeline pipeline, Identifier sprite, int x, int y, int width, int height) {
+   private boolean specter$noSelection(GuiGraphicsExtractor context, RenderPipeline pipeline, Identifier sprite, int x, int y, int width, int height) {
       return !NoInvLeak.hidesSelectedSlot() || !SPECTER$SELECTION.equals(sprite);
    }
 }

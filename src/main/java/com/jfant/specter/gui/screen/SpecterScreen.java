@@ -45,7 +45,7 @@ import java.util.Map.Entry;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
@@ -125,14 +125,14 @@ public class SpecterScreen extends Screen {
    }
 
    public static void toggle() {
-      if (SpecterCore.mc.screen instanceof SpecterScreen screen) {
+      if (SpecterCore.mc.gui.screen() instanceof SpecterScreen screen) {
          if (screen.closing) {
             screen.reopen();
          } else {
             screen.onClose();
          }
       } else if (Utils.canOpenGui()) {
-         SpecterCore.mc.setScreen(new SpecterScreen());
+         SpecterCore.mc.gui.setScreen(new SpecterScreen());
       }
    }
 
@@ -192,9 +192,9 @@ public class SpecterScreen extends Screen {
    }
 
    @Override
-   public void renderBackground(GuiGraphics context, int mouseX, int mouseY, float deltaTicks) {
+   public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float deltaTicks) {
       if (this.minecraft.level == null) {
-         this.renderPanorama(context, deltaTicks);
+         this.extractPanorama(context, deltaTicks);
       }
    }
 
@@ -207,7 +207,7 @@ public class SpecterScreen extends Screen {
    }
 
    @Override
-   public void render(GuiGraphics ctx, int screenX, int screenY, float deltaTicks) {
+   public void extractRenderState(GuiGraphicsExtractor ctx, int screenX, int screenY, float deltaTicks) {
       GuiProfile.beginFrame();
 
       try {
@@ -217,7 +217,7 @@ public class SpecterScreen extends Screen {
       }
    }
 
-   private void renderGui(GuiGraphics ctx, int screenX, int screenY, float deltaTicks) {
+   private void renderGui(GuiGraphicsExtractor ctx, int screenX, int screenY, float deltaTicks) {
       if (this.closing && this.presence.done()) {
          this.closing = false;
          super.onClose();
@@ -343,7 +343,7 @@ public class SpecterScreen extends Screen {
       }
    }
 
-   private void hintBox(GuiGraphics ctx, String text, int color) {
+   private void hintBox(GuiGraphicsExtractor ctx, String text, int color) {
       int room = (int)Math.min(300.0F, (this.vw - 16) / 1.25F - 12.0F);
       List<String> lines = Ui.wrap(text, room);
       if (lines.size() > 3) {
@@ -377,7 +377,7 @@ public class SpecterScreen extends Screen {
       m.popMatrix();
    }
 
-   private void tip(GuiGraphics ctx, String name, int mouseX, int mouseY) {
+   private void tip(GuiGraphicsExtractor ctx, String name, int mouseX, int mouseY) {
       int w = Math.min(this.vw - 8, Ui.width(name) + 10);
       int h = 13;
       int x = mouseX + 9;
@@ -432,7 +432,7 @@ public class SpecterScreen extends Screen {
       return 28;
    }
 
-   private void bar(GuiGraphics ctx, int mx, int my) {
+   private void bar(GuiGraphicsExtractor ctx, int mx, int my) {
       PurpleCard.bubble(ctx, 4, 4, this.vw - 4, 24);
       int textY = Ui.textY(4, 20);
       Ui.text(ctx, "SPECTER", 13, textY, -37177);
@@ -590,7 +590,7 @@ public class SpecterScreen extends Screen {
                   if (i < this.menus.length) {
                      this.menu = this.menu == this.menus[i] ? null : this.menus[i];
                   } else {
-                     SpecterCore.mc.setScreen(new HudEditorScreen(GuiThemes.get()));
+                     SpecterCore.mc.gui.setScreen(new HudEditorScreen(GuiThemes.get()));
                   }
 
                   return;
@@ -876,7 +876,7 @@ public class SpecterScreen extends Screen {
                      new ButtonCard(
                         "HUD Editor",
                         "Opens the HUD editor, where HUD elements are placed.",
-                        () -> SpecterCore.mc.setScreen(new HudEditorScreen(GuiThemes.get()))
+                        () -> SpecterCore.mc.gui.setScreen(new HudEditorScreen(GuiThemes.get()))
                      )
                   )
                ),
@@ -944,7 +944,7 @@ public class SpecterScreen extends Screen {
       }
 
       @Override
-      void render(GuiGraphics ctx, int mx, int my) {
+      void render(GuiGraphicsExtractor ctx, int mx, int my) {
          float shown = this.drop.shown.getF();
          int height = Math.round(this.full() * shown);
          if (height > 0) {
@@ -989,7 +989,7 @@ public class SpecterScreen extends Screen {
       }
 
       @Override
-      void render(GuiGraphics ctx, int mx, int my) {
+      void render(GuiGraphicsExtractor ctx, int mx, int my) {
          this.field.render(ctx, this.x + 3, this.y + 2, this.w - 6, 14);
       }
 
@@ -1065,7 +1065,7 @@ public class SpecterScreen extends Screen {
       }
 
       @Override
-      void render(GuiGraphics ctx, int mx, int my) {
+      void render(GuiGraphicsExtractor ctx, int mx, int my) {
          SpecterScreen.Drop drop = SpecterScreen.open.get(this.key);
          boolean dropped = drop != null && !drop.closing;
          boolean hover = Ui.in(mx, my, this.x, this.y, this.w, 13);
@@ -1222,7 +1222,7 @@ public class SpecterScreen extends Screen {
          return Ui.in(mx, my, this.x, this.y, this.w, this.head() + this.bodyHeight + (this.menu ? 2 : 0));
       }
 
-      void render(GuiGraphics ctx, int mx, int my, String query) {
+      void render(GuiGraphicsExtractor ctx, int mx, int my, String query) {
          boolean wanted = !this.folded || !query.isEmpty() || this.menu;
          List<SpecterScreen.Row> rows = !wanted && this.bodyHeight <= 0 ? List.of() : this.withDrops(query);
          int content = 2;
@@ -1312,7 +1312,7 @@ public class SpecterScreen extends Screen {
          };
       }
 
-      private void header(GuiGraphics ctx, int mx, int my) {
+      private void header(GuiGraphicsExtractor ctx, int mx, int my) {
          boolean headHover = Ui.in(mx, my, this.x, this.y, this.w, 15);
          int corners = this.bodyHeight > 0 ? 3 : 15;
          float lit = Ui.hover(this, "head", headHover);
@@ -1444,7 +1444,7 @@ public class SpecterScreen extends Screen {
          return this.height();
       }
 
-      abstract void render(GuiGraphics var1, int var2, int var3);
+      abstract void render(GuiGraphicsExtractor var1, int var2, int var3);
 
       abstract void click(int var1, int var2, int var3);
 
@@ -1466,7 +1466,7 @@ public class SpecterScreen extends Screen {
       }
 
       @Override
-      void render(GuiGraphics ctx, int mx, int my) {
+      void render(GuiGraphicsExtractor ctx, int mx, int my) {
          Ui.text(ctx, Ui.fit(this.text, this.w - 12), this.x + 6, Ui.textY(this.y, 13), -4149795);
       }
 

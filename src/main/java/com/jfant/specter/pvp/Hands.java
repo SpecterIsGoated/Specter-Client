@@ -29,7 +29,7 @@ public final class Hands {
 
    public static boolean canAct() {
       LocalPlayer player = SpecterCore.mc.player;
-      if (player != null && SpecterCore.mc.level != null && SpecterCore.mc.gameMode != null && SpecterCore.mc.screen == null) {
+      if (player != null && SpecterCore.mc.level != null && SpecterCore.mc.gameMode != null && SpecterCore.mc.gui.screen() == null) {
          return player.isAlive() && !player.isSpectator() && SpecterCore.mc.gameMode.getPlayerMode() != GameType.SPECTATOR ? !player.isUsingItem() : false;
       } else {
          return false;

@@ -38,7 +38,7 @@ public abstract class NameProtectHudMixin {
    }
 
    @ModifyExpressionValue(
-      method = {"displayScoreboardSidebar(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/world/scores/Objective;)V"},
+      method = {"displayScoreboardSidebar(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/world/scores/Objective;)V"},
       at = {@At(
          value = "INVOKE",
          target = "Lnet/minecraft/world/scores/Objective;getDisplayName()Lnet/minecraft/network/chat/Component;"
@@ -49,7 +49,7 @@ public abstract class NameProtectHudMixin {
    }
 
    @ModifyExpressionValue(
-      method = {"displayScoreboardSidebar(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/world/scores/Objective;)V"},
+      method = {"displayScoreboardSidebar(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/world/scores/Objective;)V"},
       at = {@At(
          value = "FIELD",
          opcode = 180,
@@ -62,7 +62,7 @@ public abstract class NameProtectHudMixin {
    }
 
    @ModifyExpressionValue(
-      method = {"displayScoreboardSidebar(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/world/scores/Objective;)V"},
+      method = {"displayScoreboardSidebar(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/world/scores/Objective;)V"},
       at = {@At(
          value = "FIELD",
          opcode = 180,

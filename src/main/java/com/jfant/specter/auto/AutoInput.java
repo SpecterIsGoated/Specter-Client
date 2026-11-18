@@ -20,11 +20,11 @@ public final class AutoInput {
    }
 
    public static void restore(KeyMapping key) {
-      key.setDown(SpecterCore.mc.screen == null && Input.isPressed(key));
+      key.setDown(SpecterCore.mc.gui.screen() == null && Input.isPressed(key));
    }
 
    public static boolean physicallyHeld(KeyMapping key) {
-      return SpecterCore.mc.screen == null && Input.isPressed(key);
+      return SpecterCore.mc.gui.screen() == null && Input.isPressed(key);
    }
 
    public static Vec3 pointAlong(LocalPlayer player, double yaw, double pitch) {

@@ -33,7 +33,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -259,7 +259,7 @@ public final class AutoRtp {
                   }
 
                   if (!this.handleMenu(mc, player, now, config)) {
-                     String pause = mc.screen != null && !this.ourMenuOpen(mc, player) ? "a menu is open" : null;
+                     String pause = mc.gui.screen() != null && !this.ourMenuOpen(mc, player) ? "a menu is open" : null;
                      if (pause != null) {
                         this.loop.holdUntil(now + 1000L);
                      }
@@ -492,7 +492,7 @@ public final class AutoRtp {
                   return true;
                }
             } else if (slot >= 0) {
-               mc.gameMode.handleInventoryMouseClick(menu.containerId, slot, 0, ClickType.PICKUP, player);
+               mc.gameMode.handleInventoryMouseClick(menu.containerId, slot, 0, ContainerInput.PICKUP, player);
                this.menuClicked = true;
                this.menuClicks++;
                this.lastMenuClickAt = now;
@@ -566,7 +566,7 @@ public final class AutoRtp {
    }
 
    private static boolean containerOpen(Minecraft mc, LocalPlayer player) {
-      return player.containerMenu != player.inventoryMenu && mc.screen instanceof AbstractContainerScreen;
+      return player.containerMenu != player.inventoryMenu && mc.gui.screen() instanceof AbstractContainerScreen;
    }
 
    private boolean ourMenuOpen(Minecraft mc, LocalPlayer player) {

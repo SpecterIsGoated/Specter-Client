@@ -15,7 +15,7 @@ import com.jfant.specter.core.systems.modules.Module;
 import com.jfant.specter.festive.Snowfield;
 import java.util.Random;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
@@ -155,7 +155,7 @@ public class Snowfall extends Module {
    @EventHandler
    private void onTick(TickEvent.Post event) {
       if (this.where.get() != Snowfall.Where.Screen && this.mc.level != null && this.mc.player != null && !this.mc.isPaused()) {
-         Vec3 eye = this.mc.gameRenderer.getMainCamera().position();
+         Vec3 eye = this.mc.gameRenderer.mainCamera().position();
          int r = this.radius.get();
          this.owed = this.owed + this.density.get() * r * r * 0.012;
          this.gust += 0.011;
@@ -199,10 +199,10 @@ public class Snowfall extends Module {
    @EventHandler
    private void onRender(Render2DEvent event) {
       if (this.where.get() != Snowfall.Where.World) {
-         boolean visible = !this.hideInMenus.get() || this.mc.screen == null;
+         boolean visible = !this.hideInMenus.get() || this.mc.gui.screen() == null;
          float alpha = this.shown.to(visible ? 1.0 : 0.0, Spec.WORLD_FADE.scaled(visible ? 1.0 : 0.35)).getF() * this.screenOpacity.get().floatValue();
          if (!(alpha <= 0.01F)) {
-            GuiGraphics ctx = event.drawContext;
+            GuiGraphicsExtractor ctx = event.graphics;
             this.screen
                .draw(
                   ctx,

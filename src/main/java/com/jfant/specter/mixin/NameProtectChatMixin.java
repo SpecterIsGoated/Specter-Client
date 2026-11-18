@@ -1,7 +1,7 @@
 package com.jfant.specter.mixin;
 
 import com.jfant.specter.modules.NameProtectPlus;
-import net.minecraft.client.GuiMessage;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.network.chat.FormattedText;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

@@ -40,8 +40,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.PlayerFaceRenderer;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
@@ -902,15 +902,15 @@ public class AntiVanish extends Module {
    @EventHandler
    private void onRender2D(Render2DEvent event) {
       if (this.mc.player != null && this.mc.level != null) {
-         if (!this.mc.options.hideGui) {
-            GuiGraphics ctx = event.drawContext;
+         if (!this.mc.gui.hud.isHidden()) {
+            GuiGraphicsExtractor ctx = event.graphics;
             this.drawCard(ctx);
             this.overlay.render(ctx);
          }
       }
    }
 
-   private void drawCard(GuiGraphics ctx) {
+   private void drawCard(GuiGraphicsExtractor ctx) {
       if (!this.mc.debugEntries.isOverlayVisible()) {
          long now = System.currentTimeMillis();
          this.shownSuspects.clear();
@@ -1027,9 +1027,9 @@ public class AntiVanish extends Module {
       }
    }
 
-   private void drawSuspect(GuiGraphics ctx, Font tr, AntiVanish.Suspect s, int y, int innerWidth, long now) {
+   private void drawSuspect(GuiGraphicsExtractor ctx, Font tr, AntiVanish.Suspect s, int y, int innerWidth, long now) {
       PlayerSkin skin = s.skin != null ? s.skin : DefaultPlayerSkin.getDefaultSkin();
-      PlayerFaceRenderer.draw(ctx, skin, 0, y, 8, s.leftAt != 0L ? -2130706433 : -1);
+      PlayerFaceExtractor.extractRenderState(ctx, skin, 0, y, 8, s.leftAt != 0L ? -2130706433 : -1);
       boolean watching = now - s.watchingAt < 5000L;
       String status = watching ? "Watching you" : status(s, now);
       int statusWidth = CardText.width(status) + 6;

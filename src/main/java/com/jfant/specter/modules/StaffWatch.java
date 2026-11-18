@@ -30,8 +30,8 @@ import java.util.Set;
 import java.util.Map.Entry;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.PlayerFaceRenderer;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -365,13 +365,13 @@ public class StaffWatch extends Module {
    @EventHandler
    private void onRender2D(Render2DEvent event) {
       if (this.mc.player != null && this.mc.level != null) {
-         if (!this.mc.options.hideGui && !this.mc.debugEntries.isOverlayVisible()) {
+         if (!this.mc.gui.hud.isHidden() && !this.mc.debugEntries.isOverlayVisible()) {
             this.sorted.clear();
             this.sorted.addAll(this.people.values());
             this.sorted.sort(ORDER);
             if (!this.sorted.isEmpty() || !this.hideWhenClear.get()) {
                long now = System.currentTimeMillis();
-               GuiGraphics ctx = event.drawContext;
+               GuiGraphicsExtractor ctx = event.graphics;
                Font tr = this.mc.font;
                this.lines.clear();
                int[] counts = new int[StaffTeams.Rank.values().length];
@@ -445,15 +445,15 @@ public class StaffWatch extends Module {
       }
    }
 
-   private void drawHeading(GuiGraphics ctx, Font tr, StaffTeams.Rank rank, int online, int y) {
+   private void drawHeading(GuiGraphicsExtractor ctx, Font tr, StaffTeams.Rank rank, int online, int y) {
       CardText.draw(ctx, rank.plural, 0.0F, (float)y, -1911561, true);
       CardText.draw(ctx, Integer.toString(online), (float)(CardText.width(rank.plural) + 4), (float)y, -4149795, true);
    }
 
-   private void drawRow(GuiGraphics ctx, Font tr, StaffWatch.Person p, int y, int innerWidth, long now) {
+   private void drawRow(GuiGraphicsExtractor ctx, Font tr, StaffWatch.Person p, int y, int innerWidth, long now) {
       boolean left = p.leftAt != 0L;
       PlayerSkin skin = p.skin != null ? p.skin : DefaultPlayerSkin.getDefaultSkin();
-      PlayerFaceRenderer.draw(ctx, skin, 0, y, 8, left ? -2130706433 : -1);
+      PlayerFaceExtractor.extractRenderState(ctx, skin, 0, y, 8, left ? -2130706433 : -1);
       String status = status(p, now);
       int statusWidth = status.isEmpty() ? 0 : CardText.width(status) + 6;
       int nameRoom = innerWidth - 8 - 4 - statusWidth;

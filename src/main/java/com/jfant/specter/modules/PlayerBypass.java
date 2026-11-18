@@ -475,7 +475,7 @@ public class PlayerBypass extends Module {
             if (!(score < 0.5F)) {
                for (int dx = -sim; dx <= sim; dx++) {
                   for (int dz = -sim; dz <= sim; dz++) {
-                     long area = ChunkPos.asLong(cx + dx, cz + dz);
+                     long area = ChunkPos.pack(cx + dx, cz + dz);
                      this.field.addTo(area, score * weights[(dx + sim) * side + dz + sim]);
                      this.raw.addTo(area, score);
                   }
@@ -495,7 +495,7 @@ public class PlayerBypass extends Module {
 
          for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
-               long near = ChunkPos.asLong(fx + dx, fz + dz);
+               long near = ChunkPos.pack(fx + dx, fz + dz);
                if (this.field.containsKey(near)) {
                   this.field.put(near, this.field.get(near) * 0.5F);
                   this.raw.put(near, this.raw.get(near) * 0.5F);
@@ -528,7 +528,7 @@ public class PlayerBypass extends Module {
       for (int dx = -reach; dx <= reach; dx++) {
          for (int dz = -reach; dz <= reach; dz++) {
             if (dx != 0 || dz != 0) {
-               long other = ChunkPos.asLong(cx + dx, cz + dz);
+               long other = ChunkPos.pack(cx + dx, cz + dz);
                float near = this.field.get(other);
                if (near > value || near == value && other < key) {
                   return false;
@@ -589,7 +589,7 @@ public class PlayerBypass extends Module {
       SimulationSignals.Pin pin;
       while ((pin = SimulationSignals.pollPin()) != null) {
          BlockPos pos = pin.pos();
-         long key = ChunkPos.asLong(pos.getX() >> 4, pos.getZ() >> 4);
+         long key = ChunkPos.pack(pos.getX() >> 4, pos.getZ() >> 4);
          SpecterClientAddon.LOG.info("[Player Bypass] {}", pin.detail());
          if (!this.known(key, 1)) {
             this.remember(key);

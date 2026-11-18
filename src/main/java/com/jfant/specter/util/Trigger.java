@@ -103,7 +103,7 @@ public final class Trigger {
          }
       } else {
          boolean down = this.key.get().isSet() && this.key.get().isPressed();
-         boolean pressed = down && !this.keyDown && mc.screen == null;
+         boolean pressed = down && !this.keyDown && mc.gui.screen() == null;
          this.keyDown = down;
          return pressed && mc.player != null;
       }

@@ -18,7 +18,7 @@ import com.jfant.specter.render.CardSpot;
 import com.jfant.specter.render.PurpleCard;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
@@ -50,7 +50,7 @@ public final class HudElementPanel extends Screen {
       combined.groups.add(anchors(element));
       Card remove = new ButtonCard("Remove", "Deletes this element from the HUD.", true, () -> {
          element.remove();
-         SpecterCore.mc.setScreen(parent);
+         SpecterCore.mc.gui.setScreen(parent);
       });
       Page page = new Page(element, element.info.title, element.info.description, combined, element::isActive, element::toggle, List.of(remove));
       return new HudElementPanel(parent, element.x + element.getWidth() / 2 < Utils.getWindowWidth() / 2, page);
@@ -64,7 +64,7 @@ public final class HudElementPanel extends Screen {
             module.toggle();
          }
 
-         SpecterCore.mc.setScreen(parent);
+         SpecterCore.mc.gui.setScreen(parent);
       });
       List<Card> extras = new ArrayList<>(base.extras);
       extras.add(remove);
@@ -141,9 +141,9 @@ public final class HudElementPanel extends Screen {
    }
 
    @Override
-   public void renderBackground(GuiGraphics context, int mouseX, int mouseY, float deltaTicks) {
+   public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float deltaTicks) {
       if (this.minecraft.level == null) {
-         this.renderPanorama(context, deltaTicks);
+         this.extractPanorama(context, deltaTicks);
       }
    }
 
@@ -155,7 +155,7 @@ public final class HudElementPanel extends Screen {
    }
 
    @Override
-   public void render(GuiGraphics ctx, int mouseX, int mouseY, float deltaTicks) {
+   public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float deltaTicks) {
       this.renderBackground(ctx, mouseX, mouseY, deltaTicks);
       this.layout();
       Ui.hint = "";
@@ -191,7 +191,7 @@ public final class HudElementPanel extends Screen {
       if (Focus.get() instanceof KeyCard keyCard && keyCard.mouse(button)) {
          return true;
       } else if (!Ui.in(mx, my, this.wx, this.wy, this.ww, this.wh)) {
-         SpecterCore.mc.setScreen(this.parent);
+         SpecterCore.mc.gui.setScreen(this.parent);
          return true;
       } else {
          this.panel.click(mx, my, button);
@@ -229,7 +229,7 @@ public final class HudElementPanel extends Screen {
          if (this.panel.editing()) {
             this.panel.closeEditor();
          } else {
-            SpecterCore.mc.setScreen(this.parent);
+            SpecterCore.mc.gui.setScreen(this.parent);
          }
 
          return true;

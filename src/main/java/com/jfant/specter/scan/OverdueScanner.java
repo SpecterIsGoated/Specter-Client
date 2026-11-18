@@ -163,7 +163,7 @@ public final class OverdueScanner {
 
    private static Boolean eyeblossomsOpen(ClientLevel world) {
       if (world.dimension() == Level.OVERWORLD && !world.dimensionType().hasFixedTime()) {
-         int time = (int)Math.floorMod(world.getDayTime(), 24000L);
+         int time = (int)Math.floorMod(world.getDefaultClockTime(), 24000L);
          boolean open = time >= 12600 && time < 23401;
          int since = open ? time - 12600 : Math.floorMod(time - 23401, 24000);
          return since >= 4000 ? open : null;
@@ -573,7 +573,7 @@ public final class OverdueScanner {
       }
 
       private LevelChunk chunkAt(int cx, int cz) {
-         if (this.chunk != null && this.chunk.getPos().x == cx && this.chunk.getPos().z == cz) {
+         if (this.chunk != null && this.chunk.getPos().x() == cx && this.chunk.getPos().z() == cz) {
             return this.chunk;
          } else {
             LevelChunk loaded = this.world.getChunkSource().getChunkNow(cx, cz);

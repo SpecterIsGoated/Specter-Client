@@ -921,7 +921,7 @@ public class BaseEsp extends Module {
             drawTracers = false;
          }
 
-         Camera camera = this.mc.gameRenderer.getMainCamera();
+         Camera camera = this.mc.gameRenderer.mainCamera();
          Vec3 eye = camera.position();
          double yaw = Math.toRadians(camera.yRot());
          double pitch = Math.toRadians(camera.xRot());

@@ -274,7 +274,7 @@ public class AutoTrident extends Module {
    private void onFrame(Render3DEvent event) {
       if (this.aim != null
          && this.mc.player != null
-         && this.mc.screen == null
+         && this.mc.gui.screen() == null
          && (this.state == AutoTrident.State.AIMING || this.state == AutoTrident.State.CHARGING || this.restoring)) {
          this.aim.frame(this.mc);
       }
@@ -517,7 +517,7 @@ public class AutoTrident extends Module {
 
    private void endRun(LocalPlayer player) {
       if (!Double.isNaN(this.savedPitch) && this.aim != null) {
-         if (this.restorePitch.get() && this.pitchMode.get() == AutoTrident.PitchMode.Launch && this.mc.screen == null) {
+         if (this.restorePitch.get() && this.pitchMode.get() == AutoTrident.PitchMode.Launch && this.mc.gui.screen() == null) {
             this.aim.target(player, player.getEyePosition(), AutoInput.pointAlong(player, player.getYRot(), this.savedPitch));
             this.restoring = true;
          } else {
@@ -535,7 +535,7 @@ public class AutoTrident extends Module {
    }
 
    private boolean canRun(LocalPlayer player, boolean atRelease) {
-      if (this.mc.screen == null && !player.isSpectator()) {
+      if (this.mc.gui.screen() == null && !player.isSpectator()) {
          InteractionHand use = this.state == AutoTrident.State.CHARGING && this.hand != null ? this.hand : tridentHand(player);
          if (use == null) {
             return false;

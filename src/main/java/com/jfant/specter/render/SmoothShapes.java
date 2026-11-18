@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 import org.joml.Matrix3x2fStack;
@@ -30,7 +30,7 @@ final class SmoothShapes {
    private SmoothShapes() {
    }
 
-   static void fill(GuiGraphics ctx, float left, float top, float right, float bottom, float radius, int corners, int topColor, int bottomColor) {
+   static void fill(GuiGraphicsExtractor ctx, float left, float top, float right, float bottom, float radius, int corners, int topColor, int bottomColor) {
       SmoothShapes.Space sp = SmoothShapes.Space.of(ctx, left, top, right, bottom, radius);
       if (sp != null) {
          int w = sp.width();
@@ -86,7 +86,7 @@ final class SmoothShapes {
       }
    }
 
-   static void ring(GuiGraphics ctx, float left, float top, float right, float bottom, float radius, int inset, int thickness, int topColor, int bottomColor) {
+   static void ring(GuiGraphicsExtractor ctx, float left, float top, float right, float bottom, float radius, int inset, int thickness, int topColor, int bottomColor) {
       SmoothShapes.Space sp = SmoothShapes.Space.of(ctx, left, top, right, bottom, radius);
       if (sp != null) {
          sp.shrink(inset);
@@ -131,7 +131,7 @@ final class SmoothShapes {
       }
    }
 
-   static void mask(GuiGraphics ctx, float left, float top, float right, float bottom, float radius, int color) {
+   static void mask(GuiGraphicsExtractor ctx, float left, float top, float right, float bottom, float radius, int color) {
       SmoothShapes.Space sp = SmoothShapes.Space.of(ctx, left, top, right, bottom, radius);
       if (sp != null) {
          int w = sp.width();
@@ -177,7 +177,7 @@ final class SmoothShapes {
       b.textured(left, top, right, bottom, w, w, w, w, topColor, bottomColor);
    }
 
-   private static QuadBatch batch(GuiGraphics ctx) {
+   private static QuadBatch batch(GuiGraphicsExtractor ctx) {
       ensureAtlas();
       return QuadBatch.textured(ctx, atlasId);
    }
@@ -344,7 +344,7 @@ final class SmoothShapes {
          this.gui = gui;
       }
 
-      static SmoothShapes.Space of(GuiGraphics ctx, float left, float top, float right, float bottom, float radius) {
+      static SmoothShapes.Space of(GuiGraphicsExtractor ctx, float left, float top, float right, float bottom, float radius) {
          Matrix3x2fStack m = ctx.pose();
          int gui = SpecterCore.mc.getWindow().getGuiScale();
          float scale = m.m00 * gui;
@@ -375,14 +375,14 @@ final class SmoothShapes {
          return this.bottom - this.top;
       }
 
-      void begin(GuiGraphics ctx) {
+      void begin(GuiGraphicsExtractor ctx) {
          Matrix3x2fStack m = ctx.pose();
          m.pushMatrix();
          m.identity();
          m.scale(1.0F / this.gui, 1.0F / this.gui);
       }
 
-      void end(GuiGraphics ctx) {
+      void end(GuiGraphicsExtractor ctx) {
          ctx.pose().popMatrix();
       }
    }

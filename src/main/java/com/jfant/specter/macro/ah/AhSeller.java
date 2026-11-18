@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.ItemStack;
 
 public final class AhSeller {
@@ -538,7 +538,7 @@ public final class AhSeller {
       AhSeller.Plan none = new AhSeller.Plan(-1, List.of());
       if (!player.inventoryMenu.getCarried().isEmpty()) {
          int empty = emptyMain(inventory);
-         return empty < 0 ? none : new AhSeller.Plan(-1, List.of(new AhSeller.Click(menuSlot(empty), 0, ClickType.PICKUP)));
+         return empty < 0 ? none : new AhSeller.Plan(-1, List.of(new AhSeller.Click(menuSlot(empty), 0, ContainerInput.PICKUP)));
       } else {
          for (int h = 0; h < 9; h++) {
             ItemStack stack = inventory.getItem(h);
@@ -575,7 +575,7 @@ public final class AhSeller {
                victim = 8;
             }
 
-            return emptyMain(inventory) < 0 ? none : new AhSeller.Plan(-1, List.of(new AhSeller.Click(menuSlot(victim), 0, ClickType.QUICK_MOVE)));
+            return emptyMain(inventory) < 0 ? none : new AhSeller.Plan(-1, List.of(new AhSeller.Click(menuSlot(victim), 0, ContainerInput.QUICK_MOVE)));
          } else {
             int have = product.matches(inventory.getItem(target)) ? inventory.getItem(target).getCount() : 0;
             int source = -1;
@@ -596,15 +596,15 @@ public final class AhSeller {
             } else {
                int need = n - have;
                List<AhSeller.Click> clicks = new ArrayList<>();
-               clicks.add(new AhSeller.Click(menuSlot(source), 0, ClickType.PICKUP));
+               clicks.add(new AhSeller.Click(menuSlot(source), 0, ContainerInput.PICKUP));
                if (best <= need) {
-                  clicks.add(new AhSeller.Click(menuSlot(target), 0, ClickType.PICKUP));
+                  clicks.add(new AhSeller.Click(menuSlot(target), 0, ContainerInput.PICKUP));
                } else {
                   for (int i = 0; i < need; i++) {
-                     clicks.add(new AhSeller.Click(menuSlot(target), 1, ClickType.PICKUP));
+                     clicks.add(new AhSeller.Click(menuSlot(target), 1, ContainerInput.PICKUP));
                   }
 
-                  clicks.add(new AhSeller.Click(menuSlot(source), 0, ClickType.PICKUP));
+                  clicks.add(new AhSeller.Click(menuSlot(source), 0, ContainerInput.PICKUP));
                }
 
                return new AhSeller.Plan(-1, clicks);
@@ -722,7 +722,7 @@ public final class AhSeller {
       SpecterClientAddon.LOG.info("AH: {}", message);
    }
 
-   private record Click(int slot, int button, ClickType type) {
+   private record Click(int slot, int button, ContainerInput type) {
    }
 
    public record Config(

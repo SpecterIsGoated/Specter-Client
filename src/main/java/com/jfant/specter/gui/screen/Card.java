@@ -1,6 +1,6 @@
 package com.jfant.specter.gui.screen;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 abstract class Card {
    final String label;
@@ -25,7 +25,7 @@ abstract class Card {
 
    abstract int height();
 
-   final void render(GuiGraphics ctx, int mx, int my) {
+   final void render(GuiGraphicsExtractor ctx, int mx, int my) {
       boolean hover = Ui.in(mx, my, this.x, this.y, this.w, this.h);
       if (hover) {
          Ui.hint = this.description.isEmpty() ? this.label : this.description;
@@ -40,7 +40,7 @@ abstract class Card {
       this.content(ctx, mx, my, hover);
    }
 
-   abstract void content(GuiGraphics var1, int var2, int var3, boolean var4);
+   abstract void content(GuiGraphicsExtractor var1, int var2, int var3, boolean var4);
 
    abstract void click(int var1, int var2, int var3, boolean var4);
 

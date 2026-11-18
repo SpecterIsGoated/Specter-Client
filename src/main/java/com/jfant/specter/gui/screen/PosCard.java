@@ -1,7 +1,7 @@
 package com.jfant.specter.gui.screen;
 
 import com.jfant.specter.core.settings.BlockPosSetting;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.BlockPos;
 
 final class PosCard extends Card {
@@ -44,7 +44,7 @@ final class PosCard extends Card {
    }
 
    @Override
-   void content(GuiGraphics ctx, int mx, int my, boolean hover) {
+   void content(GuiGraphicsExtractor ctx, int mx, int my, boolean hover) {
       boolean typing = this.fields[0].focused() || this.fields[1].focused() || this.fields[2].focused();
       if (!typing) {
          this.follow();

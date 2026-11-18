@@ -10,7 +10,7 @@ import com.jfant.specter.macro.Wanted;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -195,7 +195,7 @@ public final class Orders {
                            }
 
                            Menus.Ref menu = this.worker.call(() -> Menus.ref(Orders::isOrdersTitle));
-                           if (menu == null || !this.hand.click(menu, i, 0, ClickType.QUICK_MOVE)) {
+                           if (menu == null || !this.hand.click(menu, i, 0, ContainerInput.QUICK_MOVE)) {
                               break;
                            }
 

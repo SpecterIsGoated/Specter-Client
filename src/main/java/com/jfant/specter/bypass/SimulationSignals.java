@@ -327,7 +327,7 @@ public final class SimulationSignals {
    public static void onChunk(int x, int z) {
       ChangeBursts.chunkLoaded(x, z);
       if (active) {
-         CHUNK_LOADED.put(ChunkPos.asLong(x, z), now());
+         CHUNK_LOADED.put(ChunkPos.pack(x, z), now());
       }
    }
 
@@ -674,7 +674,7 @@ public final class SimulationSignals {
                         int ez = entity.blockPosition().getZ() >> 4;
                         int d = distance(ex, ez, pcx, pcz);
                         if (d >= start && d <= view && !nearVisiblePlayer(ex, ez, self, 0)) {
-                           FROZEN.add(ChunkPos.asLong(ex, ez));
+                           FROZEN.add(ChunkPos.pack(ex, ez));
                         }
                      }
 
@@ -748,7 +748,7 @@ public final class SimulationSignals {
    private static void refreshPassed(LocalPlayer self) {
       int pcx = self.blockPosition().getX() >> 4;
       int pcz = self.blockPosition().getZ() >> 4;
-      long center = ChunkPos.asLong(pcx, pcz);
+      long center = ChunkPos.pack(pcx, pcz);
       int radius = ringStart() - 1;
       if (center != passedCenter || radius != passedRadius) {
          passedCenter = center;
@@ -756,7 +756,7 @@ public final class SimulationSignals {
 
          for (int dx = -radius; dx <= radius; dx++) {
             for (int dz = -radius; dz <= radius; dz++) {
-               long key = ChunkPos.asLong(pcx + dx, pcz + dz);
+               long key = ChunkPos.pack(pcx + dx, pcz + dz);
                if (passed.add(key)) {
                   CHUNKS.remove(key);
                }
@@ -828,7 +828,7 @@ public final class SimulationSignals {
             } else if (d > view()) {
                skip(SimulationSignals.Skip.BEYOND_VIEW);
             } else {
-               long key = ChunkPos.asLong(cx, cz);
+               long key = ChunkPos.pack(cx, cz);
                if (passed.contains(key)) {
                   skip(SimulationSignals.Skip.PASSED);
                } else if (ignoreVisiblePlayers && nearVisiblePlayer(cx, cz, self, spill)) {
@@ -867,7 +867,7 @@ public final class SimulationSignals {
    }
 
    private static boolean settled(BlockPos pos, long needed) {
-      long loaded = CHUNK_LOADED.getOrDefault(ChunkPos.asLong(pos.getX() >> 4, pos.getZ() >> 4), -9223372036854775808L);
+      long loaded = CHUNK_LOADED.getOrDefault(ChunkPos.pack(pos.getX() >> 4, pos.getZ() >> 4), -9223372036854775808L);
       return loaded == -9223372036854775808L || now() - loaded > needed;
    }
 

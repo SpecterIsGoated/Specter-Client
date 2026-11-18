@@ -236,7 +236,7 @@ public class CrystalPvp extends Module {
          CrystalPvp.Plan plan = this.plan(player);
          if (!this.hold.held() || !Hands.canAct()) {
             this.endHold();
-            if (this.mc.screen == null && !PvpLock.actedThisTick() && this.slots.active()) {
+            if (this.mc.gui.screen() == null && !PvpLock.actedThisTick() && this.slots.active()) {
                this.slots.restore(this.switchBack.get());
             }
          } else if (PvpLock.heldByOther(this)) {

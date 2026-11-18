@@ -33,7 +33,7 @@ public final class Dialogs {
    }
 
    public static Dialogs.View current() {
-      if (!(Minecraft.getInstance().screen instanceof DialogScreen<?> screen)) {
+      if (!(Minecraft.getInstance().gui.screen() instanceof DialogScreen<?> screen)) {
          return null;
       } else {
          Dialog dialog = ((DialogScreenAccessor)screen).specter$dialog();
@@ -89,7 +89,7 @@ public final class Dialogs {
    }
 
    public static boolean press(Dialogs.View view, Dialogs.Button button, Map<String, String> text) {
-      if (Minecraft.getInstance().screen instanceof DialogScreen<?> screen) {
+      if (Minecraft.getInstance().gui.screen() instanceof DialogScreen<?> screen) {
          if (((DialogScreenAccessor)screen).specter$dialog() != view.dialog()) {
             return false;
          } else {
@@ -113,7 +113,7 @@ public final class Dialogs {
    }
 
    public static void close() {
-      if (Minecraft.getInstance().screen instanceof DialogScreen<?> screen) {
+      if (Minecraft.getInstance().gui.screen() instanceof DialogScreen<?> screen) {
          screen.onClose();
       }
    }

@@ -11,7 +11,7 @@ import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.buffers.Std140SizeCalculator;
 import com.mojang.blaze3d.buffers.GpuBuffer.MappedView;
 import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.DepthTestFunction;
@@ -156,7 +156,7 @@ public final class SkyRenderer {
       if (!failed && (atmosphere || nebulaOn)) {
          Minecraft mc = Minecraft.getInstance();
          ClientLevel world = mc.level;
-         Camera camera = mc.gameRenderer.getMainCamera();
+         Camera camera = mc.gameRenderer.mainCamera();
          if (world != null && camera != null) {
             try {
                if (shaderPack()) {
@@ -176,7 +176,7 @@ public final class SkyRenderer {
                ensureResources(mc);
                upload();
                if (skyWanted) {
-                  RenderTarget main = mc.getMainRenderTarget();
+                  RenderTarget main = mc.gameRenderer.mainRenderTarget();
                   draw("Specter sky", SKY, main.getColorTextureView(), main.getDepthTextureView(), true, false);
                }
 
@@ -195,7 +195,7 @@ public final class SkyRenderer {
             Minecraft mc = Minecraft.getInstance();
 
             try {
-               RenderTarget main = mc.getMainRenderTarget();
+               RenderTarget main = mc.gameRenderer.mainRenderTarget();
                if (params.shadow > 0.0F && params.lowClouds && params.daylight > 0.01F) {
                   copyDepth(main);
                   draw("Specter cloud shadows", SHADOWS, main.getColorTextureView(), null, false, true);

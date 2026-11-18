@@ -6,7 +6,7 @@ import com.jfant.specter.anim.Motion;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.render.PurpleCard;
 import java.util.function.IntPredicate;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 final class TextField implements Focusable {
    String text = "";
@@ -45,7 +45,7 @@ final class TextField implements Focusable {
       Focus.set(this);
    }
 
-   void render(GuiGraphics ctx, int x, int y, int w, int h) {
+   void render(GuiGraphicsExtractor ctx, int x, int y, int w, int h) {
       this.x = x;
       this.y = y;
       this.w = w;

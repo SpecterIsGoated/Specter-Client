@@ -3,7 +3,7 @@ package com.jfant.specter.gui.screen;
 import com.jfant.specter.anim.Motion;
 import com.jfant.specter.core.utils.misc.Keybind;
 import java.util.function.Supplier;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 final class KeyCard extends Card implements Focusable {
    private static final String PROMPT = "press a key...";
@@ -34,7 +34,7 @@ final class KeyCard extends Card implements Focusable {
    }
 
    @Override
-   void content(GuiGraphics ctx, int mx, int my, boolean hover) {
+   void content(GuiGraphicsExtractor ctx, int mx, int my, boolean hover) {
       boolean listening = Focus.has(this);
       float waiting = Ui.hover(this, "listening", listening);
       if (waiting > 0.01F) {

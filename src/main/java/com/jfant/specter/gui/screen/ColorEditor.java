@@ -3,7 +3,7 @@ package com.jfant.specter.gui.screen;
 import com.jfant.specter.core.settings.ColorSetting;
 import com.jfant.specter.core.utils.render.color.SettingColor;
 import com.jfant.specter.render.PurpleCard;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 final class ColorEditor extends Editor implements Ui.Draggable {
    private static final int SQUARE_HEIGHT = 72;
@@ -85,7 +85,7 @@ final class ColorEditor extends Editor implements Ui.Draggable {
    }
 
    @Override
-   void body(GuiGraphics ctx, int mx, int my) {
+   void body(GuiGraphicsExtractor ctx, int mx, int my) {
       this.follow();
       SettingColor c = this.setting.get();
       this.scroll.size(this.h, 160);

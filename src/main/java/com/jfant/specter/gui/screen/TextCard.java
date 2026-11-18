@@ -1,7 +1,7 @@
 package com.jfant.specter.gui.screen;
 
 import com.jfant.specter.core.settings.StringSetting;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 final class TextCard extends Card {
    private final StringSetting setting;
@@ -25,7 +25,7 @@ final class TextCard extends Card {
    }
 
    @Override
-   void content(GuiGraphics ctx, int mx, int my, boolean hover) {
+   void content(GuiGraphicsExtractor ctx, int mx, int my, boolean hover) {
       if (!this.field.focused() && !this.field.text.equals(this.setting.get())) {
          this.field.setText(this.setting.get());
       }

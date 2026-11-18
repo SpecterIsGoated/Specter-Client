@@ -14,7 +14,7 @@ import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.ItemStack;
 
@@ -160,7 +160,7 @@ public final class InvSync {
          }
 
          if (p.isAlive() && !p.isDeadOrDying()) {
-            boolean inventoryOpen = SpecterCore.mc.screen instanceof InventoryScreen;
+            boolean inventoryOpen = SpecterCore.mc.gui.screen() instanceof InventoryScreen;
             if (ourScreen && !inventoryOpen) {
                ourScreen = false;
                closeAt = 0L;
@@ -223,7 +223,7 @@ public final class InvSync {
       stepIndex = 0;
       runningSince = now;
       waitSince = 0L;
-      boolean screenUp = SpecterCore.mc.screen instanceof InventoryScreen;
+      boolean screenUp = SpecterCore.mc.gui.screen() instanceof InventoryScreen;
       nextAt = job.openInventory && screenUp ? now + job.timing.nextNanos(job.stepDelayMs, job.budgetMs) : now;
    }
 
@@ -232,16 +232,16 @@ public final class InvSync {
       if (now - runningSince > (4000L + Latency.confirmWindowMs()) * 1000000L) {
          abortRunning(InvJob.Outcome.TIMEOUT, "could not finish in time");
       } else {
-         boolean inventoryOpen = SpecterCore.mc.screen instanceof InventoryScreen;
+         boolean inventoryOpen = SpecterCore.mc.gui.screen() instanceof InventoryScreen;
          if (job.openInventory) {
             if (!inventoryOpen) {
-               if (SpecterCore.mc.screen != null) {
+               if (SpecterCore.mc.gui.screen() != null) {
                   abortRunning(InvJob.Outcome.ABORTED_SCREEN, "another screen is open");
                   return;
                }
 
-               SpecterCore.mc.setScreen(new InventoryScreen(p));
-               ourScreen = SpecterCore.mc.screen instanceof InventoryScreen;
+               SpecterCore.mc.gui.setScreen(new InventoryScreen(p));
+               ourScreen = SpecterCore.mc.gui.screen() instanceof InventoryScreen;
                if (!ourScreen) {
                   abortRunning(InvJob.Outcome.ABORTED_SCREEN, "the inventory would not open");
                   return;
@@ -253,7 +253,7 @@ public final class InvSync {
             if (ourScreen) {
                closeAt = 0L;
             }
-         } else if (SpecterCore.mc.screen != null && !inventoryOpen) {
+         } else if (SpecterCore.mc.gui.screen() != null && !inventoryOpen) {
             abortRunning(InvJob.Outcome.ABORTED_SCREEN, "a screen is open");
             return;
          }
@@ -380,7 +380,7 @@ public final class InvSync {
          }
 
          if (now >= closeAt) {
-            if (SpecterCore.mc.screen instanceof InventoryScreen) {
+            if (SpecterCore.mc.gui.screen() instanceof InventoryScreen) {
                p.closeContainer();
             }
 
@@ -494,7 +494,7 @@ public final class InvSync {
    private static void recoverCursor(InvSync.Pending pending) {
       LocalPlayer p = SpecterCore.mc.player;
       if (p != null && pending.expectedCursor.isEmpty() && !p.inventoryMenu.getCarried().isEmpty()) {
-         if (SpecterCore.mc.screen == null || SpecterCore.mc.screen instanceof InventoryScreen) {
+         if (SpecterCore.mc.gui.screen() == null || SpecterCore.mc.gui.screen() instanceof InventoryScreen) {
             int free = -1;
 
             for (int slot = 9; slot <= 44 && free < 0; slot++) {
@@ -508,7 +508,7 @@ public final class InvSync {
                   .priority(InvJob.Priority.EMERGENCY)
                   .openInventory(false)
                   .pace(new InvTiming().configure(false, 0.0), 0.0, 0.0, 0.0, 0.0)
-                  .click(free, 0, ClickType.PICKUP, () -> SpecterCore.mc.player != null && !SpecterCore.mc.player.inventoryMenu.getCarried().isEmpty())
+                  .click(free, 0, ContainerInput.PICKUP, () -> SpecterCore.mc.player != null && !SpecterCore.mc.player.inventoryMenu.getCarried().isEmpty())
                   .build();
                recovery.cursorRecovery = true;
                submit(recovery);

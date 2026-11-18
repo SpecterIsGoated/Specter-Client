@@ -13,7 +13,7 @@ import com.jfant.specter.render.CardSpot;
 import com.jfant.specter.render.CardText;
 import com.jfant.specter.render.Corner;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -39,11 +39,11 @@ public class TotemCounter extends Module {
    @EventHandler
    private void onRender2D(Render2DEvent event) {
       if (PvpCard.visible()) {
-         this.draw(event.drawContext);
+         this.draw(event.graphics);
       }
    }
 
-   private void draw(GuiGraphics ctx) {
+   private void draw(GuiGraphicsExtractor ctx) {
       int inner = 90;
       PvpCard.begin(ctx, this.spot, this.scale.get(), 100, 33);
       CardText.draw(ctx, "You", 0.0F, 0.0F, -1065473, true);

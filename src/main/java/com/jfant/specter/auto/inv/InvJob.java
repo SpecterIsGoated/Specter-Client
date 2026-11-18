@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 
 public final class InvJob {
    final Object owner;
@@ -96,21 +96,21 @@ public final class InvJob {
          return this;
       }
 
-      public InvJob.Builder click(int slot, int button, ClickType type, BooleanSupplier guard) {
+      public InvJob.Builder click(int slot, int button, ContainerInput type, BooleanSupplier guard) {
          this.steps.add(new InvJob.Step(InvJob.Kind.CLICK, slot, button, type, guard));
          return this;
       }
 
       public InvJob.Builder hotbarSwap(int slot, int hotbar, BooleanSupplier guard) {
-         return this.click(slot, hotbar, ClickType.SWAP, guard);
+         return this.click(slot, hotbar, ContainerInput.SWAP, guard);
       }
 
       public InvJob.Builder offhandSwap(int slot, BooleanSupplier guard) {
-         return this.click(slot, 40, ClickType.SWAP, guard);
+         return this.click(slot, 40, ContainerInput.SWAP, guard);
       }
 
       public InvJob.Builder throwStack(int slot, BooleanSupplier guard) {
-         return this.click(slot, 1, ClickType.THROW, guard);
+         return this.click(slot, 1, ContainerInput.THROW, guard);
       }
 
       public InvJob.Builder select(int hotbar, BooleanSupplier guard) {
@@ -173,10 +173,10 @@ public final class InvJob {
       final InvJob.Kind kind;
       final int slot;
       final int button;
-      final ClickType type;
+      final ContainerInput type;
       final BooleanSupplier guard;
 
-      Step(InvJob.Kind kind, int slot, int button, ClickType type, BooleanSupplier guard) {
+      Step(InvJob.Kind kind, int slot, int button, ContainerInput type, BooleanSupplier guard) {
          this.kind = kind;
          this.slot = slot;
          this.button = button;
@@ -185,11 +185,11 @@ public final class InvJob {
       }
 
       int[] touches() {
-         if (this.kind == InvJob.Kind.CLICK && this.type == ClickType.SWAP) {
+         if (this.kind == InvJob.Kind.CLICK && this.type == ContainerInput.SWAP) {
             int other = this.button == 40 ? 45 : (this.button >= 0 && this.button < 9 ? 36 + this.button : -1);
             return other < 0 ? null : new int[]{this.slot, other};
          } else {
-            return this.kind == InvJob.Kind.CLICK && this.type == ClickType.THROW ? new int[]{this.slot} : null;
+            return this.kind == InvJob.Kind.CLICK && this.type == ContainerInput.THROW ? new int[]{this.slot} : null;
          }
       }
    }

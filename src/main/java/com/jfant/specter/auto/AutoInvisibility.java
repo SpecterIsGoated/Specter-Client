@@ -298,7 +298,7 @@ public class AutoInvisibility extends Module {
    private void onFrame(Render3DEvent event) {
       if (this.aim != null
          && this.mc.player != null
-         && this.mc.screen == null
+         && this.mc.gui.screen() == null
          && (this.state == AutoInvisibility.State.AIMING || this.state == AutoInvisibility.State.RESTORING)) {
          this.aim.frame(this.mc);
       }
@@ -337,7 +337,7 @@ public class AutoInvisibility extends Module {
                this.aim.setSpeed(this.aimSpeed.get());
             }
 
-            boolean keyDown = this.mc.screen == null && this.key.get().isSet() && this.key.get().isPressed();
+            boolean keyDown = this.mc.gui.screen() == null && this.key.get().isSet() && this.key.get().isPressed();
             if (keyDown && !this.keyWasDown && this.activation.get() == AutoInvisibility.Activation.Keybind) {
                this.keyRequest = true;
             }
@@ -476,7 +476,7 @@ public class AutoInvisibility extends Module {
 
    private void aiming(LocalPlayer player, long now) {
       this.aim.tick(this.mc);
-      if (this.mc.screen == null && this.slots.holding()) {
+      if (this.mc.gui.screen() == null && this.slots.holding()) {
          boolean settled = this.aim.arrived(this.mc) || now - this.stateSince > 1500000000L;
          if (settled && !(player.getXRot() < this.aimPitch.get() - 15.0)) {
             if (!PvpLock.actedThisTick()) {
@@ -501,7 +501,7 @@ public class AutoInvisibility extends Module {
    }
 
    private void using(LocalPlayer player, long now) {
-      if (this.mc.screen != null || !this.slots.holding()) {
+      if (this.mc.gui.screen() != null || !this.slots.holding()) {
          this.fail("Interrupted", true);
       } else if (this.holdingUse) {
          AutoInput.hold(this.mc.options.keyUse, true);
@@ -555,7 +555,7 @@ public class AutoInvisibility extends Module {
    }
 
    private void startRestore(LocalPlayer player) {
-      if (this.restoreView.get() && this.viewSaved && this.mc.screen == null) {
+      if (this.restoreView.get() && this.viewSaved && this.mc.gui.screen() == null) {
          this.aim.target(player, player.getEyePosition(), AutoInput.pointAlong(player, this.savedYaw, this.savedPitch));
          this.enter(AutoInvisibility.State.RESTORING, "Looking back");
       } else {
@@ -565,7 +565,7 @@ public class AutoInvisibility extends Module {
 
    private void restoring(LocalPlayer player, long now) {
       this.aim.tick(this.mc);
-      if (this.aim.arrived(this.mc) || now - this.stateSince > 1500000000L || this.mc.screen != null) {
+      if (this.aim.arrived(this.mc) || now - this.stateSince > 1500000000L || this.mc.gui.screen() != null) {
          this.finishThrow();
       }
    }
@@ -658,7 +658,7 @@ public class AutoInvisibility extends Module {
    }
 
    private String pauseReason(LocalPlayer player, long now) {
-      if (this.mc.screen != null) {
+      if (this.mc.gui.screen() != null) {
          return "Paused: screen open";
       } else if (player.isSpectator() || this.mc.gameMode.getPlayerMode() == GameType.SPECTATOR) {
          return "Paused: spectator";

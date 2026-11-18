@@ -92,16 +92,16 @@ public final class CaveMemory {
 
    public void onChunkData(LevelChunk chunk, double playerX, double playerZ, int range) {
       if (chunk != null) {
-         int dx = Math.abs(chunk.getPos().x - ((int)Math.floor(playerX) >> 4));
-         int dz = Math.abs(chunk.getPos().z - ((int)Math.floor(playerZ) >> 4));
+         int dx = Math.abs(chunk.getPos().x() - ((int)Math.floor(playerX) >> 4));
+         int dz = Math.abs(chunk.getPos().z() - ((int)Math.floor(playerZ) >> 4));
          if (Math.max(dx, dz) <= range + 1) {
-            this.pending.add(chunk.getPos().toLong());
+            this.pending.add(chunk.getPos().pack());
          }
       }
    }
 
    public void onBlockUpdate(BlockPos pos) {
-      long key = ChunkPos.asLong(pos.getX() >> 4, pos.getZ() >> 4);
+      long key = ChunkPos.pack(pos.getX() >> 4, pos.getZ() >> 4);
       if (this.memory.containsKey(key)) {
          this.rescanDue.putIfAbsent(key, System.currentTimeMillis() + 1000L);
       }
@@ -170,8 +170,8 @@ public final class CaveMemory {
          for (int dx = -ring; dx <= ring; dx++) {
             for (int dz = -ring; dz <= ring; dz++) {
                if (Math.max(Math.abs(dx), Math.abs(dz)) == ring) {
-                  long key = ChunkPos.asLong(at.x + dx, at.z + dz);
-                  if (!this.memory.containsKey(key) && !this.pending.contains(key) && mc.level.getChunkSource().getChunkNow(at.x + dx, at.z + dz) != null) {
+                  long key = ChunkPos.pack(at.x() + dx, at.z() + dz);
+                  if (!this.memory.containsKey(key) && !this.pending.contains(key) && mc.level.getChunkSource().getChunkNow(at.x() + dx, at.z() + dz) != null) {
                      this.pending.add(key);
                   }
                }

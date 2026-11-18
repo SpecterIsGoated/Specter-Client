@@ -19,7 +19,7 @@ import com.jfant.specter.lyrics.SpotifyClock;
 import com.jfant.specter.mixin.RenderLayerInvoker;
 import com.jfant.specter.render.BorrowedTexture;
 import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.DepthTestFunction;
@@ -307,7 +307,7 @@ public class SkyLyrics extends Module {
    }
 
    private void copyDepth() {
-      RenderTarget main = this.mc.getMainRenderTarget();
+      RenderTarget main = this.mc.gameRenderer.mainRenderTarget();
       if (this.solidDepth == null) {
          this.solidDepth = new TextureTarget("specter-sky-lyrics-depth", main.width, main.height, true);
       } else if (this.solidDepth.width != main.width || this.solidDepth.height != main.height) {
@@ -392,7 +392,7 @@ public class SkyLyrics extends Module {
             }
 
             if (!(lineAlpha <= 0.01F)) {
-               Camera camera = this.mc.gameRenderer.getMainCamera();
+               Camera camera = this.mc.gameRenderer.mainCamera();
                if (this.placement.get() == SkyLyrics.Placement.FollowView) {
                   this.follow(this.shown, camera.yRot(), frameSeconds);
                } else if (this.offscreen(this.shown, camera, tanX, tanY)) {
@@ -657,7 +657,7 @@ public class SkyLyrics extends Module {
          SkyLyrics.Line line = new SkyLyrics.Line(
             song, index, pixelHeight, words, (minX + maxX) / 2.0, (minY + maxY) / 2.0, lyric.timeMs(), endMs, id, atlasWidth, atlasHeight, layer, plainLayer
          );
-         line.anchorYaw = this.mc.gameRenderer.getMainCamera().yRot();
+         line.anchorYaw = this.mc.gameRenderer.mainCamera().yRot();
          line.appearedAt = System.currentTimeMillis() - 350L;
          return line;
       } else {

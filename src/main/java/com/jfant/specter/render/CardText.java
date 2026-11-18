@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -53,15 +53,15 @@ public final class CardText {
    private CardText() {
    }
 
-   public static void draw(GuiGraphics ctx, String text, float x, float y, int color, boolean shadow) {
+   public static void draw(GuiGraphicsExtractor ctx, String text, float x, float y, int color, boolean shadow) {
       draw(ctx, Component.literal(text).getVisualOrderText(), x, y, color, shadow);
    }
 
-   public static void draw(GuiGraphics ctx, Component text, float x, float y, int color, boolean shadow) {
+   public static void draw(GuiGraphicsExtractor ctx, Component text, float x, float y, int color, boolean shadow) {
       draw(ctx, text.getVisualOrderText(), x, y, color, shadow);
    }
 
-   public static void draw(GuiGraphics ctx, FormattedCharSequence text, float x, float y, int color, boolean shadow) {
+   public static void draw(GuiGraphicsExtractor ctx, FormattedCharSequence text, float x, float y, int color, boolean shadow) {
       if (!GuiProfile.active()) {
          drawText(ctx, text, x, y, color, shadow);
       } else {
@@ -71,7 +71,7 @@ public final class CardText {
       }
    }
 
-   private static void drawText(GuiGraphics ctx, FormattedCharSequence text, float x, float y, int color, boolean shadow) {
+   private static void drawText(GuiGraphicsExtractor ctx, FormattedCharSequence text, float x, float y, int color, boolean shadow) {
       Matrix3x2fStack m = ctx.pose();
       int gui = SpecterCore.mc.getWindow().getGuiScale();
       float scale = m.m00 * gui;
@@ -114,7 +114,7 @@ public final class CardText {
 
                m.popMatrix();
             } else {
-               ctx.drawString(SpecterCore.mc.font, text, Math.round(x), Math.round(y), color, shadow);
+               ctx.text(SpecterCore.mc.font, text, Math.round(x), Math.round(y), color, shadow);
             }
          }
       }

@@ -149,7 +149,7 @@ public final class ChunkMemory {
                   String[] parts = line.split(",");
                   if (parts.length >= 2) {
                      try {
-                        long chunk = ChunkPos.asLong(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()));
+                        long chunk = ChunkPos.pack(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()));
                         int value = parts.length > 2 ? Integer.parseInt(parts[2].trim()) : 0;
                         int stamp = parts.length > 3 ? Memory.stamp(parts[3]) : Memory.start();
                         if (!Memory.expired(stamp)) {

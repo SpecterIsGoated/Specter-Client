@@ -7,7 +7,7 @@ import com.jfant.specter.anim.Spring;
 import com.jfant.specter.anim.Tween;
 import com.jfant.specter.core.systems.config.Config;
 import com.jfant.specter.render.PurpleCard;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 final class Scroll {
    private static final int STEP = 18;
@@ -59,7 +59,7 @@ final class Scroll {
       this.offset = Math.max(0.0, Math.min(this.offset, (double)this.max()));
    }
 
-   void bar(GuiGraphics ctx, int right, int top, int height) {
+   void bar(GuiGraphicsExtractor ctx, int right, int top, int height) {
       if (this.max() > 0) {
          boolean wanted = Motion.now() - this.lastMoved < 0.9 || !this.shown.resting();
          float lit = this.bar.to(wanted ? 1.0 : 0.0, wanted ? Spec.TINT : Spec.TINT.scaled(3.0)).getF();

@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.level.Level;
@@ -337,12 +337,12 @@ public class AnticheatAlerts extends Module {
       if (this.card.get() && PvpCard.visible()) {
          List<AnticheatAlerts.Spot> off = this.visible();
          if (!off.isEmpty() || !this.hideWhenOn.get() || this.error != null) {
-            this.draw(event.drawContext, off);
+            this.draw(event.graphics, off);
          }
       }
    }
 
-   private void draw(GuiGraphics ctx, List<AnticheatAlerts.Spot> off) {
+   private void draw(GuiGraphicsExtractor ctx, List<AnticheatAlerts.Spot> off) {
       int inner = 158;
       int rows = Math.min(off.size(), 5);
       int height = 12 + (rows == 0 ? 0 : rows * 12) + (off.size() > 5 ? 12 : 0) + 12;

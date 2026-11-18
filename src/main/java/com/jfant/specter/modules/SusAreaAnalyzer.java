@@ -160,7 +160,7 @@ public class SusAreaAnalyzer extends Module {
    @EventHandler
    private void onChunkData(ChunkDataEvent event) {
       if (event.chunk() != null) {
-         this.pending.add(event.chunk().getPos().toLong());
+         this.pending.add(event.chunk().getPos().pack());
       }
    }
 
@@ -170,7 +170,7 @@ public class SusAreaAnalyzer extends Module {
          long pos = event.pos.asLong();
          int cx = event.pos.getX() >> 4;
          int cz = event.pos.getZ() >> 4;
-         long chunk = ChunkPos.asLong(cx, cz);
+         long chunk = ChunkPos.pack(cx, cz);
          byte kind = AreaKinds.flag(event.newState, this.biomesAround(cx, cz));
          Long2ByteOpenHashMap named = (Long2ByteOpenHashMap)this.store.get(chunk);
          Long2ByteOpenHashMap built = (Long2ByteOpenHashMap)this.generic.get(chunk);
@@ -221,7 +221,7 @@ public class SusAreaAnalyzer extends Module {
    }
 
    private long biomesOf(int cx, int cz) {
-      long key = ChunkPos.asLong(cx, cz);
+      long key = ChunkPos.pack(cx, cz);
       if (this.biomeMasks.containsKey(key)) {
          return this.biomeMasks.get(key);
       } else {
@@ -294,8 +294,8 @@ public class SusAreaAnalyzer extends Module {
          for (int dx = -ring; dx <= ring; dx++) {
             for (int dz = -ring; dz <= ring; dz++) {
                if (Math.max(Math.abs(dx), Math.abs(dz)) == ring) {
-                  long key = ChunkPos.asLong(at.x + dx, at.z + dz);
-                  if (!this.captured.contains(key) && !this.pending.contains(key) && this.mc.level.getChunkSource().getChunkNow(at.x + dx, at.z + dz) != null) {
+                  long key = ChunkPos.pack(at.x() + dx, at.z() + dz);
+                  if (!this.captured.contains(key) && !this.pending.contains(key) && this.mc.level.getChunkSource().getChunkNow(at.x() + dx, at.z() + dz) != null) {
                      this.pending.add(key);
                   }
                }
@@ -308,9 +308,9 @@ public class SusAreaAnalyzer extends Module {
       LevelChunkSection[] sections = chunk.getSections();
       int startX = chunk.getPos().getMinBlockX();
       int startZ = chunk.getPos().getMinBlockZ();
-      long key = chunk.getPos().toLong();
+      long key = chunk.getPos().pack();
       this.biomeMasks.remove(key);
-      long biomes = this.biomesAround(chunk.getPos().x, chunk.getPos().z);
+      long biomes = this.biomesAround(chunk.getPos().x(), chunk.getPos().z());
 
       for (int i = 0; i < sections.length; i++) {
          LevelChunkSection section = sections[i];
@@ -347,7 +347,7 @@ public class SusAreaAnalyzer extends Module {
          }
 
          long pos = entity.blockPosition().asLong();
-         long chunk = ChunkPos.asLong(BlockPos.getX(pos) >> 4, BlockPos.getZ(pos) >> 4);
+         long chunk = ChunkPos.pack(BlockPos.getX(pos) >> 4, BlockPos.getZ(pos) >> 4);
          Long2ByteOpenHashMap blocks = (Long2ByteOpenHashMap)this.store.get(chunk);
          if (blocks == null) {
             this.store.put(chunk, blocks = new Long2ByteOpenHashMap());
@@ -504,7 +504,7 @@ public class SusAreaAnalyzer extends Module {
 
    private boolean flagged(AreaKinds.Kind kind, long pos) {
       return !(kind.points <= 0.0) && this.counted(pos)
-         ? !kind.village || !this.villageChunk(ChunkPos.asLong(BlockPos.getX(pos) >> 4, BlockPos.getZ(pos) >> 4))
+         ? !kind.village || !this.villageChunk(ChunkPos.pack(BlockPos.getX(pos) >> 4, BlockPos.getZ(pos) >> 4))
          : false;
    }
 
@@ -528,7 +528,7 @@ public class SusAreaAnalyzer extends Module {
    }
 
    private int flagsIn(long cell) {
-      long chunk = ChunkPos.asLong(BlockPos.getX(cell) >> 1, BlockPos.getZ(cell) >> 1);
+      long chunk = ChunkPos.pack(BlockPos.getX(cell) >> 1, BlockPos.getZ(cell) >> 1);
       if (this.indexedChunks.add(chunk)) {
          for (int map = 0; map < 2; map++) {
             Long2ByteOpenHashMap blocks = (Long2ByteOpenHashMap)(map == 0 ? this.store : this.generic).get(chunk);
@@ -555,7 +555,7 @@ public class SusAreaAnalyzer extends Module {
 
       while (counts.hasNext()) {
          long cell = (Long)counts.next();
-         chunks.add(ChunkPos.asLong(BlockPos.getX(cell) >> 1, BlockPos.getZ(cell) >> 1));
+         chunks.add(ChunkPos.pack(BlockPos.getX(cell) >> 1, BlockPos.getZ(cell) >> 1));
       }
 
       int[] countsx = new int[KINDS.length];

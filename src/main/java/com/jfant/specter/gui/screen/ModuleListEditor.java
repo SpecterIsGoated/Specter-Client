@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 final class ModuleListEditor extends Editor {
    private static final int ROW = 18;
@@ -39,7 +39,7 @@ final class ModuleListEditor extends Editor {
    }
 
    @Override
-   void body(GuiGraphics ctx, int mx, int my) {
+   void body(GuiGraphicsExtractor ctx, int mx, int my) {
       this.search.render(ctx, this.x + 6, this.y + 2, this.w - 12, 14);
       int regionTop = this.y + 20;
       int regionHeight = this.h - 20;

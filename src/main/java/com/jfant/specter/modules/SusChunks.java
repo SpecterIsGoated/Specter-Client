@@ -552,8 +552,8 @@ public class SusChunks extends Module {
    private void submitScan(LevelChunk chunk) {
       if (this.mc.level != null) {
          ChunkScanner activeScanner = this.chunkScanner;
-         int chunkX = chunk.getPos().x;
-         int chunkZ = chunk.getPos().z;
+         int chunkX = chunk.getPos().x();
+         int chunkZ = chunk.getPos().z();
          long key = ScoreStore.key(chunkX, chunkZ);
          boolean dripstone = this.enabled(Indicator.DRIPSTONE);
          ChunkSource chunks = this.mc.level.getChunkSource();

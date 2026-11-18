@@ -1,7 +1,7 @@
 package com.jfant.specter.render;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.util.Util;
 
 public final class PurpleCard {
@@ -39,7 +39,7 @@ public final class PurpleCard {
    private PurpleCard() {
    }
 
-   public static void card(GuiGraphics ctx, int left, int top, int right, int bottom) {
+   public static void card(GuiGraphicsExtractor ctx, int left, int top, int right, int bottom) {
       long started = GuiProfile.shapeStart();
       QuadBatch mine = openBatch(ctx);
 
@@ -51,7 +51,7 @@ public final class PurpleCard {
       }
    }
 
-   private static void cardShape(GuiGraphics ctx, int left, int top, int right, int bottom) {
+   private static void cardShape(GuiGraphicsExtractor ctx, int left, int top, int right, int bottom) {
       if (Theme.clean()) {
          cleanGlass(ctx, left, top, right, bottom);
       } else {
@@ -71,7 +71,7 @@ public final class PurpleCard {
       }
    }
 
-   public static void bubble(GuiGraphics ctx, int left, int top, int right, int bottom) {
+   public static void bubble(GuiGraphicsExtractor ctx, int left, int top, int right, int bottom) {
       long started = GuiProfile.shapeStart();
       QuadBatch mine = openBatch(ctx);
 
@@ -83,7 +83,7 @@ public final class PurpleCard {
       }
    }
 
-   private static void bubbleShape(GuiGraphics ctx, int left, int top, int right, int bottom) {
+   private static void bubbleShape(GuiGraphicsExtractor ctx, int left, int top, int right, int bottom) {
       if (Theme.clean()) {
          cleanGlass(ctx, left, top, right, bottom);
       } else {
@@ -102,7 +102,7 @@ public final class PurpleCard {
       }
    }
 
-   private static void cleanGlass(GuiGraphics ctx, int left, int top, int right, int bottom) {
+   private static void cleanGlass(GuiGraphicsExtractor ctx, int left, int top, int right, int bottom) {
       int line = cleanLine(ctx);
       SmoothShapes.fill(ctx, left, top, right, bottom, 4.0F, 15, -1438901396, -1205399476);
       SmoothShapes.fill(ctx, left, top, right, top + (bottom - top) * 0.5F, 4.0F, 3, 385875967, 16777215);
@@ -110,12 +110,12 @@ public final class PurpleCard {
       SmoothShapes.ring(ctx, left, top, right, bottom, 4.0F, line, 1, 1355258869, 281517045);
    }
 
-   private static int cleanLine(GuiGraphics ctx) {
+   private static int cleanLine(GuiGraphicsExtractor ctx) {
       float scale = ctx.pose().m00 * Minecraft.getInstance().getWindow().getGuiScale();
       return Math.max(1, Math.round(scale * 0.5F));
    }
 
-   private static void glint(GuiGraphics ctx, int x, int y, int color) {
+   private static void glint(GuiGraphicsExtractor ctx, int x, int y, int color) {
       rect(ctx, x, y, x + 2, y + 2, color);
    }
 
@@ -125,7 +125,7 @@ public final class PurpleCard {
       return alpha << 24 | 13214455;
    }
 
-   private static void sparkles(GuiGraphics ctx, int left, int top, int right, int bottom, int count, int reach, long now) {
+   private static void sparkles(GuiGraphicsExtractor ctx, int left, int top, int right, int bottom, int count, int reach, long now) {
       int width = right - left;
       int height = bottom - top;
       int margin = reach + 2;
@@ -150,7 +150,7 @@ public final class PurpleCard {
       }
    }
 
-   private static void star(GuiGraphics ctx, int x, int y, float k, int reach) {
+   private static void star(GuiGraphicsExtractor ctx, int x, int y, float k, int reach) {
       rect(ctx, x, y, x + 1, y + 1, sparkle(k));
       int arm = sparkle(k * 0.6F);
       rect(ctx, x - 1, y, x, y + 1, arm);
@@ -178,7 +178,7 @@ public final class PurpleCard {
       return h ^ h >>> 16;
    }
 
-   public static void fillRounded(GuiGraphics ctx, int left, int top, int right, int bottom, int radius, int corners, int topColor, int bottomColor) {
+   public static void fillRounded(GuiGraphicsExtractor ctx, int left, int top, int right, int bottom, int radius, int corners, int topColor, int bottomColor) {
       long started = GuiProfile.shapeStart();
       QuadBatch mine = openBatch(ctx);
 
@@ -190,7 +190,7 @@ public final class PurpleCard {
       }
    }
 
-   private static void fillRoundedShape(GuiGraphics ctx, int left, int top, int right, int bottom, int radius, int corners, int topColor, int bottomColor) {
+   private static void fillRoundedShape(GuiGraphicsExtractor ctx, int left, int top, int right, int bottom, int radius, int corners, int topColor, int bottomColor) {
       if (Theme.clean()) {
          SmoothShapes.fill(ctx, left, top, right, bottom, radius, corners, topColor, bottomColor);
       } else {
@@ -234,7 +234,7 @@ public final class PurpleCard {
       }
    }
 
-   public static void strokeRounded(GuiGraphics ctx, int left, int top, int right, int bottom, int radius, int topColor, int bottomColor) {
+   public static void strokeRounded(GuiGraphicsExtractor ctx, int left, int top, int right, int bottom, int radius, int topColor, int bottomColor) {
       long started = GuiProfile.shapeStart();
       QuadBatch mine = openBatch(ctx);
 
@@ -246,7 +246,7 @@ public final class PurpleCard {
       }
    }
 
-   private static void strokeRoundedShape(GuiGraphics ctx, int left, int top, int right, int bottom, int radius, int topColor, int bottomColor) {
+   private static void strokeRoundedShape(GuiGraphicsExtractor ctx, int left, int top, int right, int bottom, int radius, int topColor, int bottomColor) {
       if (Theme.clean()) {
          SmoothShapes.ring(ctx, left, top, right, bottom, radius, 0, cleanLine(ctx), topColor, bottomColor);
       } else {
@@ -280,7 +280,7 @@ public final class PurpleCard {
       }
    }
 
-   public static void maskCorners(GuiGraphics ctx, int left, int top, int right, int bottom, int radius, int color) {
+   public static void maskCorners(GuiGraphicsExtractor ctx, int left, int top, int right, int bottom, int radius, int color) {
       QuadBatch mine = openBatch(ctx);
 
       try {
@@ -290,7 +290,7 @@ public final class PurpleCard {
       }
    }
 
-   private static void maskCornersShape(GuiGraphics ctx, int left, int top, int right, int bottom, int radius, int color) {
+   private static void maskCornersShape(GuiGraphicsExtractor ctx, int left, int top, int right, int bottom, int radius, int color) {
       if (Theme.clean()) {
          SmoothShapes.mask(ctx, left, top, right, bottom, radius, color);
       } else {
@@ -328,7 +328,7 @@ public final class PurpleCard {
       return topColor == bottomColor ? topColor : lerp(topColor, bottomColor, (row + 0.5F) / height);
    }
 
-   private static QuadBatch openBatch(GuiGraphics ctx) {
+   private static QuadBatch openBatch(GuiGraphicsExtractor ctx) {
       if (open == null && !Theme.clean()) {
          open = QuadBatch.colored(ctx);
          return open;
@@ -337,14 +337,14 @@ public final class PurpleCard {
       }
    }
 
-   private static void closeBatch(GuiGraphics ctx, QuadBatch mine) {
+   private static void closeBatch(GuiGraphicsExtractor ctx, QuadBatch mine) {
       if (mine != null) {
          open = null;
          mine.submit(ctx);
       }
    }
 
-   private static void rect(GuiGraphics ctx, int x0, int y0, int x1, int y1, int color) {
+   private static void rect(GuiGraphicsExtractor ctx, int x0, int y0, int x1, int y1, int color) {
       if (open != null) {
          open.fill(Math.min(x0, x1), Math.min(y0, y1), Math.max(x0, x1), Math.max(y0, y1), color);
       } else {
@@ -352,7 +352,7 @@ public final class PurpleCard {
       }
    }
 
-   private static void grad(GuiGraphics ctx, int x0, int y0, int x1, int y1, int topColor, int bottomColor) {
+   private static void grad(GuiGraphicsExtractor ctx, int x0, int y0, int x1, int y1, int topColor, int bottomColor) {
       if (open != null) {
          open.gradient(x0, y0, x1, y1, topColor, bottomColor);
       } else {

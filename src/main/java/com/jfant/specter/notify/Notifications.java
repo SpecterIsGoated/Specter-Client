@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.joml.Matrix3x2fStack;
 
 public final class Notifications {
@@ -96,7 +96,7 @@ public final class Notifications {
       }
    }
 
-   public static void render(GuiGraphics ctx, int width, int height) {
+   public static void render(GuiGraphicsExtractor ctx, int width, int height) {
       long frame = Motion.frameCount();
       if (frame != lastFrame) {
          lastFrame = frame;
@@ -182,7 +182,7 @@ public final class Notifications {
    }
 
    private static void draw(
-      GuiGraphics ctx, Notifications.Notification n, int width, int height, boolean right, boolean bottom, float slot, float present, double now
+      GuiGraphicsExtractor ctx, Notifications.Notification n, int width, int height, boolean right, boolean bottom, float slot, float present, double now
    ) {
       int h = n.height();
       float travel = (float)(28.0 * Motion.amount(Channel.HUD));
@@ -227,7 +227,7 @@ public final class Notifications {
       }
    }
 
-   private static void icon(GuiGraphics ctx, Notifications.Kind kind, int x, int y, int color) {
+   private static void icon(GuiGraphicsExtractor ctx, Notifications.Kind kind, int x, int y, int color) {
       QuadBatch b = QuadBatch.colored(ctx);
       switch (kind) {
          case INFO:

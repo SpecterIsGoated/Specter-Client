@@ -23,7 +23,7 @@ import java.util.Comparator;
 import java.util.List;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.joml.Matrix3x2fStack;
 
 public class ModuleList extends Module {
@@ -71,7 +71,7 @@ public class ModuleList extends Module {
 
    @EventHandler
    private void onRender2D(Render2DEvent event) {
-      if (!this.mc.options.hideGui && !this.mc.debugEntries.isOverlayVisible()) {
+      if (!this.mc.gui.hud.isHidden() && !this.mc.debugEntries.isOverlayVisible()) {
          Font tr = this.mc.font;
          this.rows.clear();
          List<Module> skip = this.hidden.get();
@@ -108,7 +108,7 @@ public class ModuleList extends Module {
             float s = this.scale.get().floatValue();
             this.spot.place(listWidth * s, listHeight * s);
             boolean right = this.spot.right();
-            GuiGraphics ctx = event.drawContext;
+            GuiGraphicsExtractor ctx = event.graphics;
             Matrix3x2fStack matrices = ctx.pose();
             matrices.pushMatrix();
             matrices.translate(Math.round(this.spot.x()), Math.round(this.spot.y()));

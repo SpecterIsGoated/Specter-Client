@@ -167,8 +167,8 @@ public final class CaveSnapshot {
       int worldHigh = chunk.getMaxY();
       minY = Math.max(minY, worldLow);
       maxY = Math.min(maxY, worldHigh);
-      int chunkX = chunk.getPos().x;
-      int chunkZ = chunk.getPos().z;
+      int chunkX = chunk.getPos().x();
+      int chunkZ = chunk.getPos().z();
       if (minY > maxY) {
          return new CaveSnapshot(chunkX, chunkZ, minY >> 4, minY, maxY, new long[0][], 0L);
       } else {

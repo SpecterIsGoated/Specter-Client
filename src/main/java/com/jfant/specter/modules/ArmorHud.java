@@ -11,7 +11,7 @@ import com.jfant.specter.render.CardSpot;
 import com.jfant.specter.render.CardText;
 import com.jfant.specter.render.Corner;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.item.ItemStack;
 
 public class ArmorHud extends Module {
@@ -37,11 +37,11 @@ public class ArmorHud extends Module {
    @EventHandler
    private void onRender2D(Render2DEvent event) {
       if (PvpCard.visible()) {
-         this.draw(event.drawContext);
+         this.draw(event.graphics);
       }
    }
 
-   private void draw(GuiGraphics ctx) {
+   private void draw(GuiGraphicsExtractor ctx) {
       int inner = 64;
       PvpCard.begin(ctx, this.spot, this.scale.get(), 74, 12 + PvpCard.ARMOUR.length * 10 - 2);
       CardText.draw(ctx, "Armour", 0.0F, 0.0F, -1065473, true);

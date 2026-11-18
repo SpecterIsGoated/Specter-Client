@@ -47,7 +47,7 @@ public abstract class MouseMixin {
       cancellable = true
    )
    private void specter$scaledX(Window window, CallbackInfoReturnable<Double> cir) {
-      float ratio = InventoryScale.ratio(Minecraft.getInstance().screen);
+      float ratio = InventoryScale.ratio(Minecraft.getInstance().gui.screen());
       if (ratio != 1.0F) {
          cir.setReturnValue((Double)cir.getReturnValue() / ratio);
       }
@@ -59,7 +59,7 @@ public abstract class MouseMixin {
       cancellable = true
    )
    private void specter$scaledY(Window window, CallbackInfoReturnable<Double> cir) {
-      float ratio = InventoryScale.ratio(Minecraft.getInstance().screen);
+      float ratio = InventoryScale.ratio(Minecraft.getInstance().gui.screen());
       if (ratio != 1.0F) {
          cir.setReturnValue((Double)cir.getReturnValue() / ratio);
       }

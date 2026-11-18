@@ -8,7 +8,6 @@
     "MoveLightmapMixin",
     "MoveSprintMixin",
     "XrayBlockModelRendererMixin",
-    "XrayBlockRenderLayersMixin",
     "XrayFluidRendererMixin"
   ],
   "injectors": {

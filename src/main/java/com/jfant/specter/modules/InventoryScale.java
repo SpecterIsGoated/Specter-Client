@@ -54,9 +54,9 @@ public class InventoryScale extends Module {
    }
 
    private void refreshScreen() {
-      if (this.mc != null && this.mc.screen != null) {
+      if (this.mc != null && this.mc.gui.screen() != null) {
          Window window = this.mc.getWindow();
-         this.mc.screen.resize(window.getGuiScaledWidth(), window.getGuiScaledHeight());
+         this.mc.gui.screen().resize(window.getGuiScaledWidth(), window.getGuiScaledHeight());
       }
    }
 

@@ -16,7 +16,7 @@ import com.jfant.specter.render.CardText;
 import com.jfant.specter.render.Corner;
 import java.util.List;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -68,11 +68,11 @@ public class InventoryCounter extends Module {
    @EventHandler
    private void onRender2D(Render2DEvent event) {
       if (PvpCard.visible()) {
-         this.draw(event.drawContext);
+         this.draw(event.graphics);
       }
    }
 
-   private void draw(GuiGraphics ctx) {
+   private void draw(GuiGraphicsExtractor ctx) {
       int inner = 114;
       CrystalPvp.Preview crystal = this.damage.get() ? CrystalPvp.preview() : null;
       CrystalPvp.Preview anchor = this.damage.get() ? AnchorPvp.preview() : null;

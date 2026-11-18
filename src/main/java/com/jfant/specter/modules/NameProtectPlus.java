@@ -193,7 +193,7 @@ public class NameProtectPlus extends Module {
       this.noticedAlias = null;
       this.mc.execute(() -> {
          if (this.mc.gui != null) {
-            this.mc.gui.getChat().rescaleChat();
+            this.mc.gui.hud.getChat().rescaleChat();
          }
       });
    }
@@ -226,7 +226,7 @@ public class NameProtectPlus extends Module {
       if (this.chatRefreshPending && this.chatRefreshCooldown == 0 && !this.chatFocused() && this.mc.gui != null) {
          this.chatRefreshPending = false;
          this.chatRefreshCooldown = 20;
-         this.mc.gui.getChat().rescaleChat();
+         this.mc.gui.hud.getChat().rescaleChat();
       }
    }
 
@@ -432,7 +432,7 @@ public class NameProtectPlus extends Module {
    }
 
    private boolean chatFocused() {
-      return this.mc.gui != null && this.mc.gui.getChat().isChatFocused();
+      return this.mc.gui != null && this.mc.gui.hud.getChat().isChatFocused();
    }
 
    public static enum Label {

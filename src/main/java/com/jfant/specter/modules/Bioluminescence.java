@@ -213,7 +213,7 @@ public class Bioluminescence extends Module {
       if (this.mc.level != null && this.mc.player != null) {
          this.tick++;
          if (this.tick % 10 == 0) {
-            BlockPos at = BlockPos.containing(this.mc.gameRenderer.getMainCamera().position());
+            BlockPos at = BlockPos.containing(this.mc.gameRenderer.mainCamera().position());
             int sky = this.mc.level.getBrightness(LightLayer.SKY, at);
             this.sunlessTarget = this.caves.get() ? Math.clamp((6 - sky) / 6.0F, 0.0F, 1.0F) : 0.0F;
          }

@@ -65,7 +65,7 @@ public class AutoSprint extends Module {
    @EventHandler
    private void onTick(TickEvent.Pre event) {
       LocalPlayer player = this.mc.player;
-      if (player != null && this.mc.screen == null) {
+      if (player != null && this.mc.gui.screen() == null) {
          boolean moving = this.mode.get() == AutoSprint.Mode.Omni ? MoveInput.anyHorizontal() : MoveInput.forward() && !MoveInput.back();
          if (!MoveInput.anyHorizontal()) {
             this.pausedByHit = false;

@@ -1,10 +1,10 @@
 package com.jfant.specter.render;
 
 import com.jfant.specter.core.SpecterCore;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import java.util.Arrays;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.gui.render.state.GuiElementRenderState;
@@ -41,12 +41,12 @@ public final class QuadBatch {
       this.scissor = scissor;
    }
 
-   public static QuadBatch colored(GuiGraphics ctx) {
+   public static QuadBatch colored(GuiGraphicsExtractor ctx) {
       return new QuadBatch(RenderPipelines.GUI, TextureSetup.noTexture(), false, new Matrix3x2f(ctx.pose()), ctx.scissorStack.peek());
    }
 
    @Nullable
-   public static QuadBatch textured(GuiGraphics ctx, Identifier texture) {
+   public static QuadBatch textured(GuiGraphicsExtractor ctx, Identifier texture) {
       AbstractTexture tex = SpecterCore.mc.getTextureManager().getTexture(texture);
       return tex != null && tex.getTextureView() != null
          ? new QuadBatch(
@@ -127,7 +127,7 @@ public final class QuadBatch {
       }
    }
 
-   public void submit(GuiGraphics ctx) {
+   public void submit(GuiGraphicsExtractor ctx) {
       if (this.count != 0) {
          int left = (int)Math.floor(this.minX);
          int top = (int)Math.floor(this.minY);

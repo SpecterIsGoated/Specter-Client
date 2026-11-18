@@ -21,7 +21,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -144,7 +144,7 @@ public class AutoSell extends Module {
                }
 
                this.nextAt = now + 350L;
-               if (this.mc.screen != null || now - this.lastCommandAt < 4000L || !this.hasSellable(now)) {
+               if (this.mc.gui.screen() != null || now - this.lastCommandAt < 4000L || !this.hasSellable(now)) {
                   return;
                }
 
@@ -156,7 +156,7 @@ public class AutoSell extends Module {
                   return;
                }
 
-               if (this.mc.screen != null) {
+               if (this.mc.gui.screen() != null) {
                   this.state = AutoSell.State.IDLE;
                   return;
                }
@@ -190,7 +190,7 @@ public class AutoSell extends Module {
             this.state = AutoSell.State.FILLING;
             this.nextAt = now + this.pace.nextGap(600.0);
          } else {
-            String title = this.mc.screen instanceof AbstractContainerScreen<?> screen ? screen.getTitle().getString() : "";
+            String title = this.mc.gui.screen() instanceof AbstractContainerScreen<?> screen ? screen.getTitle().getString() : "";
             this.warning(
                "/sell opened \"%s\", which does not look like the sell menu, so nothing was clicked. If it is the sell menu, put a word from its title in menu-title.",
                new Object[]{title}
@@ -224,7 +224,7 @@ public class AutoSell extends Module {
                this.unchangedConfirms = 0;
                this.nextAt = now + this.pace.nextGap();
             } else {
-               this.click(handler, next.index, ClickType.QUICK_MOVE);
+               this.click(handler, next.index, ContainerInput.QUICK_MOVE);
                this.nextAt = now + this.pace.nextGap();
             }
          }
@@ -241,7 +241,7 @@ public class AutoSell extends Module {
                this.confirmedFrom = 0;
                if (gone > 0) {
                   this.sold += gone;
-                  this.mc.gui.setOverlayMessage(Component.literal("Sold " + this.sold + " items this session"), false);
+                  this.mc.gui.hud.setOverlayMessage(Component.literal("Sold " + this.sold + " items this session"), false);
                }
             }
 
@@ -259,7 +259,7 @@ public class AutoSell extends Module {
                } else if (handler.slots.get(53).getItem().isEmpty()) {
                   this.nextAt = now + 350L;
                } else {
-                  this.click(handler, 53, ClickType.PICKUP);
+                  this.click(handler, 53, ContainerInput.PICKUP);
                   this.confirmedFrom = waiting;
                   this.nextAt = now + this.pace.nextGap(700.0);
                }
@@ -321,7 +321,7 @@ public class AutoSell extends Module {
       return Menus.containerOpen() && Menus.title().contains(Menus.normalize(this.menuTitle.get())) && Menus.contents().size() >= 54;
    }
 
-   private void click(AbstractContainerMenu handler, int slot, ClickType type) {
+   private void click(AbstractContainerMenu handler, int slot, ContainerInput type) {
       this.mc.gameMode.handleInventoryMouseClick(handler.containerId, slot, 0, type, this.mc.player);
    }
 

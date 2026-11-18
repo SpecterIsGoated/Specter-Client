@@ -3,7 +3,7 @@ package com.jfant.specter.mixin;
 import com.jfant.specter.modules.NoInvLeak;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -45,7 +45,7 @@ public abstract class NoInvLeakScreenMixin {
       at = {@At("HEAD")},
       cancellable = true
    )
-   private void specter$noTooltip(GuiGraphics context, int x, int y, CallbackInfo ci) {
+   private void specter$noTooltip(GuiGraphicsExtractor context, int x, int y, CallbackInfo ci) {
       if (NoInvLeak.hidesTooltips() && NoInvLeak.ownSlot(this.hoveredSlot)) {
          ci.cancel();
       }

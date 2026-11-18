@@ -73,8 +73,8 @@ public class KeyThrow extends Module {
          this.finish();
       }
 
-      boolean pearl = this.mc.screen == null && this.pearlKey.get().isSet() && this.pearlKey.get().isPressed();
-      boolean wind = this.mc.screen == null && this.windKey.get().isSet() && this.windKey.get().isPressed();
+      boolean pearl = this.mc.gui.screen() == null && this.pearlKey.get().isSet() && this.pearlKey.get().isPressed();
+      boolean wind = this.mc.gui.screen() == null && this.windKey.get().isSet() && this.windKey.get().isPressed();
       if (pearl && !this.pearlDown) {
          this.press(Items.ENDER_PEARL);
       }

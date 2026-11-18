@@ -6,7 +6,7 @@ import com.jfant.specter.core.systems.config.Config;
 import com.jfant.specter.render.QuadBatch;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public final class Festive {
    private static final double SETTLE_SECONDS = 26.0;
@@ -23,21 +23,21 @@ public final class Festive {
       return Config.get();
    }
 
-   public static void backdrop(GuiGraphics ctx, int width, int height, float alpha) {
+   public static void backdrop(GuiGraphicsExtractor ctx, int width, int height, float alpha) {
       Config c = config();
       if (c != null && Season.wintry() && c.guiSnow.get()) {
          guiSnow.draw(ctx, width, height, c.guiSnowAmount.get().floatValue(), 1.0F, 0.0F, 1.0F, alpha);
       }
    }
 
-   public static void title(GuiGraphics ctx, int width, int height) {
+   public static void title(GuiGraphicsExtractor ctx, int width, int height) {
       Config c = config();
       if (c != null && Season.wintry() && c.titleSnow.get()) {
          titleSnow.draw(ctx, width, height, 0.9F, 1.0F, 0.1F, 1.0F, 0.9F);
       }
    }
 
-   public static void panel(GuiGraphics ctx, Object key, int x, int y, int w, int h) {
+   public static void panel(GuiGraphicsExtractor ctx, Object key, int x, int y, int w, int h) {
       if (Season.wintry()) {
          Config c = config();
          float settled = c != null && c.settlingSnow.get() ? settle(key, x, y, w) : 0.0F;
@@ -51,7 +51,7 @@ public final class Festive {
       }
    }
 
-   public static void bar(GuiGraphics ctx, Object key, int x, int y, int w, int h, int wordX, int freeLeft, int freeRight) {
+   public static void bar(GuiGraphicsExtractor ctx, Object key, int x, int y, int w, int h, int wordX, int freeLeft, int freeRight) {
       if (Season.wintry()) {
          Config c = config();
          float settled = c != null && c.settlingSnow.get() ? settle(key, x, y, w) : 0.0F;
@@ -103,7 +103,7 @@ public final class Festive {
       return (float)cap.amount;
    }
 
-   private static void cap(GuiGraphics ctx, Festive.Cap cap, int x, int y, int w, float amount) {
+   private static void cap(GuiGraphicsExtractor ctx, Festive.Cap cap, int x, int y, int w, float amount) {
       QuadBatch b = QuadBatch.colored(ctx);
       int from = x + 3;
       int to = x + w - 3;
@@ -138,7 +138,7 @@ public final class Festive {
       }
    }
 
-   private static void frost(GuiGraphics ctx, int x, int y, int w, int h, Object key) {
+   private static void frost(GuiGraphicsExtractor ctx, int x, int y, int w, int h, Object key) {
       QuadBatch b = QuadBatch.colored(ctx);
       double t = Motion.plays(Channel.FESTIVE) ? Motion.now() : 0.0;
       int seed = System.identityHashCode(key);
@@ -170,7 +170,7 @@ public final class Festive {
       b.submit(ctx);
    }
 
-   private static void lights(GuiGraphics ctx, int left, int right, int top, int room) {
+   private static void lights(GuiGraphicsExtractor ctx, int left, int right, int top, int room) {
       QuadBatch b = QuadBatch.colored(ctx);
       double t = Motion.plays(Channel.FESTIVE) ? Motion.now() : 0.0;
       int span = right - left;
@@ -216,7 +216,7 @@ public final class Festive {
       b.submit(ctx);
    }
 
-   private static void hat(GuiGraphics ctx, int x, int y) {
+   private static void hat(GuiGraphicsExtractor ctx, int x, int y) {
       QuadBatch b = QuadBatch.colored(ctx);
       int red = -1750963;
       int dark = -4705734;

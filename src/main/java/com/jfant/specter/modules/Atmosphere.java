@@ -475,7 +475,7 @@ public class Atmosphere extends Module {
       long now = System.nanoTime();
       if (now - this.fogColorFrame > 4000000L || this.fogColorFrame < 0L) {
          this.fogColorFrame = now;
-         Camera camera = mc.gameRenderer.getMainCamera();
+         Camera camera = mc.gameRenderer.mainCamera();
          float yaw = camera == null ? 0.0F : camera.yRot() * 0.017453292F;
          this.fogColor = SkyModel.horizonColor(SkyRenderer.params(), -Mth.sin(yaw), Mth.cos(yaw));
       }

@@ -58,7 +58,7 @@ public class WSpecterModule extends WPressable implements MeteorWidget {
       if (button == 0) {
          this.module.toggle();
       } else if (button == 1) {
-         SpecterCore.mc.setScreen(this.theme.moduleScreen(this.module));
+         SpecterCore.mc.gui.setScreen(this.theme.moduleScreen(this.module));
       }
    }
 

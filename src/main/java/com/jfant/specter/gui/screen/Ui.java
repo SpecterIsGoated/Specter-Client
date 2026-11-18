@@ -12,7 +12,7 @@ import com.jfant.specter.render.PurpleCard;
 import com.jfant.specter.render.QuadBatch;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -43,7 +43,7 @@ final class Ui {
       return mx >= x && mx < x + w && my >= y && my < y + h;
    }
 
-   static void text(GuiGraphics ctx, String text, int x, int y, int color) {
+   static void text(GuiGraphicsExtractor ctx, String text, int x, int y, int color) {
       CardText.draw(ctx, text, (float)x, (float)y, color, true);
    }
 
@@ -55,11 +55,11 @@ final class Ui {
       return rowTop + (rowHeight - 8) / 2;
    }
 
-   static void textRight(GuiGraphics ctx, String text, int right, int y, int color) {
+   static void textRight(GuiGraphicsExtractor ctx, String text, int right, int y, int color) {
       text(ctx, text, right - width(text), y, color);
    }
 
-   static void textCentered(GuiGraphics ctx, String text, int centerX, int y, int color) {
+   static void textCentered(GuiGraphicsExtractor ctx, String text, int centerX, int y, int color) {
       text(ctx, text, centerX - width(text) / 2, y, color);
    }
 
@@ -135,30 +135,30 @@ final class Ui {
       return t <= 0.0F ? from : (t >= 1.0F ? to : PurpleCard.lerp(from, to, t));
    }
 
-   static void fill(GuiGraphics ctx, int x0, int y0, int x1, int y1, int color) {
+   static void fill(GuiGraphicsExtractor ctx, int x0, int y0, int x1, int y1, int color) {
       int c = QuadBatch.faded(color);
       if (c >>> 24 != 0) {
          ctx.fill(x0, y0, x1, y1, c);
       }
    }
 
-   static void box(GuiGraphics ctx, int x, int y, int w, int h, boolean hover) {
+   static void box(GuiGraphicsExtractor ctx, int x, int y, int w, int h, boolean hover) {
       if (hover) {
          PurpleCard.fillRounded(ctx, x, y, x + w, y + h, 2, 15, 587202559, 385875967);
       }
    }
 
-   static void box(GuiGraphics ctx, int x, int y, int w, int h, float lit) {
+   static void box(GuiGraphicsExtractor ctx, int x, int y, int w, int h, float lit) {
       if (lit > 0.01F) {
          PurpleCard.fillRounded(ctx, x, y, x + w, y + h, 2, 15, alpha(587202559, lit), alpha(385875967, lit));
       }
    }
 
-   static void glow(GuiGraphics ctx, int x, int y, int w, int h) {
+   static void glow(GuiGraphicsExtractor ctx, int x, int y, int w, int h) {
       glow(ctx, x, y, w, h, 1.0F);
    }
 
-   static void glow(GuiGraphics ctx, int x, int y, int w, int h, float lit) {
+   static void glow(GuiGraphicsExtractor ctx, int x, int y, int w, int h, float lit) {
       if (!(lit <= 0.01F)) {
          PurpleCard.fillRounded(ctx, x - 1, y - 1, x + w + 1, y + h + 1, 4, 15, alpha(822046407, lit), alpha(822046407, lit));
          PurpleCard.fillRounded(ctx, x, y, x + w, y + h, 3, 15, alpha(2030005959, lit), alpha(1090481863, lit));
@@ -166,17 +166,17 @@ final class Ui {
       }
    }
 
-   static void wash(GuiGraphics ctx, int x, int y, int w, int h) {
+   static void wash(GuiGraphicsExtractor ctx, int x, int y, int w, int h) {
       wash(ctx, x, y, w, h, 1.0F);
    }
 
-   static void wash(GuiGraphics ctx, int x, int y, int w, int h, float lit) {
+   static void wash(GuiGraphicsExtractor ctx, int x, int y, int w, int h, float lit) {
       if (lit > 0.01F) {
          PurpleCard.fillRounded(ctx, x, y, x + w, y + h, 3, 15, alpha(620756991, lit), alpha(352321535, lit));
       }
    }
 
-   static void modulePill(GuiGraphics ctx, int x, int y, int w, int h, boolean on) {
+   static void modulePill(GuiGraphicsExtractor ctx, int x, int y, int w, int h, boolean on) {
       if (on) {
          PurpleCard.fillRounded(ctx, x, y, x + w, y + h, h / 2, 15, -37177, -3649632);
          textCentered(ctx, "ON", x + w / 2, textY(y, h), -1);
@@ -187,11 +187,11 @@ final class Ui {
       }
    }
 
-   static void knobSwitch(GuiGraphics ctx, int x, int y, boolean on) {
+   static void knobSwitch(GuiGraphicsExtractor ctx, int x, int y, boolean on) {
       toggle(ctx, null, x, y, on);
    }
 
-   static void toggle(GuiGraphics ctx, Object key, int x, int y, boolean on) {
+   static void toggle(GuiGraphicsExtractor ctx, Object key, int x, int y, boolean on) {
       float t = on ? 1.0F : 0.0F;
       if (key != null) {
          t = Animator.progress(key, "switch", on, Spec.TOGGLE);
@@ -209,7 +209,7 @@ final class Ui {
       PurpleCard.fillRounded(ctx, kl, y + 2, kr, y + h - 2, 3, 15, -1, -1513240);
    }
 
-   static void arrow(GuiGraphics ctx, int x, int y, float open, int color) {
+   static void arrow(GuiGraphicsExtractor ctx, int x, int y, float open, int color) {
       int down = alpha(color, open);
       int side = alpha(color, 1.0F - open);
       QuadBatch b = QuadBatch.colored(ctx);
@@ -227,15 +227,15 @@ final class Ui {
       b.submit(ctx);
    }
 
-   static void arrow(GuiGraphics ctx, int x, int y, boolean open, int color) {
+   static void arrow(GuiGraphicsExtractor ctx, int x, int y, boolean open, int color) {
       arrow(ctx, x, y, open ? 1.0F : 0.0F, color);
    }
 
-   static void button(GuiGraphics ctx, String label, int x, int y, int w, int h, boolean hover) {
+   static void button(GuiGraphicsExtractor ctx, String label, int x, int y, int w, int h, boolean hover) {
       button(ctx, label, label, x, y, w, h, hover);
    }
 
-   static void button(GuiGraphics ctx, Object key, String label, int x, int y, int w, int h, boolean hover) {
+   static void button(GuiGraphicsExtractor ctx, Object key, String label, int x, int y, int w, int h, boolean hover) {
       float lit = hover(key, "button", hover);
       float down = pressed(key);
       int top = mix(1617964960, -2135932704, lit);
@@ -251,7 +251,7 @@ final class Ui {
       textCentered(ctx, label, x + w / 2, textY(y, h), mix(-1911561, -1, lit));
    }
 
-   static void item(GuiGraphics ctx, ItemStack stack, int x, int y) {
+   static void item(GuiGraphicsExtractor ctx, ItemStack stack, int x, int y) {
       ctx.renderItem(stack, x, y);
    }
 

@@ -6,7 +6,7 @@ import com.jfant.specter.render.PurpleCard;
 import java.util.Locale;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 final class SliderCard extends Card implements Ui.Draggable {
    private final DoubleSupplier get;
@@ -93,7 +93,7 @@ final class SliderCard extends Card implements Ui.Draggable {
    }
 
    @Override
-   void content(GuiGraphics ctx, int mx, int my, boolean hover) {
+   void content(GuiGraphicsExtractor ctx, int mx, int my, boolean hover) {
       boolean editing = this.edit.focused();
       int lineHeight = this.noSlider ? this.h : 16;
       int textY = Ui.textY(this.y + (this.noSlider ? 0 : 1), lineHeight);

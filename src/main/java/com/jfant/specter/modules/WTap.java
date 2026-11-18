@@ -89,7 +89,7 @@ public class WTap extends Module {
    private void onTick(TickEvent.Pre event) {
       if (this.remaining > 0) {
          this.remaining--;
-         if (this.remaining != 0 && this.mc.screen == null) {
+         if (this.remaining != 0 && this.mc.gui.screen() == null) {
             this.release();
          } else {
             this.remaining = 0;
@@ -106,7 +106,7 @@ public class WTap extends Module {
    }
 
    private void restore() {
-      boolean free = this.mc.screen == null;
+      boolean free = this.mc.gui.screen() == null;
       this.mc.options.keyUp.setDown(free && Input.isPressed(this.mc.options.keyUp));
       this.mc.options.keyDown.setDown(free && Input.isPressed(this.mc.options.keyDown));
    }

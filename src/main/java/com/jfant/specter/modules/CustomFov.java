@@ -171,7 +171,7 @@ public class CustomFov extends Module {
 
    @EventHandler
    private void onScroll(MouseScrollEvent event) {
-      if (this.zoomScroll.get() && this.mc.screen == null && this.zoomKey.get().isPressed()) {
+      if (this.zoomScroll.get() && this.mc.gui.screen() == null && this.zoomKey.get().isPressed()) {
          this.wheel = Math.clamp(this.wheel * (event.value > 0.0 ? 1.25 : 0.8), 1.0 / this.zoomFactor.get(), 30.0 / this.zoomFactor.get());
          event.cancel();
       }
@@ -217,7 +217,7 @@ public class CustomFov extends Module {
             target += this.speedExtra.follow(0.0);
          }
 
-         boolean zooming = this.mc.screen == null && this.zoomKey.get().isPressed();
+         boolean zooming = this.mc.gui.screen() == null && this.zoomKey.get().isPressed();
          if (!zooming) {
             this.wheel = 1.0;
          }

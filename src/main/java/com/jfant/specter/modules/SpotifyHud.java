@@ -29,7 +29,7 @@ import java.util.Arrays;
 import java.util.Random;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -214,9 +214,9 @@ public class SpotifyHud extends Module {
 
    @EventHandler
    private void onRender2D(Render2DEvent event) {
-      if (!this.mc.options.hideGui && !this.mc.debugEntries.isOverlayVisible()) {
+      if (!this.mc.gui.hud.isHidden() && !this.mc.debugEntries.isOverlayVisible()) {
          this.uploadPendingArt();
-         GuiGraphics ctx = event.drawContext;
+         GuiGraphicsExtractor ctx = event.graphics;
          Font tr = this.mc.font;
          SpotifyAPI spotify = this.api;
          Track current = this.track;
@@ -256,7 +256,7 @@ public class SpotifyHud extends Module {
          float cardY = this.spot.y();
          float mouseX = -1.0F;
          float mouseY = -1.0F;
-         if (this.mc.screen instanceof ChatScreen) {
+         if (this.mc.gui.screen() instanceof ChatScreen) {
             mouseX = ((float)this.mc.mouseHandler.getScaledXPos(this.mc.getWindow()) - Math.round(x)) / s;
             mouseY = ((float)this.mc.mouseHandler.getScaledYPos(this.mc.getWindow()) - Math.round(cardY)) / s;
          }
@@ -296,7 +296,7 @@ public class SpotifyHud extends Module {
       }
    }
 
-   private void drawLyrics(GuiGraphics ctx, Font tr, Track current, int rows, int positionMs, int top, int boxWidth) {
+   private void drawLyrics(GuiGraphicsExtractor ctx, Font tr, Track current, int rows, int positionMs, int top, int boxWidth) {
       if (this.finder == null) {
          this.finder = new LyricsFinder();
       }
@@ -392,7 +392,7 @@ public class SpotifyHud extends Module {
       }
    }
 
-   private void drawArt(GuiGraphics ctx, int x, int y, boolean hasTrack, boolean playing, boolean hovered) {
+   private void drawArt(GuiGraphicsExtractor ctx, int x, int y, boolean hasTrack, boolean playing, boolean hovered) {
       PurpleCard.fillRounded(ctx, x - 1, y - 1, x + 36 + 1, y + 36 + 1, 4, 15, -1333837902, -1333837902);
       if (this.artTexture != null) {
          ctx.blit(RenderPipelines.GUI_TEXTURED, ART_TEXTURE, x, y, 0.0F, 0.0F, 36, 36, 36, 36);
@@ -417,18 +417,18 @@ public class SpotifyHud extends Module {
       }
    }
 
-   private void drawButton(GuiGraphics ctx, SpotifyHud.Icon icon, int[] box, MediaKey key, float mouseX, float mouseY) {
+   private void drawButton(GuiGraphicsExtractor ctx, SpotifyHud.Icon icon, int[] box, MediaKey key, float mouseX, float mouseY) {
       int color = this.flashing(key) ? -1065473 : (inside(box, mouseX, mouseY) ? -1 : -4149795);
       icon(ctx, icon, box[0] + (box[2] - 6) / 2, box[1] + 1, color);
    }
 
-   private static void icon(GuiGraphics ctx, SpotifyHud.Icon icon, int x, int y, int color) {
+   private static void icon(GuiGraphicsExtractor ctx, SpotifyHud.Icon icon, int x, int y, int color) {
       int shadow = color & 0xFF000000 | (color & 16579836) >> 2;
       iconShape(ctx, icon, x + 1, y + 1, shadow);
       iconShape(ctx, icon, x, y, color);
    }
 
-   private static void iconShape(GuiGraphics ctx, SpotifyHud.Icon icon, int x, int y, int color) {
+   private static void iconShape(GuiGraphicsExtractor ctx, SpotifyHud.Icon icon, int x, int y, int color) {
       switch (icon) {
          case BACK:
             ctx.fill(x, y, x + 1, y + 7, color);
@@ -447,7 +447,7 @@ public class SpotifyHud extends Module {
       }
    }
 
-   private static void triangle(GuiGraphics ctx, int x, int y, boolean right, int color) {
+   private static void triangle(GuiGraphicsExtractor ctx, int x, int y, boolean right, int color) {
       for (int row = 0; row < 7; row++) {
          int length = 4 - Math.abs(row - 3);
          if (right) {
@@ -518,13 +518,13 @@ public class SpotifyHud extends Module {
          );
    }
 
-   private void drawText(GuiGraphics ctx, Font tr, SpotifyHud.Labels labels, int x, int y, int maxWidth) {
+   private void drawText(GuiGraphicsExtractor ctx, Font tr, SpotifyHud.Labels labels, int x, int y, int maxWidth) {
       CardText.draw(ctx, labels.status(), (float)x, (float)y, labels.statusColor(), true);
       this.drawTitle(ctx, tr, labels.title(), x, y + 12, maxWidth);
       CardText.draw(ctx, clip(tr, labels.artist(), maxWidth), (float)x, (float)(y + 24), -1911561, true);
    }
 
-   private void drawTitle(GuiGraphics ctx, Font tr, String title, int x, int y, int maxWidth) {
+   private void drawTitle(GuiGraphicsExtractor ctx, Font tr, String title, int x, int y, int maxWidth) {
       long now = System.currentTimeMillis();
       if (!title.equals(this.marqueeTitle)) {
          this.marqueeTitle = title;
@@ -549,7 +549,7 @@ public class SpotifyHud extends Module {
       }
    }
 
-   private void drawEqualizer(GuiGraphics ctx, int x, int bottom, int innerWidth, boolean playing, int positionMs) {
+   private void drawEqualizer(GuiGraphicsExtractor ctx, int x, int bottom, int innerWidth, boolean playing, int positionMs) {
       long nowNanos = System.nanoTime();
       float dt = this.lastFrameNanos == 0L ? 0.0F : Math.min(0.1F, (float)(nowNanos - this.lastFrameNanos) / 1.0E9F);
       this.lastFrameNanos = nowNanos;
@@ -578,7 +578,7 @@ public class SpotifyHud extends Module {
       }
    }
 
-   private void drawProgress(GuiGraphics ctx, Font tr, int x, int y, int innerWidth, int positionMs, int lengthMs) {
+   private void drawProgress(GuiGraphicsExtractor ctx, Font tr, int x, int y, int innerWidth, int positionMs, int lengthMs) {
       String elapsed = positionMs >= 0 ? time(positionMs) : "-:--";
       String total = lengthMs > 0 ? time(lengthMs) : "-:--";
       int totalWidth = CardText.width(total);

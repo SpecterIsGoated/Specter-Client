@@ -4,7 +4,7 @@ import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.render.CardSpot;
 import com.jfant.specter.render.CardText;
 import com.jfant.specter.render.PurpleCard;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -36,11 +36,11 @@ public final class PvpCard {
    public static boolean visible() {
       return SpecterCore.mc.player != null
          && SpecterCore.mc.level != null
-         && !SpecterCore.mc.options.hideGui
+         && !SpecterCore.mc.gui.hud.isHidden()
          && !SpecterCore.mc.debugEntries.isOverlayVisible();
    }
 
-   public static void begin(GuiGraphics ctx, CardSpot spot, double scale, int width, int innerHeight) {
+   public static void begin(GuiGraphicsExtractor ctx, CardSpot spot, double scale, int width, int innerHeight) {
       int height = innerHeight + 10;
       float sc = (float)scale;
       spot.place(width * sc, height * sc);
@@ -52,11 +52,11 @@ public final class PvpCard {
       matrices.translate(5.0F, 5.0F);
    }
 
-   public static void end(GuiGraphics ctx) {
+   public static void end(GuiGraphicsExtractor ctx) {
       ctx.pose().popMatrix();
    }
 
-   public static void healthText(GuiGraphics ctx, LivingEntity entity, int right, int y) {
+   public static void healthText(GuiGraphicsExtractor ctx, LivingEntity entity, int right, int y) {
       float absorption = entity.getAbsorptionAmount();
       String extra = absorption > 0.0F ? String.format("+%.0f", absorption) : "";
       String health = String.format("%.1f", entity.getHealth());
@@ -69,13 +69,13 @@ public final class PvpCard {
       CardText.draw(ctx, health, (float)x, (float)y, healthColor(entity.getHealth()), true);
    }
 
-   public static void healthRow(GuiGraphics ctx, LivingEntity entity, int y, int inner) {
+   public static void healthRow(GuiGraphicsExtractor ctx, LivingEntity entity, int y, int inner) {
       int textRoom = CardText.width("20.0") + CardText.width("+16") + 7;
       bar(ctx, 0, y + 2, inner - textRoom, entity);
       healthText(ctx, entity, inner, y);
    }
 
-   public static void bar(GuiGraphics ctx, int x, int y, int width, LivingEntity entity) {
+   public static void bar(GuiGraphicsExtractor ctx, int x, int y, int width, LivingEntity entity) {
       float max = Math.max(1.0F, entity.getMaxHealth());
       int red = Math.round(width * Math.min(1.0F, entity.getHealth() / max));
       int gold = Math.min(width - red, Math.round(width * entity.getAbsorptionAmount() / max));
@@ -89,7 +89,7 @@ public final class PvpCard {
       }
    }
 
-   public static int word(GuiGraphics ctx, String text, int x, int color) {
+   public static int word(GuiGraphicsExtractor ctx, String text, int x, int color) {
       CardText.draw(ctx, text, (float)x, 0.0F, color, true);
       return x + CardText.width(text) + 4;
    }
@@ -98,13 +98,13 @@ public final class PvpCard {
       return CardText.width(text) + 6;
    }
 
-   public static void badge(GuiGraphics ctx, String text, int right, int y, int fill, int textColor) {
+   public static void badge(GuiGraphicsExtractor ctx, String text, int right, int y, int fill, int textColor) {
       int left = right - badgeWidth(text);
       PurpleCard.fillRounded(ctx, left, y - 1, right, y + 9, 2, 15, fill, fill);
       CardText.draw(ctx, text, (float)(left + 3), (float)y, textColor, false);
    }
 
-   public static void item(GuiGraphics ctx, ItemStack stack, int x, int y) {
+   public static void item(GuiGraphicsExtractor ctx, ItemStack stack, int x, int y) {
       Matrix3x2fStack matrices = ctx.pose();
       matrices.pushMatrix();
       matrices.translate(x, y);

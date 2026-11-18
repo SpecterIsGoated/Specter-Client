@@ -219,12 +219,12 @@ public class LightDebug extends Module {
    private void startPass() {
       ChunkPos center = this.mc.player.chunkPosition();
       int radius = this.scanRadius.get();
-      this.pass = new LightDebug.Pass(center.x, center.z, this.minLight.get(), this.maxY.get(), this.denoise.get(), this.maxBoxes.get(), this.generation);
+      this.pass = new LightDebug.Pass(center.x(), center.z(), this.minLight.get(), this.maxY.get(), this.denoise.get(), this.maxBoxes.get(), this.generation);
       List<long[]> order = new ArrayList<>();
 
       for (int dx = -radius; dx <= radius; dx++) {
          for (int dz = -radius; dz <= radius; dz++) {
-            order.add(new long[]{dx * dx + dz * dz, ChunkPos.asLong(center.x + dx, center.z + dz)});
+            order.add(new long[]{dx * dx + dz * dz, ChunkPos.pack(center.x() + dx, center.z() + dz)});
          }
       }
 

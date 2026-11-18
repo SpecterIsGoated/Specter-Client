@@ -8,7 +8,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -23,10 +23,10 @@ public abstract class GameRendererMixin {
       method = {"render"},
       at = {@At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/gui/screens/Screen;renderWithTooltipAndSubtitles(Lnet/minecraft/client/gui/GuiGraphics;IIF)V"
+         target = "Lnet/minecraft/client/gui/screens/Screen;renderWithTooltipAndSubtitles(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V"
       )}
    )
-   private void specter$scaleScreen(Screen screen, GuiGraphics context, int mouseX, int mouseY, float delta, Operation<Void> original) {
+   private void specter$scaleScreen(Screen screen, GuiGraphicsExtractor context, int mouseX, int mouseY, float delta, Operation<Void> original) {
       float ratio = InventoryScale.ratio(screen);
       if (ratio == 1.0F) {
          original.call(new Object[]{screen, context, mouseX, mouseY, delta});

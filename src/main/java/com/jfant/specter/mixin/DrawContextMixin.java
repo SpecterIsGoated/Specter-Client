@@ -1,13 +1,13 @@
 package com.jfant.specter.mixin;
 
 import com.jfant.specter.modules.InventoryScale;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin({GuiGraphics.class})
+@Mixin({GuiGraphicsExtractor.class})
 public abstract class DrawContextMixin {
    @Inject(
       method = {"guiWidth"},

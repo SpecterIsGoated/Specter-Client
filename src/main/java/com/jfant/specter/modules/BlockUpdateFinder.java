@@ -450,7 +450,7 @@ public class BlockUpdateFinder extends Module {
          if (fresh || area.cells() * 2 <= match.cells) {
             match.said = true;
             match.cells = area.cells();
-            this.found.put(ChunkPos.asLong(area.likelyX(), area.likelyZ()), 0);
+            this.found.put(ChunkPos.pack(area.likelyX(), area.likelyZ()), 0);
             if (this.chat.get() && this.mc.player != null) {
                int x = area.likelyX() * 16 + 8;
                int z = area.likelyZ() * 16 + 8;

@@ -4,7 +4,7 @@ import com.jfant.specter.anim.Channel;
 import com.jfant.specter.anim.Motion;
 import com.jfant.specter.render.QuadBatch;
 import java.util.Random;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public final class Snowfield {
    private static final float AREA_PER_FLAKE = 2400.0F;
@@ -30,7 +30,7 @@ public final class Snowfield {
    private final float[] clumpLife = new float[96];
    private int clumpNext;
 
-   public void draw(GuiGraphics ctx, float width, float height, float density, float speed, float windBias, float size, float alpha) {
+   public void draw(GuiGraphicsExtractor ctx, float width, float height, float density, float speed, float windBias, float size, float alpha) {
       if (!(alpha <= 0.01F) && !(width <= 0.0F) && !(height <= 0.0F)) {
          this.resize(width, height, density);
          this.step(speed, windBias);

@@ -337,7 +337,7 @@ public class DebrisFinder extends Module {
          try {
             this.scanner.submit(() -> {
                List<DebrisFinder.Spot> spots = analyze(chunk, low, high, shrink);
-               this.results.add(new DebrisFinder.Result(gen, chunk.getPos().toLong(), System.currentTimeMillis(), spots));
+               this.results.add(new DebrisFinder.Result(gen, chunk.getPos().pack(), System.currentTimeMillis(), spots));
             });
          } catch (RejectedExecutionException var7) {
          }
@@ -402,7 +402,7 @@ public class DebrisFinder extends Module {
 
       for (int dx = -32; dx <= 32; dx++) {
          for (int dz = -32; dz <= 32; dz++) {
-            LevelChunk chunk = this.mc.level.getChunkSource().getChunkNow(center.x + dx, center.z + dz);
+            LevelChunk chunk = this.mc.level.getChunkSource().getChunkNow(center.x() + dx, center.z() + dz);
             if (chunk != null) {
                this.submit(chunk);
             }
@@ -526,7 +526,7 @@ public class DebrisFinder extends Module {
                      long signature = global ? 0L : signature(sectionY, list);
                      String names = global ? "" : names(list);
                      if (!exact.isEmpty()) {
-                        spots.add(new DebrisFinder.Spot(pos.x, sectionY, pos.z, signature, exact.toLongArray(), 0, 0, 0, 0, 0, 0, 0, names));
+                        spots.add(new DebrisFinder.Spot(pos.x(), sectionY, pos.z(), signature, exact.toLongArray(), 0, 0, 0, 0, 0, 0, 0, names));
                      } else {
                         spots.add(hiddenSpot(sections, i, sectionY, pos, low, high, shrink, signature, names, solid));
                      }
@@ -606,9 +606,9 @@ public class DebrisFinder extends Module {
       }
 
       return new DebrisFinder.Spot(
-         pos.x,
+         pos.x(),
          sectionY,
-         pos.z,
+         pos.z(),
          signature,
          new long[0],
          candidates,
@@ -664,7 +664,7 @@ public class DebrisFinder extends Module {
          DebrisFinder.Result r = (DebrisFinder.Result)order.next();
          int cx = ChunkPos.getX(r.chunk());
          int cz = ChunkPos.getZ(r.chunk());
-         if (Math.max(Math.abs(cx - center.x), Math.abs(cz - center.z)) <= range) {
+         if (Math.max(Math.abs(cx - center.x()), Math.abs(cz - center.z())) <= range) {
             for (DebrisFinder.Spot s : r.spots()) {
                if (this.filler(s)) {
                   filler++;
@@ -702,7 +702,7 @@ public class DebrisFinder extends Module {
          long posx = (Long)var20.next();
          int cx = BlockPos.getX(posx) >> 4;
          int cz = BlockPos.getZ(posx) >> 4;
-         if (Math.max(Math.abs(cx - center.x), Math.abs(cz - center.z)) <= range && exactSeen.add(posx)) {
+         if (Math.max(Math.abs(cx - center.x()), Math.abs(cz - center.z())) <= range && exactSeen.add(posx)) {
             out.add(this.block(posx, eyeY));
          }
       }
@@ -732,7 +732,7 @@ public class DebrisFinder extends Module {
 
          for (DebrisFinder.Draw d : all) {
             if (d.hidden()) {
-               long chunk = ChunkPos.asLong(BlockPos.getX(d.key()), BlockPos.getZ(d.key()));
+               long chunk = ChunkPos.pack(BlockPos.getX(d.key()), BlockPos.getZ(d.key()));
                DebrisFinder.Draw have = (DebrisFinder.Draw)best.get(chunk);
                if (have == null || d.distSq() < have.distSq()) {
                   best.put(chunk, d);
@@ -769,7 +769,7 @@ public class DebrisFinder extends Module {
 
       for (DebrisFinder.Draw d : this.draws) {
          if (d.hidden()) {
-            DebrisFinder.Result r = (DebrisFinder.Result)this.chunks.get(ChunkPos.asLong(BlockPos.getX(d.key()), BlockPos.getZ(d.key())));
+            DebrisFinder.Result r = (DebrisFinder.Result)this.chunks.get(ChunkPos.pack(BlockPos.getX(d.key()), BlockPos.getZ(d.key())));
             if (r == null || r.time() > settled) {
                continue;
             }
@@ -778,7 +778,7 @@ public class DebrisFinder extends Module {
          if (this.announced.add(d.hidden() ? ~d.key() : d.key())) {
             if (d.hidden()) {
                hidden++;
-               long chunk = ChunkPos.asLong(BlockPos.getX(d.key()), BlockPos.getZ(d.key()));
+               long chunk = ChunkPos.pack(BlockPos.getX(d.key()), BlockPos.getZ(d.key()));
                if (this.announcedChunks.add(chunk)) {
                   newChunks.add(chunk);
                }

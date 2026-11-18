@@ -1,7 +1,7 @@
 package com.jfant.specter.gui.screen;
 
 import com.jfant.specter.anim.Motion;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 final class ButtonCard extends Card {
    private final Runnable action;
@@ -35,7 +35,7 @@ final class ButtonCard extends Card {
    }
 
    @Override
-   void content(GuiGraphics ctx, int mx, int my, boolean hover) {
+   void content(GuiGraphicsExtractor ctx, int mx, int my, boolean hover) {
       int color = this.danger ? -37177 : Ui.mix(-1911561, -1, Ui.hover(this, "label", hover));
       float asking = Ui.hover(this, "armed", this.armed());
       if (asking > 0.01F) {

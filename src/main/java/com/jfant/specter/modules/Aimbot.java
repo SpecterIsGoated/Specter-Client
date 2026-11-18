@@ -202,7 +202,7 @@ public class Aimbot extends Module {
       LocalPlayer player = this.mc.player;
       if (player != null
          && this.mc.level != null
-         && this.mc.screen == null
+         && this.mc.gui.screen() == null
          && GhostFreecam.on() == null
          && GhostFreelook.on() == null
          && this.engaged()

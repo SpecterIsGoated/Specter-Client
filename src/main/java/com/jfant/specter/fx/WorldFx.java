@@ -13,10 +13,10 @@ import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.buffers.Std140SizeCalculator;
 import com.mojang.blaze3d.buffers.GpuBuffer.MappedView;
 import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
-import com.mojang.blaze3d.pipeline.RenderPipeline.Builder;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline.Builder;
 import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.platform.DestFactor;
 import com.mojang.blaze3d.platform.NativeImage;
@@ -135,7 +135,7 @@ public final class WorldFx {
                return;
             }
 
-            solidDepth = copyDepth(solidDepth, "specter-fx-solid-depth", mc.getMainRenderTarget());
+            solidDepth = copyDepth(solidDepth, "specter-fx-solid-depth", mc.gameRenderer.mainRenderTarget());
             solidDepthFrame = Motion.frameCount();
          } catch (LinkageError | RuntimeException var1) {
             fail(var1);
@@ -162,7 +162,7 @@ public final class WorldFx {
                   return;
                }
 
-               RenderTarget main = mc.getMainRenderTarget();
+               RenderTarget main = mc.gameRenderer.mainRenderTarget();
                worldDepth = copyDepth(worldDepth, "specter-fx-world-depth", main);
                GpuTextureView depth = worldDepth.getDepthTextureView();
                if (bio) {
@@ -196,7 +196,7 @@ public final class WorldFx {
                   return;
                }
 
-               RenderTarget main = mc.getMainRenderTarget();
+               RenderTarget main = mc.gameRenderer.mainRenderTarget();
                copyFrame(main);
                draw("Specter color grading", GRADE, main.getColorTextureView(), frameCopyView, null, null);
             } catch (LinkageError | RuntimeException var2) {
@@ -216,7 +216,7 @@ public final class WorldFx {
       FxParams p = params;
       p.reset();
       ClientLevel world = mc.level;
-      Camera camera = mc.gameRenderer.getMainCamera();
+      Camera camera = mc.gameRenderer.mainCamera();
       if (projection != null && view != null) {
          scratch.set(projection).mul(view).invert(p.invViewProj);
       }
@@ -247,7 +247,7 @@ public final class WorldFx {
       p.underwater = camera.getFluidInCamera() == FogType.WATER;
       p.rain = world.getRainLevel(tickProgress);
       p.renderDistance = mc.gameRenderer.getRenderDistance();
-      RenderTarget main = mc.getMainRenderTarget();
+      RenderTarget main = mc.gameRenderer.mainRenderTarget();
       p.aspect = main.height == 0 ? 1.0F : (float)main.width / main.height;
       p.overworld = world.dimensionType().skybox() == Skybox.OVERWORLD;
       Bioluminescence.fill(p);

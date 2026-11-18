@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 
 public final class Hand {
    private final MacroThread worker;
@@ -17,10 +17,10 @@ public final class Hand {
    }
 
    public boolean click(Menus.Ref menu, int slot) {
-      return this.click(menu, slot, 0, ClickType.PICKUP);
+      return this.click(menu, slot, 0, ContainerInput.PICKUP);
    }
 
-   public boolean click(Menus.Ref menu, int slot, int button, ClickType type) {
+   public boolean click(Menus.Ref menu, int slot, int button, ContainerInput type) {
       this.waitTurn();
       boolean sent = this.worker.call(() -> {
          Minecraft mc = Menus.mc();
@@ -41,12 +41,12 @@ public final class Hand {
       return sent;
    }
 
-   public boolean clickInventory(int slot, int button, ClickType type) {
+   public boolean clickInventory(int slot, int button, ContainerInput type) {
       this.waitTurn();
       boolean sent = this.worker.call(() -> {
          Minecraft mc = Menus.mc();
          LocalPlayer player = mc.player;
-         if (player != null && mc.gameMode != null && mc.screen instanceof InventoryScreen) {
+         if (player != null && mc.gameMode != null && mc.gui.screen() instanceof InventoryScreen) {
             mc.gameMode.handleInventoryMouseClick(player.inventoryMenu.containerId, slot, button, type, player);
             return true;
          } else {
@@ -64,23 +64,23 @@ public final class Hand {
       this.waitTurn();
       this.worker.run(() -> {
          Minecraft mc = Menus.mc();
-         if (mc.player != null && mc.screen == null) {
-            mc.setScreen(new InventoryScreen(mc.player));
+         if (mc.player != null && mc.gui.screen() == null) {
+            mc.gui.setScreen(new InventoryScreen(mc.player));
          }
       });
       this.rest();
    }
 
    public void closeScreen() {
-      if (this.worker.call(() -> Menus.mc().screen != null)) {
+      if (this.worker.call(() -> Menus.mc().gui.screen() != null)) {
          this.waitTurn();
          this.worker.run(() -> {
             Minecraft mc = Menus.mc();
-            if (mc.player != null && mc.screen != null) {
+            if (mc.player != null && mc.gui.screen() != null) {
                if (Menus.containerOpen()) {
                   mc.player.closeContainer();
                } else {
-                  mc.screen.onClose();
+                  mc.gui.screen().onClose();
                }
             }
          });
@@ -94,7 +94,7 @@ public final class Hand {
       this.worker.sleep(this.pace.nextGap(500.0 + 45.0 * command.length()));
       this.worker.run(() -> {
          ClientPacketListener handler = Menus.mc().getConnection();
-         if (handler != null && Menus.mc().screen == null) {
+         if (handler != null && Menus.mc().gui.screen() == null) {
             handler.sendCommand(command);
          }
       });

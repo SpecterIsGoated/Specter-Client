@@ -11,7 +11,7 @@ import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -155,7 +155,7 @@ final class PickerEditor<T> extends Editor {
    }
 
    @Override
-   void body(GuiGraphics ctx, int mx, int my) {
+   void body(GuiGraphicsExtractor ctx, int mx, int my) {
       this.search.render(ctx, this.x + 6, this.y + 2, this.w - 12, 14);
       int regionTop = this.y + 20;
       int regionHeight = this.h - 20;
@@ -193,7 +193,7 @@ final class PickerEditor<T> extends Editor {
    }
 
    private void grid(
-      GuiGraphics ctx, List<T> entries, int top, int left, int regionTop, int regionHeight, int mx, int my, List<T> chosen, boolean isSelectedGrid
+      GuiGraphicsExtractor ctx, List<T> entries, int top, int left, int regionTop, int regionHeight, int mx, int my, List<T> chosen, boolean isSelectedGrid
    ) {
       T now = this.current == null ? null : this.current.get();
       int firstRow = Math.max(0, (regionTop - top) / 20);

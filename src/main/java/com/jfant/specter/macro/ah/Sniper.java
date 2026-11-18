@@ -127,10 +127,10 @@ public final class Sniper {
                return;
             }
 
-            if (this.worker.call(() -> Menus.mc().screen instanceof ChatScreen)) {
+            if (this.worker.call(() -> Menus.mc().gui.screen() instanceof ChatScreen)) {
                this.worker.sleep(100L);
             } else {
-               if (this.worker.call(() -> Menus.mc().screen != null)) {
+               if (this.worker.call(() -> Menus.mc().gui.screen() != null)) {
                   throw new MacroThread.Halt("a screen that is not the auction came up");
                }
 

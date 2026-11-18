@@ -6,7 +6,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -22,10 +22,10 @@ public abstract class InGameHudMixin {
       method = {"renderHotbarAndDecorations"},
       at = {@At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/gui/Gui;renderItemHotbar(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/DeltaTracker;)V"
+         target = "Lnet/minecraft/client/gui/Gui;renderItemHotbar(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/DeltaTracker;)V"
       )}
    )
-   private void specter$scaleHotbar(Gui hud, GuiGraphics context, DeltaTracker tickCounter, Operation<Void> original) {
+   private void specter$scaleHotbar(Gui hud, GuiGraphicsExtractor context, DeltaTracker tickCounter, Operation<Void> original) {
       float ratio = HotbarScale.ratio();
       if (ratio == 1.0F) {
          original.call(new Object[]{hud, context, tickCounter});
@@ -57,7 +57,7 @@ public abstract class InGameHudMixin {
       at = {@At("HEAD")},
       cancellable = true
    )
-   private void specter$crosshair(GuiGraphics context, DeltaTracker tickCounter, CallbackInfo ci) {
+   private void specter$crosshair(GuiGraphicsExtractor context, DeltaTracker tickCounter, CallbackInfo ci) {
       if (Crosshair.replaces()) {
          Crosshair.draw(context, tickCounter.getGameTimeDeltaPartialTick(false));
          ci.cancel();
@@ -68,7 +68,7 @@ public abstract class InGameHudMixin {
       method = {"renderHotbarAndDecorations"},
       at = {@At("TAIL")}
    )
-   private void specter$restoreBars(GuiGraphics context, DeltaTracker tickCounter, CallbackInfo ci) {
+   private void specter$restoreBars(GuiGraphicsExtractor context, DeltaTracker tickCounter, CallbackInfo ci) {
       if (this.specter$barsMoved) {
          this.specter$barsMoved = false;
          context.pose().popMatrix();

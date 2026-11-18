@@ -380,10 +380,10 @@ public class SusChunkFinderV2 extends Module {
          int radius = this.mc.options.getEffectiveRenderDistance() + 3;
          ChunkPos centre = this.mc.player.chunkPosition();
 
-         for (int x = centre.x - radius; x <= centre.x + radius; x++) {
-            for (int z = centre.z - radius; z <= centre.z + radius; z++) {
+         for (int x = centre.x() - radius; x <= centre.x() + radius; x++) {
+            for (int z = centre.z() - radius; z <= centre.z() + radius; z++) {
                if (this.mc.level.getChunkSource().hasChunk(x, z)) {
-                  this.pending.add(ChunkPos.asLong(x, z));
+                  this.pending.add(ChunkPos.pack(x, z));
                }
             }
          }
@@ -392,7 +392,7 @@ public class SusChunkFinderV2 extends Module {
 
    @EventHandler
    private void onChunkData(ChunkDataEvent event) {
-      this.pending.add(event.chunk().getPos().toLong());
+      this.pending.add(event.chunk().getPos().pack());
    }
 
    @EventHandler
@@ -401,7 +401,7 @@ public class SusChunkFinderV2 extends Module {
          int age = event.newState.getValue(BlockStateProperties.AGE_25);
          if (this.seenKelp.add(event.pos.asLong()) && age > 0 && age < 25) {
             if (this.mc.level.getBlockState(event.pos.above()).is(Blocks.WATER)) {
-               long key = ChunkPos.asLong(event.pos.getX() >> 4, event.pos.getZ() >> 4);
+               long key = ChunkPos.pack(event.pos.getX() >> 4, event.pos.getZ() >> 4);
                if (this.kelpChunks.add(key)) {
                   this.pending.add(key);
                }
@@ -508,7 +508,7 @@ public class SusChunkFinderV2 extends Module {
    }
 
    private void recall() {
-      long here = ChunkPos.asLong(this.mc.player.getBlockX() >> 4, this.mc.player.getBlockZ() >> 4);
+      long here = ChunkPos.pack(this.mc.player.getBlockX() >> 4, this.mc.player.getBlockZ() >> 4);
       if (here != this.recalledAt && this.memory.size() != 0) {
          this.recalledAt = here;
          int reach = this.mc.options.getEffectiveRenderDistance() + 2 * this.simDistance.get() + 2;
@@ -553,7 +553,7 @@ public class SusChunkFinderV2 extends Module {
       if (this.clears(record)) {
          for (int dx = -r; dx <= r; dx++) {
             for (int dz = -r; dz <= r; dz++) {
-               add(this.clearCoverage, ChunkPos.asLong(cx + dx, cz + dz), sign);
+               add(this.clearCoverage, ChunkPos.pack(cx + dx, cz + dz), sign);
             }
          }
       }
@@ -561,7 +561,7 @@ public class SusChunkFinderV2 extends Module {
       if (record.weight() > 0) {
          for (int dx = -reach; dx <= reach; dx++) {
             for (int dz = -reach; dz <= reach; dz++) {
-               add(this.support, ChunkPos.asLong(cx + dx, cz + dz), sign * record.weight());
+               add(this.support, ChunkPos.pack(cx + dx, cz + dz), sign * record.weight());
             }
          }
       }
@@ -636,7 +636,7 @@ public class SusChunkFinderV2 extends Module {
 
       for (int dx = -distance; dx <= distance; dx++) {
          for (int dz = -distance; dz <= distance; dz++) {
-            SusChunkFinderV2.Record record = (SusChunkFinderV2.Record)this.records.get(ChunkPos.asLong(cx + dx, cz + dz));
+            SusChunkFinderV2.Record record = (SusChunkFinderV2.Record)this.records.get(ChunkPos.pack(cx + dx, cz + dz));
             if (record != null && record.hole()) {
                shafts++;
             }
@@ -661,7 +661,7 @@ public class SusChunkFinderV2 extends Module {
    private boolean stripCleared(int cx, int cz, int dx, int dz, int reach) {
       for (int depth = 1; depth <= reach; depth++) {
          for (int lateral = -reach; lateral <= reach; lateral++) {
-            if (this.clearCoverage.containsKey(ChunkPos.asLong(cx + dx * depth + dz * lateral, cz + dz * depth + dx * lateral))) {
+            if (this.clearCoverage.containsKey(ChunkPos.pack(cx + dx * depth + dz * lateral, cz + dz * depth + dx * lateral))) {
                return true;
             }
          }

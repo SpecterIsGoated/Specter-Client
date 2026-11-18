@@ -45,7 +45,7 @@ public final class ChangeBursts {
             BlockState old = world.getBlockState(pos);
             if (old != state) {
                long now = now();
-               long key = ChunkPos.asLong(pos.getX() >> 4, pos.getZ() >> 4);
+               long key = ChunkPos.pack(pos.getX() >> 4, pos.getZ() >> 4);
                ChangeBursts.ChunkChanges chunk = (ChangeBursts.ChunkChanges)CHUNKS.get(key);
                if (chunk == null) {
                   CHUNKS.put(key, chunk = new ChangeBursts.ChunkChanges());
@@ -70,7 +70,7 @@ public final class ChangeBursts {
 
    public static void chunkLoaded(int x, int z) {
       if (wanted()) {
-         LOADED.put(ChunkPos.asLong(x, z), now());
+         LOADED.put(ChunkPos.pack(x, z), now());
       }
    }
 
@@ -88,13 +88,13 @@ public final class ChangeBursts {
       if (time - teleported < 3000000000L) {
          return false;
       } else {
-         long loaded = LOADED.getOrDefault(ChunkPos.asLong(pos.getX() >> 4, pos.getZ() >> 4), -2305843009213693952L);
+         long loaded = LOADED.getOrDefault(ChunkPos.pack(pos.getX() >> 4, pos.getZ() >> 4), -2305843009213693952L);
          return time - loaded >= 2000000000L;
       }
    }
 
    public static boolean fake(BlockPos pos, long time, boolean typeChange) {
-      ChangeBursts.ChunkChanges chunk = (ChangeBursts.ChunkChanges)CHUNKS.get(ChunkPos.asLong(pos.getX() >> 4, pos.getZ() >> 4));
+      ChangeBursts.ChunkChanges chunk = (ChangeBursts.ChunkChanges)CHUNKS.get(ChunkPos.pack(pos.getX() >> 4, pos.getZ() >> 4));
       if (chunk == null) {
          return false;
       } else if (chunk.lastSwap >= time - 2000000000L) {

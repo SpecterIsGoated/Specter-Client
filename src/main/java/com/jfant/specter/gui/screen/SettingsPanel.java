@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 final class SettingsPanel {
    private static final int GAP = 4;
@@ -158,7 +158,7 @@ final class SettingsPanel {
       return cursor;
    }
 
-   void render(GuiGraphics ctx, int x, int y, int w, int h, int mx, int my) {
+   void render(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int mx, int my) {
       this.x = x;
       this.y = y;
       this.w = w;
@@ -198,7 +198,7 @@ final class SettingsPanel {
       }
    }
 
-   private void drawPlaced(GuiGraphics ctx, int left, int origin, int cw, int hx, int hy, int clipTop, int clipBottom) {
+   private void drawPlaced(GuiGraphicsExtractor ctx, int left, int origin, int cw, int hx, int hy, int clipTop, int clipBottom) {
       for (SettingsPanel.Placed p : this.placed) {
          int top = origin + p.cy();
          if (p.card() == null) {
@@ -294,7 +294,7 @@ final class SettingsPanel {
       }
    }
 
-   void renderInline(GuiGraphics ctx, int x, int y, int w, int mx, int my) {
+   void renderInline(GuiGraphicsExtractor ctx, int x, int y, int w, int mx, int my) {
       if (this.page != null) {
          if (this.editor != null) {
             this.editor.render(ctx, x, y, w, 170, mx, my);

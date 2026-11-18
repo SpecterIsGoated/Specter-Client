@@ -286,14 +286,14 @@ public class Fly extends Module implements MoveHooks.Adjuster {
    private boolean wantsEngaged(LocalPlayer player) {
       return switch ((Fly.Activation)this.activation.get()) {
          case Always -> true;
-         case HoldKey -> this.mc.screen == null && this.holdKey.get().isSet() && this.holdKey.get().isPressed();
+         case HoldKey -> this.mc.gui.screen() == null && this.holdKey.get().isSet() && this.holdKey.get().isPressed();
          case DoubleTapJump -> this.tapEngaged;
       };
    }
 
    private void trackActivation(LocalPlayer player) {
       if (this.activation.get() == Fly.Activation.DoubleTapJump) {
-         boolean jump = MoveInput.jump() && this.mc.screen == null;
+         boolean jump = MoveInput.jump() && this.mc.gui.screen() == null;
          if (jump && !this.jumpWasDown) {
             int windowTicks = Math.max(1, this.doubleTapWindow.get() / 50);
             if (this.tick - this.lastJumpTick <= windowTicks) {

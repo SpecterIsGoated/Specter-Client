@@ -405,7 +405,7 @@ public final class CaveAnalysis {
       int cx = x >> 4;
       int cz = z >> 4;
       if (cx != this.cacheX || cz != this.cacheZ) {
-         this.cache = (CaveSnapshot)this.chunks.get(ChunkPos.asLong(cx, cz));
+         this.cache = (CaveSnapshot)this.chunks.get(ChunkPos.pack(cx, cz));
          this.cacheX = cx;
          this.cacheZ = cz;
       }

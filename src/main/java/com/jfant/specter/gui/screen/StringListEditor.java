@@ -2,7 +2,7 @@ package com.jfant.specter.gui.screen;
 
 import com.jfant.specter.core.settings.StringListSetting;
 import java.util.List;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 final class StringListEditor extends Editor {
    private static final int ROW = 18;
@@ -29,7 +29,7 @@ final class StringListEditor extends Editor {
    }
 
    @Override
-   void body(GuiGraphics ctx, int mx, int my) {
+   void body(GuiGraphicsExtractor ctx, int mx, int my) {
       int addWidth = 36;
       this.field.render(ctx, this.x + 6, this.y + 2, this.w - 12 - addWidth - 4, 14);
       Ui.button(ctx, "Add", this.x + this.w - 6 - addWidth, this.y + 2, addWidth, 14, Ui.in(mx, my, this.x + this.w - 6 - addWidth, this.y + 2, addWidth, 14));

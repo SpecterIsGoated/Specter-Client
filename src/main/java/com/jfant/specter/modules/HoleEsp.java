@@ -99,12 +99,12 @@ public class HoleEsp extends Module {
    @EventHandler
    private void onChunkData(ChunkDataEvent event) {
       LevelChunk chunk = event.chunk();
-      this.submit(chunk.getPos().x, chunk.getPos().z);
+      this.submit(chunk.getPos().x(), chunk.getPos().z());
    }
 
    @EventHandler
    private void onBlockUpdate(BlockUpdateEvent event) {
-      this.dirty.add(ChunkPos.asLong(event.pos.getX() >> 4, event.pos.getZ() >> 4));
+      this.dirty.add(ChunkPos.pack(event.pos.getX() >> 4, event.pos.getZ() >> 4));
    }
 
    @EventHandler
@@ -124,7 +124,7 @@ public class HoleEsp extends Module {
             this.holes.keySet().removeIf(key -> {
                int cx = ChunkPos.getX(key);
                int cz = ChunkPos.getZ(key);
-               return (Math.abs(cx - here.x) > keep || Math.abs(cz - here.z) > keep) && !this.mc.level.getChunkSource().hasChunk(cx, cz);
+               return (Math.abs(cx - here.x()) > keep || Math.abs(cz - here.z()) > keep) && !this.mc.level.getChunkSource().hasChunk(cx, cz);
             });
          }
       }
@@ -138,8 +138,8 @@ public class HoleEsp extends Module {
 
          for (int dx = -radius; dx <= radius; dx++) {
             for (int dz = -radius; dz <= radius; dz++) {
-               if (this.mc.level.getChunkSource().hasChunk(here.x + dx, here.z + dz)) {
-                  this.submit(here.x + dx, here.z + dz);
+               if (this.mc.level.getChunkSource().hasChunk(here.x() + dx, here.z() + dz)) {
+                  this.submit(here.x() + dx, here.z() + dz);
                }
             }
          }
@@ -183,7 +183,7 @@ public class HoleEsp extends Module {
             }
          }
 
-         long key = ChunkPos.asLong(chunkX, chunkZ);
+         long key = ChunkPos.pack(chunkX, chunkZ);
          if (found.isEmpty()) {
             this.holes.remove(key);
          } else {
@@ -253,7 +253,7 @@ public class HoleEsp extends Module {
          for (Entry<Long, List<HoleEsp.Shaft>> entry : this.holes.entrySet()) {
             int cx = ChunkPos.getX(entry.getKey());
             int cz = ChunkPos.getZ(entry.getKey());
-            if (Math.abs(cx - here.x) <= view && Math.abs(cz - here.z) <= view) {
+            if (Math.abs(cx - here.x()) <= view && Math.abs(cz - here.z()) <= view) {
                for (HoleEsp.Shaft s : entry.getValue()) {
                   event.renderer.box(s.x(), s.minY(), s.z(), s.x() + s.shape().sizeX, s.maxY(), s.z() + s.shape().sizeZ, sides, lines, mode, 0);
                }

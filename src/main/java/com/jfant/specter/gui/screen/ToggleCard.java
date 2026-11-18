@@ -2,7 +2,7 @@ package com.jfant.specter.gui.screen;
 
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 final class ToggleCard extends Card {
    private final BooleanSupplier get;
@@ -32,7 +32,7 @@ final class ToggleCard extends Card {
    }
 
    @Override
-   void content(GuiGraphics ctx, int mx, int my, boolean hover) {
+   void content(GuiGraphicsExtractor ctx, int mx, int my, boolean hover) {
       Ui.text(ctx, Ui.fit(this.label, this.w - 22 - 16), this.x + 6, Ui.textY(this.y, this.h), -1911561);
       Ui.toggle(ctx, this, this.x + this.w - 28, this.y + (this.h - 10) / 2, this.get.getAsBoolean());
    }

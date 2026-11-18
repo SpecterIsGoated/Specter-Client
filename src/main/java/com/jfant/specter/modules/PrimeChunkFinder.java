@@ -301,7 +301,7 @@ public class PrimeChunkFinder extends Module {
 
          for (int dx = -24; dx <= 24; dx++) {
             for (int dz = -24; dz <= 24; dz++) {
-               this.startQueue.add(ChunkPos.asLong(at.x + dx, at.z + dz));
+               this.startQueue.add(ChunkPos.pack(at.x() + dx, at.z() + dz));
             }
          }
       }
@@ -363,7 +363,7 @@ public class PrimeChunkFinder extends Module {
 
          for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
-               if (now - this.lastSwap.getOrDefault(ChunkPos.asLong(cx + dx, cz + dz), -4611686018427387904L) < 3000L) {
+               if (now - this.lastSwap.getOrDefault(ChunkPos.pack(cx + dx, cz + dz), -4611686018427387904L) < 3000L) {
                   return true;
                }
             }
@@ -374,7 +374,7 @@ public class PrimeChunkFinder extends Module {
    }
 
    private void onLight(int chunkX, int chunkZ, ClientboundLightUpdatePacketData data, boolean update) {
-      long key = ChunkPos.asLong(chunkX, chunkZ);
+      long key = ChunkPos.pack(chunkX, chunkZ);
       if (this.belowSections() != 0) {
          long now = System.currentTimeMillis();
          boolean compare = update && now >= this.quietUntil && !this.own.isProtected(key);
@@ -430,7 +430,7 @@ public class PrimeChunkFinder extends Module {
       BitSet empty,
       boolean compare
    ) {
-      long key = ChunkPos.asLong(chunkX, chunkZ);
+      long key = ChunkPos.pack(chunkX, chunkZ);
       int below = this.belowSections();
       byte[][] sections = update ? (byte[][])store.get(key) : unsent(below);
       if (sections != null && sections.length != below) {
@@ -834,7 +834,7 @@ public class PrimeChunkFinder extends Module {
       BlockState state = event.newState;
       if (old != null && state != null && old != state && this.mc.level != null) {
          long millis = System.currentTimeMillis();
-         long key = ChunkPos.asLong(event.pos.getX() >> 4, event.pos.getZ() >> 4);
+         long key = ChunkPos.pack(event.pos.getX() >> 4, event.pos.getZ() >> 4);
          boolean swap = AntiXray.isSwap(old, state);
          if (swap) {
             this.lastSwap.put(key, millis);
@@ -900,7 +900,7 @@ public class PrimeChunkFinder extends Module {
 
          for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
-               long other = ChunkPos.asLong(cx + dx, cz + dz);
+               long other = ChunkPos.pack(cx + dx, cz + dz);
                if (other != key && !this.flagged.contains(other) && total((int[])this.changes.get(other)) != 0) {
                   this.flagged.addAndMoveToLast(other);
                   this.found.put(other, 0);
@@ -933,7 +933,7 @@ public class PrimeChunkFinder extends Module {
 
       for (int dx = -1; dx <= 1; dx++) {
          for (int dz = -1; dz <= 1; dz++) {
-            sum += total((int[])this.changes.get(ChunkPos.asLong(cx + dx, cz + dz)));
+            sum += total((int[])this.changes.get(ChunkPos.pack(cx + dx, cz + dz)));
          }
       }
 
@@ -991,7 +991,7 @@ public class PrimeChunkFinder extends Module {
 
       for (int dx = -3; dx <= 3; dx++) {
          for (int dz = -3; dz <= 3; dz++) {
-            if (test.test(ChunkPos.asLong(cx + dx, cz + dz))) {
+            if (test.test(ChunkPos.pack(cx + dx, cz + dz))) {
                return true;
             }
          }
@@ -1038,7 +1038,7 @@ public class PrimeChunkFinder extends Module {
 
                for (int dx = -1; dx <= 1; dx++) {
                   for (int dz = -1; dz <= 1; dz++) {
-                     this.own.protect(ChunkPos.asLong(at.x + dx, at.z + dz));
+                     this.own.protect(ChunkPos.pack(at.x() + dx, at.z() + dz));
                   }
                }
             }
@@ -1145,7 +1145,7 @@ public class PrimeChunkFinder extends Module {
 
                for (int dx = -3; dx <= 3; dx++) {
                   for (int dz = -3; dz <= 3; dz++) {
-                     long other = ChunkPos.asLong(cx + dx, cz + dz);
+                     long other = ChunkPos.pack(cx + dx, cz + dz);
                      if (this.flagged.contains(other)) {
                         int[] c = (int[])this.changes.get(other);
                         if (c != null) {

@@ -27,7 +27,7 @@ public final class CardDrag {
 
    public void update(Setting<Corner> corner, Setting<Integer> offsetX, Setting<Integer> offsetY, float x, float y, float width, float height) {
       Window window = SpecterCore.mc.getWindow();
-      boolean down = (SpecterCore.mc.screen instanceof ChatScreen || SpecterCore.mc.screen instanceof HudEditorScreen)
+      boolean down = (SpecterCore.mc.gui.screen() instanceof ChatScreen || SpecterCore.mc.gui.screen() instanceof HudEditorScreen)
          && GLFW.glfwGetMouseButton(window.handle(), 0) == 1;
       boolean pressed = down && !this.wasDown;
       this.wasDown = down;

@@ -45,7 +45,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ChestMenu;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -364,7 +364,7 @@ public class SpawnerProtect extends Module {
 
    @EventHandler
    private void onFrame(Render3DEvent event) {
-      if (this.aim != null && this.state != SpawnerProtect.State.WAITING && this.mc.player != null && this.mc.screen == null) {
+      if (this.aim != null && this.state != SpawnerProtect.State.WAITING && this.mc.player != null && this.mc.gui.screen() == null) {
          this.aim.frame(this.mc);
       }
    }
@@ -376,7 +376,7 @@ public class SpawnerProtect extends Module {
          && this.mc.level != null
          && this.mc.gameMode != null
          && this.mc.getConnection() != null
-         && !(this.mc.screen instanceof DisconnectedScreen)) {
+         && !(this.mc.gui.screen() instanceof DisconnectedScreen)) {
          if (this.nearSpawn()) {
             if (this.state != SpawnerProtect.State.WAITING) {
                this.info("Back at spawn - stopping the rescue.", new Object[0]);
@@ -581,7 +581,7 @@ public class SpawnerProtect extends Module {
                   return;
                }
 
-               this.mc.gameMode.handleInventoryMouseClick(handler.containerId, chestSlots + ix, 0, ClickType.QUICK_MOVE, player);
+               this.mc.gameMode.handleInventoryMouseClick(handler.containerId, chestSlots + ix, 0, ContainerInput.QUICK_MOVE, player);
                this.clickGap = 2 + this.random.nextInt(4);
                return;
             }
@@ -607,7 +607,7 @@ public class SpawnerProtect extends Module {
          }
 
          this.leave("Buying an ender chest timed out; the spawners stay in your inventory.", false);
-      } else if (this.shopStep > 0 && this.mc.screen == null && this.shopTicks > 60) {
+      } else if (this.shopStep > 0 && this.mc.gui.screen() == null && this.shopTicks > 60) {
          this.shopStep = 0;
          this.shopTicks = 0;
       } else if (this.shopTicks >= 30) {
@@ -642,8 +642,8 @@ public class SpawnerProtect extends Module {
    }
 
    private void shopClick(String title, int slot, LocalPlayer player) {
-      if (this.mc.screen != null && this.mc.screen.getTitle().getString().toUpperCase(Locale.ROOT).contains(title)) {
-         this.mc.gameMode.handleInventoryMouseClick(player.containerMenu.containerId, slot, 0, ClickType.PICKUP, player);
+      if (this.mc.gui.screen() != null && this.mc.gui.screen().getTitle().getString().toUpperCase(Locale.ROOT).contains(title)) {
+         this.mc.gameMode.handleInventoryMouseClick(player.containerMenu.containerId, slot, 0, ContainerInput.PICKUP, player);
          this.shopStep++;
          this.shopTicks = 0;
       }
@@ -857,7 +857,7 @@ public class SpawnerProtect extends Module {
          for (int ix = 9; ix < 36; ix++) {
             if (inventory.getItem(ix).is(item)) {
                if (this.stateTicks % 10 == 0) {
-                  this.mc.gameMode.handleInventoryMouseClick(player.inventoryMenu.containerId, ix, inventory.getSelectedSlot(), ClickType.SWAP, player);
+                  this.mc.gameMode.handleInventoryMouseClick(player.inventoryMenu.containerId, ix, inventory.getSelectedSlot(), ContainerInput.SWAP, player);
                }
 
                return false;

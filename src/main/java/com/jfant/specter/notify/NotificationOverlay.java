@@ -5,7 +5,7 @@ import com.jfant.specter.core.events.game.GameLeftEvent;
 import com.jfant.specter.core.events.render.Render2DEvent;
 import com.jfant.specter.gui.screen.SpecterScreen;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public final class NotificationOverlay {
    private static boolean subscribed;
@@ -24,8 +24,8 @@ public final class NotificationOverlay {
       priority = -200
    )
    private static void onRender(Render2DEvent event) {
-      if (!(SpecterCore.mc.screen instanceof SpecterScreen)) {
-         GuiGraphics ctx = event.drawContext;
+      if (!(SpecterCore.mc.gui.screen() instanceof SpecterScreen)) {
+         GuiGraphicsExtractor ctx = event.graphics;
          Notifications.render(ctx, ctx.guiWidth(), ctx.guiHeight());
       }
    }

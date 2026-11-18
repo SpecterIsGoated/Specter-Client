@@ -31,7 +31,7 @@ import net.minecraft.client.CameraType;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Options;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
@@ -176,7 +176,7 @@ public class GhostFreecam extends Module {
          GhostView.enter();
          GhostFreelook look = GhostFreelook.on();
          if (look != null) {
-            Vec3 pos = this.mc.gameRenderer.getMainCamera().position();
+            Vec3 pos = this.mc.gameRenderer.mainCamera().position();
             this.x = pos.x;
             this.y = pos.y;
             this.z = pos.z;
@@ -299,7 +299,7 @@ public class GhostFreecam extends Module {
          }
 
          Options o = this.mc.options;
-         boolean free = this.mc.screen == null && !this.keyDown(292);
+         boolean free = this.mc.gui.screen() == null && !this.keyDown(292);
          if (free) {
             double forward = (this.held(o.keyUp) ? 1 : 0) - (this.held(o.keyDown) ? 1 : 0);
             double strafe = (this.held(o.keyRight) ? 1 : 0) - (this.held(o.keyLeft) ? 1 : 0);
@@ -323,7 +323,7 @@ public class GhostFreecam extends Module {
    }
 
    private boolean zooming() {
-      return this.zoom.get() && this.mc.screen == null && this.zoomKey.get().isPressed();
+      return this.zoom.get() && this.mc.gui.screen() == null && this.zoomKey.get().isPressed();
    }
 
    private boolean held(KeyMapping binding) {
@@ -344,7 +344,7 @@ public class GhostFreecam extends Module {
       priority = 100
    )
    private void onScroll(MouseScrollEvent event) {
-      if (event.value != 0.0 && this.mc.screen == null) {
+      if (event.value != 0.0 && this.mc.gui.screen() == null) {
          int dir = event.value > 0.0 ? 1 : -1;
          if (this.zooming()) {
             this.zoomAmount.set(Math.clamp(this.zoomAmount.get() + dir * 0.5, 1.5, 10.0));
@@ -370,8 +370,8 @@ public class GhostFreecam extends Module {
 
    @EventHandler
    private void onRender2D(Render2DEvent event) {
-      if (this.mc.player != null && !this.mc.options.hideGui && !this.mc.debugEntries.isOverlayVisible()) {
-         GuiGraphics ctx = event.drawContext;
+      if (this.mc.player != null && !this.mc.gui.hud.isHidden() && !this.mc.debugEntries.isOverlayVisible()) {
+         GuiGraphicsExtractor ctx = event.graphics;
          Font tr = this.mc.font;
          float s = this.scale.get().floatValue();
          if (this.speedPopup.get() && this.popupAt != 0L && System.currentTimeMillis() - this.popupAt < 1500L) {
@@ -384,7 +384,7 @@ public class GhostFreecam extends Module {
       }
    }
 
-   private void drawPopup(GuiGraphics ctx, Font tr, float s) {
+   private void drawPopup(GuiGraphicsExtractor ctx, Font tr, float s) {
       int w = CardText.width(this.popup) + 16;
       int h = 18;
       float px = (this.mc.getWindow().getGuiScaledWidth() - w * s) / 2.0F;
@@ -398,7 +398,7 @@ public class GhostFreecam extends Module {
       matrices.popMatrix();
    }
 
-   private void drawCard(GuiGraphics ctx, Font tr, float s) {
+   private void drawCard(GuiGraphicsExtractor ctx, Font tr, float s) {
       this.buildRows();
       int needed = CardText.width("Ghost Freecam");
 

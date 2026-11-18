@@ -238,7 +238,7 @@ public class MarineLayer extends Module {
          if (!this.coastalOnly.get()) {
             this.coastTarget = 1.0F;
          } else {
-            BlockPos here = BlockPos.containing(this.mc.gameRenderer.getMainCamera().position());
+            BlockPos here = BlockPos.containing(this.mc.gameRenderer.mainCamera().position());
             int wet = 0;
             int looked = 0;
             int[][] probes = new int[][]{{0, 0}, {48, 0}, {-48, 0}, {0, 48}, {0, -48}, {96, 96}, {-96, 96}, {96, -96}, {-96, -96}};
@@ -348,7 +348,7 @@ public class MarineLayer extends Module {
          }
 
          if (Atmosphere.drawsSky() && SkyRenderer.fresh()) {
-            float yaw = this.mc.gameRenderer.getMainCamera().yRot() * 0.017453292F;
+            float yaw = this.mc.gameRenderer.mainCamera().yRot() * 0.017453292F;
             int sky = SkyModel.horizonColor(SkyRenderer.params(), (float)(-Math.sin(yaw)), (float)Math.cos(yaw));
             float[] horizon = new float[]{(sky >> 16 & 0xFF) / 255.0F, (sky >> 8 & 0xFF) / 255.0F, (sky & 0xFF) / 255.0F};
 

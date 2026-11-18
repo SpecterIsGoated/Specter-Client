@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
@@ -115,8 +115,8 @@ public class WhereAreYou extends Module {
    @EventHandler
    private void onRender2D(Render2DEvent event) {
       if (this.mc.player != null && this.mc.level != null) {
-         if (!this.mc.options.hideGui && !this.mc.debugEntries.isOverlayVisible()) {
-            GuiGraphics ctx = event.drawContext;
+         if (!this.mc.gui.hud.isHidden() && !this.mc.debugEntries.isOverlayVisible()) {
+            GuiGraphicsExtractor ctx = event.graphics;
             Font tr = this.mc.font;
             boolean nether = this.mc.level.dimension() == Level.NETHER;
             boolean end = this.mc.level.dimension() == Level.END;
@@ -241,7 +241,7 @@ public class WhereAreYou extends Module {
       }
    }
 
-   private void drawMap(GuiGraphics ctx, Font tr, int top, int column, int row, boolean onMap) {
+   private void drawMap(GuiGraphicsExtractor ctx, Font tr, int top, int column, int row, boolean onMap) {
       PurpleCard.fillRounded(ctx, -1, top - 1, 128, top + 127 + 1, 4, 15, -1333837902, -1333837902);
       PurpleCard.fillRounded(ctx, 0, top, 127, top + 127, 3, 15, -2145973978, -2145973978);
 
@@ -295,7 +295,7 @@ public class WhereAreYou extends Module {
       }
    }
 
-   private void drawInfo(GuiGraphics ctx, Font tr, int left, int legendTop, boolean drawLegend, DonutRegions.Group here, DonutRegions.Tag hereTag) {
+   private void drawInfo(GuiGraphicsExtractor ctx, Font tr, int left, int legendTop, boolean drawLegend, DonutRegions.Group here, DonutRegions.Tag hereTag) {
       CardText.draw(ctx, "Where Are You?", (float)left, 0.0F, -1065473, true);
       if (!this.otherTitle.isEmpty()) {
          CardText.draw(ctx, this.otherTitle, (float)(left + this.infoWidth - CardText.width(this.otherTitle)), 0.0F, -4149795, true);
@@ -346,12 +346,12 @@ public class WhereAreYou extends Module {
       }
    }
 
-   private static void legendEntry(GuiGraphics ctx, int x, int y, int rgb, String title, int textColor) {
+   private static void legendEntry(GuiGraphicsExtractor ctx, int x, int y, int rgb, String title, int textColor) {
       PurpleCard.fillRounded(ctx, x, y, x + 7, y + 7, 2, 15, 0xFF000000 | rgb, 0xFF000000 | darken(rgb));
       CardText.draw(ctx, title, (float)(x + 10), (float)y, textColor, true);
    }
 
-   private void drawMarker(GuiGraphics ctx, int top, double mapX, double mapZ, boolean onMap) {
+   private void drawMarker(GuiGraphicsExtractor ctx, int top, double mapX, double mapZ, boolean onMap) {
       double fx = Math.clamp((mapX + 225000.0) / 50000.0, 0.0, 9.0);
       double fz = Math.clamp((mapZ + 225000.0) / 50000.0, 0.0, 9.0);
       ctx.nextStratum();

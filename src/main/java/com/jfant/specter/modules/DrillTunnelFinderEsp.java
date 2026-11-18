@@ -169,13 +169,13 @@ public class DrillTunnelFinderEsp extends Module {
 
       for (int dx = -2; dx <= 2; dx++) {
          for (int dz = -2; dz <= 2; dz++) {
-            if (this.announced.contains(ChunkPos.asLong(cx + dx, cz + dz))) {
+            if (this.announced.contains(ChunkPos.pack(cx + dx, cz + dz))) {
                return;
             }
          }
       }
 
-      this.announced.add(ChunkPos.asLong(cx, cz));
+      this.announced.add(ChunkPos.pack(cx, cz));
       String text = title(spot) + " at " + spot.x() + ", " + spot.y() + ", " + spot.z() + " (" + spot.length() + " blocks long)";
       SpecterClientAddon.LOG.info("Drill Tunnel Finder Esp: {} ({}x{})", new Object[]{text, spot.w(), spot.h()});
       if (this.chat.get()) {

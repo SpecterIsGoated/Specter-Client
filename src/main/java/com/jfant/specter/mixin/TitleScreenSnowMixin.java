@@ -1,7 +1,7 @@
 package com.jfant.specter.mixin;
 
 import com.jfant.specter.festive.Festive;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.TitleScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,7 +14,7 @@ public abstract class TitleScreenSnowMixin {
       method = {"render"},
       at = {@At("TAIL")}
    )
-   private void specter$snow(GuiGraphics context, int mouseX, int mouseY, float deltaTicks, CallbackInfo ci) {
+   private void specter$snow(GuiGraphicsExtractor context, int mouseX, int mouseY, float deltaTicks, CallbackInfo ci) {
       Festive.title(context, context.guiWidth(), context.guiHeight());
    }
 }

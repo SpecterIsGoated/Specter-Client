@@ -19,8 +19,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.PlayerFaceRenderer;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.network.chat.Component;
@@ -93,12 +93,12 @@ public class OpponentStats extends Module {
       if (PvpCard.visible()) {
          Player target = Targets.current(this.mc.player.position(), 24.0);
          if (target != null || !this.hideWithoutTarget.get()) {
-            this.draw(event.drawContext, target);
+            this.draw(event.graphics, target);
          }
       }
    }
 
-   private void draw(GuiGraphics ctx, Player target) {
+   private void draw(GuiGraphicsExtractor ctx, Player target) {
       int inner = 170;
       if (target == null) {
          PvpCard.begin(ctx, this.spot, this.scale.get(), 180, 9);
@@ -106,7 +106,7 @@ public class OpponentStats extends Module {
          PvpCard.end(ctx);
       } else {
          PvpCard.begin(ctx, this.spot, this.scale.get(), 180, 32);
-         PlayerFaceRenderer.draw(ctx, target instanceof AbstractClientPlayer player ? player.getSkin() : DefaultPlayerSkin.getDefaultSkin(), 0, 0, 9, -1);
+         PlayerFaceExtractor.extractRenderState(ctx, target instanceof AbstractClientPlayer player ? player.getSkin() : DefaultPlayerSkin.getDefaultSkin(), 0, 0, 9, -1);
          String distance = String.format("%.1fm", this.mc.player.distanceTo(target));
          int popped = this.pops.getOrDefault(target.getUUID(), 0);
          String popText = popped + (popped == 1 ? " POP" : " POPS");

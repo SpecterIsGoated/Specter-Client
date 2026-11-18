@@ -67,11 +67,11 @@ public final class Menus {
 
    public static boolean containerOpen() {
       LocalPlayer player = mc().player;
-      return player != null && player.containerMenu != player.inventoryMenu && mc().screen instanceof AbstractContainerScreen;
+      return player != null && player.containerMenu != player.inventoryMenu && mc().gui.screen() instanceof AbstractContainerScreen;
    }
 
    public static String title() {
-      return mc().screen instanceof AbstractContainerScreen<?> screen ? normalize(screen.getTitle().getString()) : "";
+      return mc().gui.screen() instanceof AbstractContainerScreen<?> screen ? normalize(screen.getTitle().getString()) : "";
    }
 
    public static int syncId() {

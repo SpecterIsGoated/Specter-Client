@@ -1,6 +1,6 @@
 package com.jfant.specter.gui.screen;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 abstract class Editor {
    private static final int HEADER = 24;
@@ -19,7 +19,7 @@ abstract class Editor {
       this.back = back;
    }
 
-   final void render(GuiGraphics ctx, int rx, int ry, int rw, int rh, int mx, int my) {
+   final void render(GuiGraphicsExtractor ctx, int rx, int ry, int rw, int rh, int mx, int my) {
       this.backX = rx + 4;
       this.backY = ry + 3;
       boolean overBack = Ui.in(mx, my, this.backX, this.backY, 40, 14);
@@ -50,7 +50,7 @@ abstract class Editor {
       this.scroll.by(amount);
    }
 
-   abstract void body(GuiGraphics var1, int var2, int var3);
+   abstract void body(GuiGraphicsExtractor var1, int var2, int var3);
 
    abstract void bodyClick(int var1, int var2, int var3);
 

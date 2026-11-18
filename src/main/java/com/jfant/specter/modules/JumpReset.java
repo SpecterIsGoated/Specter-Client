@@ -78,7 +78,7 @@ public class JumpReset extends Module {
       if (this.pending) {
          this.pending = false;
          LocalPlayer player = this.mc.player;
-         if (player != null && this.mc.screen == null) {
+         if (player != null && this.mc.gui.screen() == null) {
             if (player.onGround()
                && player.isSprinting()
                && Input.isPressed(this.mc.options.keyUp)
@@ -108,6 +108,6 @@ public class JumpReset extends Module {
    }
 
    private void restore() {
-      this.mc.options.keyJump.setDown(this.mc.screen == null && Input.isPressed(this.mc.options.keyJump));
+      this.mc.options.keyJump.setDown(this.mc.gui.screen() == null && Input.isPressed(this.mc.options.keyJump));
    }
 }

@@ -202,7 +202,7 @@ public class TimeSet extends Module {
          return shownTod;
       } else {
          ClientLevel w = Minecraft.getInstance().level;
-         return w == null ? 6000L : w.getDayTime();
+         return w == null ? 6000L : w.getDefaultClockTime();
       }
    }
 
@@ -229,7 +229,7 @@ public class TimeSet extends Module {
       if (!controlling || w != this.world) {
          this.world = w;
          if (w != null) {
-            this.realTod = w.getDayTime();
+            this.realTod = w.getDefaultClockTime();
             this.shownPhase = mod(this.realTod);
          }
       }
@@ -308,7 +308,7 @@ public class TimeSet extends Module {
                this.realTod++;
             }
          } else {
-            this.realTod = w.getDayTime();
+            this.realTod = w.getDefaultClockTime();
          }
       }
    }
@@ -321,7 +321,7 @@ public class TimeSet extends Module {
       if (w != null) {
          if (w != this.world) {
             this.world = w;
-            this.realTod = w.getDayTime();
+            this.realTod = w.getDefaultClockTime();
             if (this.releasing) {
                this.finishRelease();
                return;

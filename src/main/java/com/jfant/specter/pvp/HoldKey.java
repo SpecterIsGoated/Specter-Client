@@ -31,7 +31,7 @@ public final class HoldKey {
    }
 
    public boolean held() {
-      if (SpecterCore.mc.screen != null) {
+      if (SpecterCore.mc.gui.screen() != null) {
          return false;
       } else {
          return this.mode.get() != HoldKey.Mode.Key ? Input.isPressed(SpecterCore.mc.options.keyUse) : this.key.get().isSet() && this.key.get().isPressed();
@@ -54,7 +54,7 @@ public final class HoldKey {
 
    public void release() {
       if (this.onUseButton()) {
-         SpecterCore.mc.options.keyUse.setDown(SpecterCore.mc.screen == null && Input.isPressed(SpecterCore.mc.options.keyUse));
+         SpecterCore.mc.options.keyUse.setDown(SpecterCore.mc.gui.screen() == null && Input.isPressed(SpecterCore.mc.options.keyUse));
       }
    }
 

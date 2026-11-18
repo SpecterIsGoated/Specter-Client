@@ -549,7 +549,7 @@ public class HumanTotem extends Module {
    }
 
    private boolean canInteract() {
-      return this.mc.screen != null && !(this.mc.screen instanceof InventoryScreen)
+      return this.mc.gui.screen() != null && !(this.mc.gui.screen() instanceof InventoryScreen)
          ? false
          : this.mc.gameMode.getPlayerMode() == GameType.SURVIVAL
             && this.mc.player.containerMenu == this.mc.player.inventoryMenu
