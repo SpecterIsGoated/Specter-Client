@@ -24,7 +24,7 @@ public abstract class NameProtectTabMixin {
    }
 
    @ModifyArg(
-      method = {"render"},
+      method = {"extractRenderState"},
       at = @At(
          value = "INVOKE",
          ordinal = 0,
@@ -37,7 +37,7 @@ public abstract class NameProtectTabMixin {
    }
 
    @ModifyArg(
-      method = {"render"},
+      method = {"extractRenderState"},
       at = @At(
          value = "INVOKE",
          ordinal = 1,
@@ -50,7 +50,7 @@ public abstract class NameProtectTabMixin {
    }
 
    @WrapOperation(
-      method = {"render"},
+      method = {"extractRenderState"},
       at = {@At(
          value = "INVOKE",
          target = "Lnet/minecraft/client/multiplayer/PlayerInfo;getSkin()Lnet/minecraft/world/entity/player/PlayerSkin;"

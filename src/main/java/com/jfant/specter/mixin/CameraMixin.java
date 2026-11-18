@@ -1,5 +1,7 @@
 package com.jfant.specter.mixin;
 
+import com.jfant.specter.modules.CustomFov;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.jfant.specter.modules.GhostFreecam;
 import com.jfant.specter.modules.GhostFreelook;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -22,11 +24,12 @@ public abstract class CameraMixin {
    @Shadow
    protected abstract void setPosition(double var1, double var3, double var5);
 
+   // 26.x: Camera#setup became alignWithEntity(partialTicks), called from Camera#update every frame.
    @Inject(
-      method = {"setup"},
+      method = {"alignWithEntity"},
       at = {@At("HEAD")}
    )
-   private void specter$stepGhostCamera(Level area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
+   private void specter$stepGhostCamera(float partialTicks, CallbackInfo ci) {
       GhostFreecam cam = GhostFreecam.on();
       if (cam != null) {
          cam.stepFrame();
@@ -34,7 +37,7 @@ public abstract class CameraMixin {
    }
 
    @WrapOperation(
-      method = {"setup"},
+      method = {"alignWithEntity"},
       at = {@At(
          value = "INVOKE",
          target = "Lnet/minecraft/client/Camera;setRotation(FF)V"
@@ -55,15 +58,36 @@ public abstract class CameraMixin {
    }
 
    @Inject(
-      method = {"setup"},
+      method = {"alignWithEntity"},
       at = {@At("TAIL")}
    )
-   private void specter$ghostPosition(Level area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
+   private void specter$ghostPosition(float partialTicks, CallbackInfo ci) {
       GhostFreecam cam = GhostFreecam.on();
       if (cam != null) {
          this.setPosition(cam.x, cam.y, cam.z);
          this.detached = true;
       }
+   }
+
+   // 26.x: the FOV moved from GameRenderer#getFov(camera, partialTicks, useFovSetting) to Camera#calculateFov (the world,
+   // uses the FOV setting) and Camera#calculateHudFov (the hand, fixed 70).
+   @ModifyReturnValue(
+      method = {"calculateFov"},
+      at = {@At("RETURN")}
+   )
+   private float specter$worldFov(float fov) {
+      fov = CustomFov.apply(fov);
+      float zoom = GhostFreecam.zoomFactor();
+      return zoom != 1.0F ? fov / zoom : fov;
+   }
+
+   @ModifyReturnValue(
+      method = {"calculateHudFov"},
+      at = {@At("RETURN")}
+   )
+   private float specter$handFov(float fov) {
+      float zoom = GhostFreecam.zoomFactor();
+      return zoom != 1.0F ? fov / zoom : fov;
    }
 
    @Inject(

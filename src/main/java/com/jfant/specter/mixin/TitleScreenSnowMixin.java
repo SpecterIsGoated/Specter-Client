@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin({TitleScreen.class})
 public abstract class TitleScreenSnowMixin {
    @Inject(
-      method = {"render"},
+      method = {"extractRenderState"},
       at = {@At("TAIL")}
    )
    private void specter$snow(GuiGraphicsExtractor context, int mouseX, int mouseY, float deltaTicks, CallbackInfo ci) {

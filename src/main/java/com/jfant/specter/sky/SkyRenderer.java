@@ -145,7 +145,14 @@ public final class SkyRenderer {
       }
    }
 
-   public static void drawSky() {
+   /** True when the clouds / cloud shadows still have to be drawn once the solid world is done this frame. */
+   public static boolean wantsAfterSolid() {
+      return afterSolidPending;
+   }
+
+   // 26.x: called from inside vanilla's open sky render pass (right after the sky disc), so the sky is drawn into that
+   // pass instead of a new one; the sun, moon and stars that vanilla draws next still land on top of it.
+   public static void drawSky(RenderPass pass) {
       afterSolidPending = false;
       boolean atmosphere = Atmosphere.drawsSky() || Atmosphere.drawsClouds();
       boolean nebulaOn = NebulaNight.on();
@@ -172,8 +179,9 @@ public final class SkyRenderer {
                ensureResources(mc);
                upload();
                if (skyWanted) {
-                  RenderTarget main = mc.gameRenderer.mainRenderTarget();
-                  draw("Specter sky", SKY, main.getColorTextureView(), main.getDepthTextureView(), true, false);
+                  pass.pushDebugGroup(() -> "Specter sky");
+                  bind(pass, SKY, true, false);
+                  pass.popDebugGroup();
                }
 
                afterSolidPending = afterWanted;
@@ -206,32 +214,36 @@ public final class SkyRenderer {
    }
 
    private static void draw(String label, RenderPipeline pipeline, GpuTextureView color, GpuTextureView depth, boolean skyTextures, boolean depthSampler) {
-      GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
-         .writeTransform(RenderSystem.getModelViewMatrixCopy(), new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f());
       CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
 
       try (RenderPass pass = depth != null
             ? encoder.createRenderPass(() -> label, color, Optional.empty(), depth, OptionalDouble.empty())
             : encoder.createRenderPass(() -> label, color, Optional.empty())) {
-         pass.setPipeline(RenderSystem.getCompiledPipeline(pipeline));
          RenderSystem.bindDefaultUniforms(pass);
-         pass.setUniform("DynamicTransforms", transforms);
-         pass.setUniform("SpecterSky", ubo.currentBuffer());
-         pass.setUniform("Sampler0", noiseView, RenderSystem.getSamplerCache().getRepeat(FilterMode.LINEAR, true));
-         if (skyTextures) {
-            GpuSampler wrapAround = RenderSystem.getSamplerCache()
-               .getSampler(AddressMode.REPEAT, AddressMode.CLAMP_TO_EDGE, FilterMode.LINEAR, FilterMode.LINEAR, false);
-            pass.setUniform("Sampler1", milkyWayView, wrapAround);
-            pass.setUniform("Sampler2", nebulaView, wrapAround);
-         }
-
-         if (depthSampler) {
-            pass.setUniform("Sampler1", depthCopy.getDepthTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
-         }
-
-         pass.setVertexBuffer(0, triangle.slice());
-         pass.draw(3, 1, 0, 0);
+         bind(pass, pipeline, skyTextures, depthSampler);
       }
+   }
+
+   private static void bind(RenderPass pass, RenderPipeline pipeline, boolean skyTextures, boolean depthSampler) {
+      GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
+         .writeTransform(RenderSystem.getModelViewMatrixCopy(), new Vector4f(1.0F, 1.0F, 1.0F, 1.0F), new Vector3f(), new Matrix4f());
+      pass.setPipeline(RenderSystem.getCompiledPipeline(pipeline));
+      pass.setUniform("DynamicTransforms", transforms);
+      pass.setUniform("SpecterSky", ubo.currentBuffer());
+      pass.setUniform("Sampler0", noiseView, RenderSystem.getSamplerCache().getRepeat(FilterMode.LINEAR, true));
+      if (skyTextures) {
+         GpuSampler wrapAround = RenderSystem.getSamplerCache()
+            .getSampler(AddressMode.REPEAT, AddressMode.CLAMP_TO_EDGE, FilterMode.LINEAR, FilterMode.LINEAR, false);
+         pass.setUniform("Sampler1", milkyWayView, wrapAround);
+         pass.setUniform("Sampler2", nebulaView, wrapAround);
+      }
+
+      if (depthSampler) {
+         pass.setUniform("Sampler1", depthCopy.getDepthTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+      }
+
+      pass.setVertexBuffer(0, triangle.slice());
+      pass.draw(3, 1, 0, 0);
    }
 
    private static void copyDepth(RenderTarget main) {

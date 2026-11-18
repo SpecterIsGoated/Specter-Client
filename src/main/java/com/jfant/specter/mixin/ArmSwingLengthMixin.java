@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin({LivingEntity.class})
 public abstract class ArmSwingLengthMixin {
    @ModifyReturnValue(
-      method = {"getCurrentSwingDuration"},
+      method = {"getModifiedSwingDuration"},
       at = {@At("RETURN")}
    )
    private int specter$swingTicks(int ticks) {

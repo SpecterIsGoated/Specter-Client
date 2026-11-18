@@ -20,7 +20,7 @@ public abstract class NoInvLeakScreenMixin {
    protected Slot hoveredSlot;
 
    @WrapOperation(
-      method = {"renderSlot"},
+      method = {"extractSlot"},
       at = {@At(
          value = "INVOKE",
          target = "Lnet/minecraft/world/inventory/Slot;getItem()Lnet/minecraft/world/item/ItemStack;",
@@ -32,7 +32,7 @@ public abstract class NoInvLeakScreenMixin {
    }
 
    @ModifyVariable(
-      method = {"renderFloatingItem"},
+      method = {"extractFloatingItem"},
       at = @At("HEAD"),
       argsOnly = true
    )
@@ -41,7 +41,7 @@ public abstract class NoInvLeakScreenMixin {
    }
 
    @Inject(
-      method = {"renderTooltip"},
+      method = {"extractTooltip"},
       at = {@At("HEAD")},
       cancellable = true
    )

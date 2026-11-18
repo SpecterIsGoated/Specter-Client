@@ -1,20 +1,22 @@
 package com.jfant.specter.mixin;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.renderpearl.api.commands.RenderPass;
 import net.minecraft.client.renderer.SkyRenderer;
+import org.joml.Vector3fc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+// 26.x: the vanilla sky steps all take the open sky RenderPass first.
 @Mixin({SkyRenderer.class})
 public abstract class SkyRenderingMixin {
    @Inject(
       method = {"renderSkyDisc"},
       at = {@At("TAIL")}
    )
-   private void specter$sky(int color, CallbackInfo ci) {
-      com.jfant.specter.sky.SkyRenderer.drawSky();
+   private void specter$sky(RenderPass pass, Vector3fc skyColor, CallbackInfo ci) {
+      com.jfant.specter.sky.SkyRenderer.drawSky(pass);
    }
 
    @Inject(
@@ -22,7 +24,7 @@ public abstract class SkyRenderingMixin {
       at = {@At("HEAD")},
       cancellable = true
    )
-   private void specter$sunsetGlow(PoseStack matrices, float solarAngle, int color, CallbackInfo ci) {
+   private void specter$sunsetGlow(CallbackInfo ci) {
       if (com.jfant.specter.sky.SkyRenderer.replacesSunsetGlow()) {
          ci.cancel();
       }
@@ -33,7 +35,7 @@ public abstract class SkyRenderingMixin {
       at = {@At("HEAD")},
       cancellable = true
    )
-   private void specter$stars(float brightness, PoseStack matrices, CallbackInfo ci) {
+   private void specter$stars(CallbackInfo ci) {
       if (com.jfant.specter.sky.SkyRenderer.replacesStars()) {
          ci.cancel();
       }

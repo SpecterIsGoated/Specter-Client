@@ -1,5 +1,6 @@
 package com.jfant.specter.mixin.move.sodium;
 
+import net.minecraft.client.renderer.block.FluidModel;
 import com.jfant.specter.move.Xray;
 import net.caffeinemc.mods.sodium.client.model.color.ColorProvider;
 import net.caffeinemc.mods.sodium.client.model.light.LightPipeline;
@@ -51,7 +52,7 @@ public abstract class SodiumXrayFluidMixin {
       ChunkModelBuilder meshBuilder,
       Material material,
       ColorProvider<FluidState> colorProvider,
-      TextureAtlasSprite[] sprites,
+      FluidModel fluidModel,
       CallbackInfo ci
    ) {
       if (!Xray.active()) {

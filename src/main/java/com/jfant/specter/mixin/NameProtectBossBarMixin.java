@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin({BossHealthOverlay.class})
 public abstract class NameProtectBossBarMixin {
    @ModifyExpressionValue(
-      method = {"render"},
+      method = {"extractRenderState"},
       at = {@At(
          value = "INVOKE",
          target = "Lnet/minecraft/client/gui/components/LerpingBossEvent;getName()Lnet/minecraft/network/chat/Component;"

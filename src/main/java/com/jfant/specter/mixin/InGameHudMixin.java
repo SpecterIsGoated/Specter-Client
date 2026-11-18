@@ -5,7 +5,7 @@ import com.jfant.specter.modules.HotbarScale;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.DeltaTracker;
-import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.Hud;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -13,19 +13,19 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin({Gui.class})
+@Mixin({Hud.class})
 public abstract class InGameHudMixin {
    @Unique
    private boolean specter$barsMoved;
 
    @WrapOperation(
-      method = {"renderHotbarAndDecorations"},
+      method = {"extractHotbarAndDecorations"},
       at = {@At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/gui/Gui;renderItemHotbar(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/DeltaTracker;)V"
+         target = "Lnet/minecraft/client/gui/Hud;extractItemHotbar(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/DeltaTracker;)V"
       )}
    )
-   private void specter$scaleHotbar(Gui hud, GuiGraphicsExtractor context, DeltaTracker tickCounter, Operation<Void> original) {
+   private void specter$scaleHotbar(Hud hud, GuiGraphicsExtractor context, DeltaTracker tickCounter, Operation<Void> original) {
       float ratio = HotbarScale.ratio();
       if (ratio == 1.0F) {
          original.call(new Object[]{hud, context, tickCounter});
@@ -53,7 +53,7 @@ public abstract class InGameHudMixin {
    }
 
    @Inject(
-      method = {"renderCrosshair"},
+      method = {"extractCrosshair"},
       at = {@At("HEAD")},
       cancellable = true
    )
@@ -65,7 +65,7 @@ public abstract class InGameHudMixin {
    }
 
    @Inject(
-      method = {"renderHotbarAndDecorations"},
+      method = {"extractHotbarAndDecorations"},
       at = {@At("TAIL")}
    )
    private void specter$restoreBars(GuiGraphicsExtractor context, DeltaTracker tickCounter, CallbackInfo ci) {

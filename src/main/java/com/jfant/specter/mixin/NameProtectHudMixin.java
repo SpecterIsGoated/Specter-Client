@@ -2,13 +2,13 @@ package com.jfant.specter.mixin;
 
 import com.jfant.specter.modules.NameProtectPlus;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.Hud;
 import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
-@Mixin({Gui.class})
+@Mixin({Hud.class})
 public abstract class NameProtectHudMixin {
    @ModifyVariable(
       method = {"setTitle"},
@@ -54,7 +54,7 @@ public abstract class NameProtectHudMixin {
          value = "FIELD",
          opcode = 180,
          ordinal = 0,
-         target = "Lnet/minecraft/client/gui/Gui$1DisplayEntry;name:Lnet/minecraft/network/chat/Component;"
+         target = "Lnet/minecraft/client/gui/Hud$1DisplayEntry;name:Lnet/minecraft/network/chat/Component;"
       )}
    )
    private Component specter$protectSidebarLineWidth(Component original) {
@@ -67,7 +67,7 @@ public abstract class NameProtectHudMixin {
          value = "FIELD",
          opcode = 180,
          ordinal = 1,
-         target = "Lnet/minecraft/client/gui/Gui$1DisplayEntry;name:Lnet/minecraft/network/chat/Component;"
+         target = "Lnet/minecraft/client/gui/Hud$1DisplayEntry;name:Lnet/minecraft/network/chat/Component;"
       )}
    )
    private Component specter$protectSidebarLineDraw(Component original) {

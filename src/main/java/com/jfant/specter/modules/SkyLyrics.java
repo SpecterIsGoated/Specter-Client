@@ -312,6 +312,12 @@ public class SkyLyrics extends Module {
       this.stale = true;
    }
 
+   /** True when the words are on screen and need this frame's solid-world depth. */
+   public static boolean wantsSolidDepth() {
+      SkyLyrics self = instance;
+      return self != null && self.isActive() && self.shown != null;
+   }
+
    public static void captureSolidDepth() {
       SkyLyrics self = instance;
       if (self != null && self.isActive() && self.shown != null) {
