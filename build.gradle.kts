@@ -31,13 +31,24 @@ repositories {
         }
         filter { includeGroup("maven.modrinth") }
     }
-    flatDir { dirs("libs") }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "local-libs"
+                url = uri("libs/repo")
+            }
+        }
+        filter { includeGroup("com.github.labystudio") }
+    }
 }
 
+val modInclude = configurations.create("modInclude")
 val jij = configurations.create("jij")
 configurations {
-    implementation.configure { extendsFrom(jij) }
-    include.configure { extendsFrom(jij) }
+    // mods (Fabric API modules) and plain libraries are nested through these, so `include` itself stays free of
+    // direct dependencies and the jar-in-jar transitive resolution below (defaultDependencies) applies to it
+    implementation.configure { extendsFrom(modInclude); extendsFrom(jij) }
+    include.configure { extendsFrom(modInclude); extendsFrom(jij) }
 }
 
 val launcher = sourceSets.create("launcher") {
@@ -48,10 +59,8 @@ dependencies {
     minecraft("com.mojang:minecraft:$minecraftVersion")
     implementation("net.fabricmc:fabric-loader:$loaderVersion")
 
-    implementation(fabricApi.module("fabric-api-base", fabricApiVersion))
-    include(fabricApi.module("fabric-api-base", fabricApiVersion))
-    implementation(fabricApi.module("fabric-resource-loader-v1", fabricApiVersion))
-    include(fabricApi.module("fabric-resource-loader-v1", fabricApiVersion))
+    modInclude(fabricApi.module("fabric-api-base", fabricApiVersion))
+    modInclude(fabricApi.module("fabric-resource-loader-v1", fabricApiVersion))
 
     // Optional compat targets (compile only)
     compileOnly(fabricApi.module("fabric-renderer-indigo", fabricApiVersion))
@@ -73,9 +82,8 @@ dependencies {
         exclude("com.google.errorprone")
     }
 
-    // Spotify API (only published on JitPack, so taken from the original jar)
-    implementation(files("libs/java-spotify-api-1.4.7.jar"))
-    include(files("libs/java-spotify-api-1.4.7.jar"))
+    // Spotify API (only published on JitPack; the jar from the original release lives in libs/repo)
+    jij("com.github.labystudio:java-spotify-api:1.4.7")
 }
 
 // Jar-in-jar transitive dependencies (same approach as Meteor's build)
