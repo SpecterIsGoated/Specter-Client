@@ -326,18 +326,18 @@ public class PrimeChunkFinder extends Module {
             }
          });
       } else if (packet instanceof ClientboundLevelChunkWithLightPacket data) {
-         int x = data.getX();
-         int z = data.getZ();
-         ClientboundLightUpdatePacketData light = data.getLightData();
+         int x = data.x();
+         int z = data.z();
+         ClientboundLightUpdatePacketData light = data.lightData();
          this.mc.execute(() -> {
             if (this.isActive() && this.mc.level != null) {
                this.onLight(x, z, light, false);
             }
          });
       } else if (packet instanceof ClientboundLightUpdatePacket update) {
-         int x = update.getX();
-         int z = update.getZ();
-         ClientboundLightUpdatePacketData light = update.getLightData();
+         int x = update.x();
+         int z = update.z();
+         ClientboundLightUpdatePacketData light = update.lightData();
          this.mc.execute(() -> {
             if (this.isActive() && this.mc.level != null) {
                this.onLight(x, z, light, true);
@@ -393,13 +393,13 @@ public class PrimeChunkFinder extends Module {
             update,
             false,
             this.baselines,
-            data.getBlockYMask(),
-            data.getBlockUpdates(),
-            data.getEmptyBlockYMask(),
+            data.blockYMask(),
+            data.blockUpdates(),
+            data.emptyBlockYMask(),
             compare && this.watchLight.get()
          );
          PrimeChunkFinder.Summary sky = this.watchSky.get()
-            ? this.read(chunkX, chunkZ, update, true, this.skyBaselines, data.getSkyYMask(), data.getSkyUpdates(), data.getEmptySkyYMask(), compare)
+            ? this.read(chunkX, chunkZ, update, true, this.skyBaselines, data.skyYMask(), data.skyUpdates(), data.emptySkyYMask(), compare)
             : null;
          if (block != null && block.count > 0) {
             this.lightFlags++;
@@ -1032,7 +1032,7 @@ public class PrimeChunkFinder extends Module {
          this.found.tickAutosave();
          if (this.mc.player.getY() < this.topY()) {
             ChunkPos at = this.mc.player.chunkPosition();
-            long here = at.toLong();
+            long here = at.pack();
             if (here != this.ownRadiusChunk && this.own.size() < 60000) {
                this.ownRadiusChunk = here;
 

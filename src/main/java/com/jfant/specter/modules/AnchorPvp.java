@@ -24,6 +24,7 @@ import com.jfant.specter.pvp.PvpLock;
 import com.jfant.specter.pvp.SlotReturn;
 import com.jfant.specter.pvp.Targets;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
@@ -337,7 +338,7 @@ public class AnchorPvp extends Module {
 
    private boolean previewAt(LocalPlayer player, BlockPos anchor) {
       float self = Blast.anchor(player, anchor);
-      Player target = Targets.current(anchor.getCenter(), 10.0);
+      Player target = Targets.current(Vec3.atCenterOf(anchor), 10.0);
       float toTarget = target == null ? 0.0F : Blast.anchor(target, anchor);
       boolean safe = BlastMath.safe(self, this.maxSelfDamage.get().floatValue(), this.antiSuicide.get(), Targets.health(player));
       preview = new CrystalPvp.Preview(toTarget, self, safe, target == null ? null : target.getName().getString());

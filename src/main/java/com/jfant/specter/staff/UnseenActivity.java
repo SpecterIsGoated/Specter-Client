@@ -21,12 +21,14 @@ import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.network.protocol.game.ServerboundInteractPacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
-import net.minecraft.network.protocol.game.ServerboundSwingPacket;
+import net.minecraft.network.protocol.game.ServerboundAttackPacket;
+import net.minecraft.network.protocol.game.ServerboundPunchPacket;
 import net.minecraft.network.protocol.game.ServerboundUseItemOnPacket;
 import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.block.state.BlockState;
@@ -92,10 +94,10 @@ public final class UnseenActivity {
    }
 
    public void particle(ClientboundLevelParticlesPacket packet) {
-      Identifier key = BuiltInRegistries.PARTICLE_TYPE.getKey(packet.getParticle().getType());
+      Identifier key = BuiltInRegistries.PARTICLE_TYPE.getKey(packet.particle().getType());
       String id = key == null ? "" : lower(key);
       if (suspiciousParticle(id)) {
-         this.queue(new UnseenActivity.Event(UnseenActivity.Channel.SPARKS, id, new Vec3(packet.getX(), packet.getY(), packet.getZ()), 0.0));
+         this.queue(new UnseenActivity.Event(UnseenActivity.Channel.SPARKS, id, new Vec3(packet.x(), packet.y(), packet.z()), 0.0));
       }
    }
 
@@ -106,14 +108,14 @@ public final class UnseenActivity {
    public void sent(Packet<?> packet) {
       long now = System.currentTimeMillis();
       if (packet instanceof ServerboundUseItemOnPacket use) {
-         BlockPos clicked = use.getHitResult().getBlockPos();
+         BlockPos clicked = use.hitResult().getBlockPos();
          this.yourBlocks.put(clicked.asLong(), now + 6000L);
-         this.yourBlocks.put(clicked.relative(use.getHitResult().getDirection()).asLong(), now + 6000L);
+         this.yourBlocks.put(clicked.relative(use.hitResult().getDirection()).asLong(), now + 6000L);
          this.lastYouActed = now;
       } else if (packet instanceof ServerboundPlayerActionPacket
          || packet instanceof ServerboundUseItemPacket
          || packet instanceof ServerboundInteractPacket
-         || packet instanceof ServerboundSwingPacket) {
+         || packet instanceof ServerboundPunchPacket || packet instanceof ServerboundAttackPacket) {
          this.lastYouActed = now;
       }
    }
@@ -224,7 +226,7 @@ public final class UnseenActivity {
 
    private static boolean villagerNear(ClientLevel world, Vec3 at) {
       for (Entity entity : world.entitiesForRendering()) {
-         if (entity.getType() == EntityType.VILLAGER && entity.position().closerThan(at, 3.0)) {
+         if (entity.getType() == EntityTypes.VILLAGER && entity.position().closerThan(at, 3.0)) {
             return true;
          }
       }

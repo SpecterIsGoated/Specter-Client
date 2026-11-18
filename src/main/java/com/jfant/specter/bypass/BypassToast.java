@@ -124,7 +124,7 @@ public class BypassToast implements Toast {
          this.drawText(graphics, this.message, "", 17, -1911561);
       }
 
-      graphics.renderItem(this.icon, 8, 8);
+      graphics.item(this.icon, 8, 8);
    }
 
    private void drawTimer(GuiGraphicsExtractor graphics, long visibleFor, int right, int bottom) {

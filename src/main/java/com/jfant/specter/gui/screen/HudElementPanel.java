@@ -1,5 +1,6 @@
 package com.jfant.specter.gui.screen;
 
+import com.jfant.specter.core.utils.misc.input.Input;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.gui.GuiKeyEvents;
 import com.jfant.specter.core.settings.BoolSetting;
@@ -24,7 +25,6 @@ import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
 public final class HudElementPanel extends Screen {
    private static final int WIDTH = 280;
@@ -156,14 +156,14 @@ public final class HudElementPanel extends Screen {
 
    @Override
    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float deltaTicks) {
-      this.renderBackground(ctx, mouseX, mouseY, deltaTicks);
+      this.extractBackground(ctx, mouseX, mouseY, deltaTicks);
       this.layout();
       Ui.hint = "";
       Utils.unscaledProjection();
       HudEditorScreen.renderElements(ctx);
       Utils.scaledProjection();
       if (Ui.dragging != null) {
-         if (GLFW.glfwGetMouseButton(SpecterCore.mc.getWindow().handle(), 0) != 1) {
+         if (!Input.isButtonPressed(0)) {
             Ui.dragging.release();
             Ui.dragging = null;
          } else {

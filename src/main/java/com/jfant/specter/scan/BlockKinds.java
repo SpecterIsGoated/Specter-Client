@@ -28,12 +28,12 @@ import net.minecraft.world.level.block.NoteBlock;
 import net.minecraft.world.level.block.ObserverBlock;
 import net.minecraft.world.level.block.PitcherCropBlock;
 import net.minecraft.world.level.block.PoweredBlock;
-import net.minecraft.world.level.block.RedStoneWireBlock;
+import net.minecraft.world.level.block.RedstoneWireBlock;
 import net.minecraft.world.level.block.RedstoneLampBlock;
 import net.minecraft.world.level.block.RedstoneTorchBlock;
 import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.SnowLayerBlock;
-import net.minecraft.world.level.block.SnowyDirtBlock;
+import net.minecraft.world.level.block.SnowyBlock;
 import net.minecraft.world.level.block.StemBlock;
 import net.minecraft.world.level.block.SugarCaneBlock;
 import net.minecraft.world.level.block.SweetBerryBushBlock;
@@ -61,7 +61,7 @@ public final class BlockKinds {
 
    public static boolean isRedstonePart(BlockState state) {
       Block block = state.getBlock();
-      return block instanceof RedStoneWireBlock
+      return block instanceof RedstoneWireBlock
          || block instanceof DiodeBlock
          || block instanceof RedstoneTorchBlock
          || block instanceof RedstoneLampBlock
@@ -170,7 +170,7 @@ public final class BlockKinds {
          } else if (o == Blocks.SNOW && state.isAir()) {
             return 4;
          } else if ((o != Blocks.WATER || n != Blocks.ICE) && (o != Blocks.ICE || n != Blocks.WATER)) {
-            if (n instanceof SnowyDirtBlock && o == n) {
+            if (n instanceof SnowyBlock && o == n) {
                return 4;
             } else if (o != Blocks.DIRT || n != Blocks.GRASS_BLOCK && n != Blocks.MYCELIUM) {
                if ((o == Blocks.GRASS_BLOCK || o == Blocks.MYCELIUM) && n == Blocks.DIRT) {

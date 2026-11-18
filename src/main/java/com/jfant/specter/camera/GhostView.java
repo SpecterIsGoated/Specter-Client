@@ -52,7 +52,7 @@ public final class GhostView {
    private static void reloadChunks() {
       SpecterCore.mc.execute(() -> {
          if (SpecterCore.mc.levelRenderer != null && SpecterCore.mc.level != null) {
-            SpecterCore.mc.levelRenderer.allChanged();
+            SpecterCore.mc.levelExtractor.allChanged();
          }
       });
    }

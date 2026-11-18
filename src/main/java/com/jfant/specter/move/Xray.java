@@ -179,7 +179,7 @@ public class Xray extends Module {
       this.reloadPending = false;
       this.sinceReload = 0;
       if (this.mc.levelRenderer != null && this.mc.level != null) {
-         this.mc.levelRenderer.allChanged();
+         this.mc.levelExtractor.allChanged();
       }
    }
 
@@ -204,7 +204,7 @@ public class Xray extends Module {
    @EventHandler
    private void onRenderBlockEntity(RenderBlockEntityEvent event) {
       if (this.hideBlockEntities.get()) {
-         if (isBlocked(event.blockEntityState.blockState.getBlock(), null, event.blockEntityState.blockPos)) {
+         if (isBlocked(this.mc.level.getBlockState(event.blockEntityState.blockPos).getBlock(), null, event.blockEntityState.blockPos)) {
             event.cancel();
          }
       }

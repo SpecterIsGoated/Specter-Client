@@ -25,7 +25,6 @@ import net.minecraft.network.protocol.game.ServerboundChatCommandPacket;
 import net.minecraft.network.protocol.game.ServerboundChatCommandSignedPacket;
 import net.minecraft.network.protocol.game.ServerboundInteractPacket;
 import net.minecraft.network.protocol.game.ServerboundUseItemOnPacket;
-import net.minecraft.network.protocol.game.ServerboundInteractPacket.Handler;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageTypes;
@@ -348,23 +347,8 @@ public final class AutoRtp {
    }
 
    private static boolean isInteraction(ServerboundInteractPacket packet) {
-      final boolean[] interaction = new boolean[]{false};
-      packet.dispatch(new Handler() {
-         @Override
-         public void onInteraction(InteractionHand hand) {
-            interaction[0] = true;
-         }
-
-         @Override
-         public void onInteraction(InteractionHand hand, Vec3 pos) {
-            interaction[0] = true;
-         }
-
-         @Override
-         public void onAttack() {
-         }
-      });
-      return interaction[0];
+      // 26.x: attacks travel as ServerboundAttackPacket, so every interact packet is an interaction
+      return true;
    }
 
    private void onServerText(String raw, boolean chatLine) {
@@ -492,7 +476,7 @@ public final class AutoRtp {
                   return true;
                }
             } else if (slot >= 0) {
-               mc.gameMode.handleInventoryMouseClick(menu.containerId, slot, 0, ContainerInput.PICKUP, player);
+               mc.gameMode.handleContainerInput(menu.containerId, slot, 0, ContainerInput.PICKUP, player);
                this.menuClicked = true;
                this.menuClicks++;
                this.lastMenuClickAt = now;
@@ -634,7 +618,7 @@ public final class AutoRtp {
          this.lastBarAt = now;
          LocalPlayer player = Minecraft.getInstance().player;
          if (player != null) {
-            player.displayClientMessage(Component.literal(text), true);
+            player.sendOverlayMessage(Component.literal(text));
          }
       }
    }

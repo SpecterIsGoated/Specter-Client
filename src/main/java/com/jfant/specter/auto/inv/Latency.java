@@ -59,13 +59,13 @@ public final class Latency {
          if (event.packet instanceof ServerboundPlayerActionPacket packet) {
             sequence = packet.getSequence();
          } else if (event.packet instanceof ServerboundUseItemPacket packet) {
-            sequence = packet.getSequence();
+            sequence = packet.sequence();
          } else {
             if (!(event.packet instanceof ServerboundUseItemOnPacket packet)) {
                return;
             }
 
-            sequence = packet.getSequence();
+            sequence = packet.sequence();
          }
 
          if (sequence > 0) {

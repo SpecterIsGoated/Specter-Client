@@ -88,7 +88,7 @@ public class KeyThrow extends Module {
       if (this.pending != null) {
          if (--this.pendingTicks < 0) {
             if (this.debug.get()) {
-               this.info("Dropped the %s press: the hand stayed busy.", new Object[]{this.pending.getName().getString()});
+               this.info("Dropped the %s press: the hand stayed busy.", new Object[]{this.pending.getName(this.pending.getDefaultInstance()).getString()});
             }
 
             this.pending = null;
@@ -104,7 +104,7 @@ public class KeyThrow extends Module {
                      int slot = Hands.hotbarSlot(this.pending);
                      if (slot == -1) {
                         if (this.debug.get()) {
-                           this.info("No %s in the hotbar.", new Object[]{this.pending.getName().getString()});
+                           this.info("No %s in the hotbar.", new Object[]{this.pending.getName(this.pending.getDefaultInstance()).getString()});
                         }
 
                         this.pending = null;
@@ -123,7 +123,7 @@ public class KeyThrow extends Module {
                if (!Hands.coolingDown(stack)) {
                   if (Hands.use(hand)) {
                      if (this.debug.get()) {
-                        this.info("Threw a %s.", new Object[]{this.pending.getName().getString()});
+                        this.info("Threw a %s.", new Object[]{this.pending.getName(this.pending.getDefaultInstance()).getString()});
                      }
 
                      this.pending = null;

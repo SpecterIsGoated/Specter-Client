@@ -7,7 +7,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import java.util.Map;
 import java.util.Map.Entry;
-import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.client.multiplayer.ClientSuggestionProvider;
 
 public class TimeSetCommand extends Command {
    public TimeSetCommand() {
@@ -15,7 +15,7 @@ public class TimeSetCommand extends Command {
    }
 
    @Override
-   public void build(LiteralArgumentBuilder<SharedSuggestionProvider> builder) {
+   public void build(LiteralArgumentBuilder<ClientSuggestionProvider> builder) {
       builder.then(literal("save").then(argument("name", StringArgumentType.greedyString()).executes(context -> {
          String name = StringArgumentType.getString(context, "name");
          int ticks = this.module().save(name);

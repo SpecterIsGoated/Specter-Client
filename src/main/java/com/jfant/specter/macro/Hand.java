@@ -28,7 +28,7 @@ public final class Hand {
          if (player == null || mc.gameMode == null || !menu.open()) {
             return false;
          } else if (slot >= 0 && slot < player.containerMenu.slots.size()) {
-            mc.gameMode.handleInventoryMouseClick(menu.syncId(), slot, button, type, player);
+            mc.gameMode.handleContainerInput(menu.syncId(), slot, button, type, player);
             return true;
          } else {
             return false;
@@ -47,7 +47,7 @@ public final class Hand {
          Minecraft mc = Menus.mc();
          LocalPlayer player = mc.player;
          if (player != null && mc.gameMode != null && mc.gui.screen() instanceof InventoryScreen) {
-            mc.gameMode.handleInventoryMouseClick(player.inventoryMenu.containerId, slot, button, type, player);
+            mc.gameMode.handleContainerInput(player.inventoryMenu.containerId, slot, button, type, player);
             return true;
          } else {
             return false;

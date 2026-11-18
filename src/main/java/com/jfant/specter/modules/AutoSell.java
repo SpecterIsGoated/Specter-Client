@@ -322,7 +322,7 @@ public class AutoSell extends Module {
    }
 
    private void click(AbstractContainerMenu handler, int slot, ContainerInput type) {
-      this.mc.gameMode.handleInventoryMouseClick(handler.containerId, slot, 0, type, this.mc.player);
+      this.mc.gameMode.handleContainerInput(handler.containerId, slot, 0, type, this.mc.player);
    }
 
    private Slot nextSellable(AbstractContainerMenu handler, long now) {

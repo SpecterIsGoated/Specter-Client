@@ -78,22 +78,22 @@ public class BaseEsp extends Module {
       Blocks.BARREL,
       Blocks.ENDER_CHEST,
       Blocks.SHULKER_BOX,
-      Blocks.WHITE_SHULKER_BOX,
-      Blocks.ORANGE_SHULKER_BOX,
-      Blocks.MAGENTA_SHULKER_BOX,
-      Blocks.LIGHT_BLUE_SHULKER_BOX,
-      Blocks.YELLOW_SHULKER_BOX,
-      Blocks.LIME_SHULKER_BOX,
-      Blocks.PINK_SHULKER_BOX,
-      Blocks.GRAY_SHULKER_BOX,
-      Blocks.LIGHT_GRAY_SHULKER_BOX,
-      Blocks.CYAN_SHULKER_BOX,
-      Blocks.PURPLE_SHULKER_BOX,
-      Blocks.BLUE_SHULKER_BOX,
-      Blocks.BROWN_SHULKER_BOX,
-      Blocks.GREEN_SHULKER_BOX,
-      Blocks.RED_SHULKER_BOX,
-      Blocks.BLACK_SHULKER_BOX,
+      Blocks.DYED_SHULKER_BOX.white(),
+      Blocks.DYED_SHULKER_BOX.orange(),
+      Blocks.DYED_SHULKER_BOX.magenta(),
+      Blocks.DYED_SHULKER_BOX.lightBlue(),
+      Blocks.DYED_SHULKER_BOX.yellow(),
+      Blocks.DYED_SHULKER_BOX.lime(),
+      Blocks.DYED_SHULKER_BOX.pink(),
+      Blocks.DYED_SHULKER_BOX.gray(),
+      Blocks.DYED_SHULKER_BOX.lightGray(),
+      Blocks.DYED_SHULKER_BOX.cyan(),
+      Blocks.DYED_SHULKER_BOX.purple(),
+      Blocks.DYED_SHULKER_BOX.blue(),
+      Blocks.DYED_SHULKER_BOX.brown(),
+      Blocks.DYED_SHULKER_BOX.green(),
+      Blocks.DYED_SHULKER_BOX.red(),
+      Blocks.DYED_SHULKER_BOX.black(),
       Blocks.SPAWNER,
       Blocks.FURNACE,
       Blocks.SMOKER,
@@ -552,7 +552,7 @@ public class BaseEsp extends Module {
             this.take(inner);
          }
       } else if (packet instanceof ClientboundLevelChunkWithLightPacket data) {
-         data.getChunkData().getBlockEntitiesTagsConsumer(data.getX(), data.getZ()).accept((pos, type, nbt) -> this.recordEntity(pos, type));
+         data.chunkData().getBlockEntitiesTagsConsumer(data.x(), data.z()).accept((pos, type, nbt) -> this.recordEntity(pos, type));
       } else if (packet instanceof ClientboundBlockEntityDataPacket update) {
          this.recordEntity(update.getPos(), update.getType());
       } else if (packet instanceof ClientboundBlockEventPacket lid && this.openedStorage.get()) {

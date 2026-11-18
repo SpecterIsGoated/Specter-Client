@@ -14,7 +14,7 @@ public abstract class ReachMixin {
       at = {@At("RETURN")}
    )
    private double specter$entityRange(double range) {
-      return this == Minecraft.getInstance().player ? Reach.entityRange(range) : range;
+      return (Object)this == Minecraft.getInstance().player ? Reach.entityRange(range) : range;
    }
 
    @ModifyReturnValue(
@@ -22,6 +22,6 @@ public abstract class ReachMixin {
       at = {@At("RETURN")}
    )
    private double specter$blockRange(double range) {
-      return this == Minecraft.getInstance().player ? Reach.blockRange(range) : range;
+      return (Object)this == Minecraft.getInstance().player ? Reach.blockRange(range) : range;
    }
 }

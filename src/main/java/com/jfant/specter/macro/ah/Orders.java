@@ -98,7 +98,7 @@ public final class Orders {
    }
 
    private static boolean isNewOrderPane(ItemStack stack) {
-      return stack.is(Items.GRAY_STAINED_GLASS_PANE) && Menus.name(stack).contains("new order");
+      return stack.is(Items.STAINED_GLASS_PANE.gray()) && Menus.name(stack).contains("new order");
    }
 
    private boolean openYourOrders() {
@@ -150,7 +150,7 @@ public final class Orders {
                   ItemStack stackx = stacksx.get(ix);
                   if (!stackx.isEmpty()) {
                      String name = Menus.name(stackx);
-                     if (stackx.is(Items.RED_TERRACOTTA) || name.contains("cancel")) {
+                     if (stackx.is(Items.DYED_TERRACOTTA.red()) || name.contains("cancel")) {
                         return new int[]{1, -1};
                      }
 

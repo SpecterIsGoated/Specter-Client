@@ -46,6 +46,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Entity.RemovalReason;
@@ -274,7 +275,7 @@ public class HitEffects extends Module {
                   SoundEvents.AMETHYST_BLOCK_CHIME,
                   SoundSource.PLAYERS,
                   0.8F,
-                  1.4F + this.mc.level.random.nextFloat() * 0.3F,
+                  1.4F + this.mc.level.getRandom().nextFloat() * 0.3F,
                   false
                );
          }
@@ -287,7 +288,7 @@ public class HitEffects extends Module {
 
    private void burst(LivingEntity target) {
       AABB box = target.getBoundingBox();
-      RandomSource random = this.mc.level.random;
+      RandomSource random = this.mc.level.getRandom();
       DustParticleOptions dust = new DustParticleOptions(rgb(this.dustColor.get()), 1.7F);
       double cx = (box.minX + box.maxX) / 2.0;
       double cy = box.minY + box.getYsize() * 0.6;
@@ -438,10 +439,10 @@ public class HitEffects extends Module {
             });
          }
       } else {
-         ParticleType<?> type = particle.getParticle().getType();
+         ParticleType<?> type = particle.particle().getType();
          if ((type == ParticleTypes.SWEEP_ATTACK || type == ParticleTypes.DAMAGE_INDICATOR || type == ParticleTypes.CRIT || type == ParticleTypes.ENCHANTED_HIT)
             && this.hideVanilla.get()
-            && this.nearYourHit(particle.getX(), particle.getY(), particle.getZ())) {
+            && this.nearYourHit(particle.x(), particle.y(), particle.z())) {
             event.cancel();
          }
       }
@@ -478,7 +479,7 @@ public class HitEffects extends Module {
    }
 
    private void lightning(Vec3 at) {
-      LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(this.mc.level, EntitySpawnReason.TRIGGERED);
+      LightningBolt bolt = EntityTypes.LIGHTNING_BOLT.create(this.mc.level, EntitySpawnReason.TRIGGERED);
       if (bolt != null) {
          bolt.setId(nextFakeId--);
          bolt.setVisualOnly(true);
@@ -511,7 +512,7 @@ public class HitEffects extends Module {
 
    private void souls(LivingEntity target) {
       AABB box = target.getBoundingBox();
-      RandomSource random = this.mc.level.random;
+      RandomSource random = this.mc.level.getRandom();
 
       for (int i = 0; i < 24; i++) {
          double x = box.minX + random.nextDouble() * box.getXsize();

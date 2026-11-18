@@ -1,11 +1,11 @@
 package com.jfant.specter.render;
 
+import com.jfant.specter.core.utils.misc.input.Input;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.settings.Setting;
 import com.jfant.specter.core.systems.hud.screens.HudEditorScreen;
 import com.mojang.blaze3d.platform.Window;
 import net.minecraft.client.gui.screens.ChatScreen;
-import org.lwjgl.glfw.GLFW;
 
 public final class CardDrag {
    private static CardDrag holding;
@@ -28,7 +28,7 @@ public final class CardDrag {
    public void update(Setting<Corner> corner, Setting<Integer> offsetX, Setting<Integer> offsetY, float x, float y, float width, float height) {
       Window window = SpecterCore.mc.getWindow();
       boolean down = (SpecterCore.mc.gui.screen() instanceof ChatScreen || SpecterCore.mc.gui.screen() instanceof HudEditorScreen)
-         && GLFW.glfwGetMouseButton(window.handle(), 0) == 1;
+         && Input.isButtonPressed(0);
       boolean pressed = down && !this.wasDown;
       this.wasDown = down;
       if (!down) {

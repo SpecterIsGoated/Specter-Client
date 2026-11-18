@@ -1,5 +1,6 @@
 package com.jfant.specter.gui.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.jfant.specter.anim.Animator;
 import com.jfant.specter.anim.Channel;
 import com.jfant.specter.anim.Motion;
@@ -14,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.item.ItemStack;
-import org.lwjgl.glfw.GLFW;
 
 final class Ui {
    static final int PINK = -37177;
@@ -36,7 +36,7 @@ final class Ui {
 
    static boolean shiftDown() {
       long window = SpecterCore.mc.getWindow().handle();
-      return GLFW.glfwGetKey(window, 340) == 1 || GLFW.glfwGetKey(window, 344) == 1;
+      return InputConstants.isKeyDown(InputConstants.KEY_LSHIFT) || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT);
    }
 
    static boolean in(int mx, int my, int x, int y, int w, int h) {
@@ -252,7 +252,7 @@ final class Ui {
    }
 
    static void item(GuiGraphicsExtractor ctx, ItemStack stack, int x, int y) {
-      ctx.renderItem(stack, x, y);
+      ctx.item(stack, x, y);
    }
 
    static int argb(Color c) {

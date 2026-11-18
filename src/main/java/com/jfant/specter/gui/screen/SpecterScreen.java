@@ -1,5 +1,6 @@
 package com.jfant.specter.gui.screen;
 
+import com.jfant.specter.core.utils.misc.input.Input;
 import com.jfant.specter.anim.Animator;
 import com.jfant.specter.anim.Channel;
 import com.jfant.specter.anim.Glide;
@@ -54,7 +55,6 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
 import org.joml.Matrix3x2fStack;
-import org.lwjgl.glfw.GLFW;
 
 public class SpecterScreen extends Screen {
    private static final int PANEL_W = 112;
@@ -223,7 +223,7 @@ public class SpecterScreen extends Screen {
          super.onClose();
       } else {
          float arrived = this.presence.getF();
-         this.renderBackground(ctx, screenX, screenY, deltaTicks);
+         this.extractBackground(ctx, screenX, screenY, deltaTicks);
          boolean fade = Ui.config() == null || Ui.config().backgroundFade.get();
          if (this.minecraft.level != null) {
             ctx.fill(0, 0, this.width, this.height, Ui.alpha(1073741824, fade ? arrived : 1.0F));
@@ -238,7 +238,7 @@ public class SpecterScreen extends Screen {
          Ui.tip = "";
          Festive.backdrop(ctx, this.vw, this.vh, arrived);
          if (Ui.dragging != null) {
-            if (GLFW.glfwGetMouseButton(SpecterCore.mc.getWindow().handle(), 0) != 1) {
+            if (!Input.isButtonPressed(0)) {
                Ui.dragging.release();
                Ui.dragging = null;
             } else {

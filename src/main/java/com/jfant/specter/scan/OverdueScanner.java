@@ -307,7 +307,7 @@ public final class OverdueScanner {
       if (upper.is(Blocks.SNOW) && upper.getValue(SnowLayerBlock.LAYERS) == 1) {
          return false;
       } else {
-         return upper.getFluidState().getAmount() == 8 ? true : upper.getLightBlock() >= 15;
+         return upper.getFluidState().getAmount() == 8 ? true : upper.getLightDampening() >= 15;
       }
    }
 
@@ -337,9 +337,9 @@ public final class OverdueScanner {
    }
 
    private static boolean holdsSnow(ClientLevel world, BlockState below, BlockPos pos) {
-      if (below.is(BlockTags.SNOW_LAYER_CANNOT_SURVIVE_ON)) {
+      if (below.is(BlockTags.CANNOT_SUPPORT_SNOW_LAYER)) {
          return false;
-      } else if (below.is(BlockTags.SNOW_LAYER_CAN_SURVIVE_ON)) {
+      } else if (below.is(BlockTags.SUPPORT_OVERRIDE_SNOW_LAYER)) {
          return true;
       } else {
          return below.is(Blocks.SNOW) && below.getValue(SnowLayerBlock.LAYERS) == 8
@@ -605,7 +605,7 @@ public final class OverdueScanner {
          for (int ny = y + 1; ny <= top; ny++) {
             if (this.emptySection(x, ny, z)) {
                ny |= 15;
-            } else if (this.state(x, ny, z).getLightBlock() > 0) {
+            } else if (this.state(x, ny, z).getLightDampening() > 0) {
                return false;
             }
          }

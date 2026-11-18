@@ -244,7 +244,7 @@ public class SoundDetector extends Module {
    @EventHandler
    private void onPacketSend(PacketEvent.Send event) {
       if (event.packet instanceof ServerboundUseItemOnPacket use) {
-         this.clicks.add(new SoundDetector.Click(use.getHitResult().getBlockPos().immutable(), System.currentTimeMillis() + 6000L));
+         this.clicks.add(new SoundDetector.Click(use.hitResult().getBlockPos().immutable(), System.currentTimeMillis() + 6000L));
       }
    }
 

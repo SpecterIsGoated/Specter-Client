@@ -5,6 +5,7 @@ import com.jfant.specter.core.utils.entity.DamageUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
@@ -26,7 +27,7 @@ public final class Blast {
    }
 
    public static AABB crystalBox(BlockPos base) {
-      return EntityType.END_CRYSTAL.getDimensions().makeBoundingBox(crystalAt(base));
+      return EntityTypes.END_CRYSTAL.getDimensions().makeBoundingBox(crystalAt(base));
    }
 
    public static float crystal(LivingEntity target, Vec3 at, @Nullable BlockPos base) {
@@ -34,7 +35,7 @@ public final class Blast {
    }
 
    public static float anchor(LivingEntity target, BlockPos anchor) {
-      return damage(target, anchor.getCenter(), 5.0F, anchor, Blocks.AIR.defaultBlockState());
+      return damage(target, Vec3.atCenterOf(anchor), 5.0F, anchor, Blocks.AIR.defaultBlockState());
    }
 
    public static boolean anchorsExplode(Level world) {

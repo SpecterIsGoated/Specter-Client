@@ -322,7 +322,7 @@ public final class InvSync {
          }
 
          ItemStack cursorBefore = handler.getCarried().copy();
-         SpecterCore.mc.gameMode.handleInventoryMouseClick(handler.containerId, step.slot, step.button, step.type, p);
+         SpecterCore.mc.gameMode.handleContainerInput(handler.containerId, step.slot, step.button, step.type, p);
          PvpLock.claimTick();
          List<Integer> changed = new ArrayList<>();
 

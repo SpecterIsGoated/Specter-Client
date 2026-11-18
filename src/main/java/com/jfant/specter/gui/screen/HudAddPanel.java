@@ -166,7 +166,7 @@ public final class HudAddPanel extends Screen {
 
    @Override
    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float deltaTicks) {
-      this.renderBackground(ctx, mouseX, mouseY, deltaTicks);
+      this.extractBackground(ctx, mouseX, mouseY, deltaTicks);
       this.layout();
       Ui.hint = "";
       Utils.unscaledProjection();

@@ -24,7 +24,7 @@ public final class LightArrivals {
    }
 
    public static boolean blockLightIn(ClientboundLightUpdatePacketData data, int bottomSection, int minY, int maxY) {
-      for (int bit = data.getBlockYMask().nextSetBit(0); bit >= 0; bit = data.getBlockYMask().nextSetBit(bit + 1)) {
+      for (int bit = data.blockYMask().nextSetBit(0); bit >= 0; bit = data.blockYMask().nextSetBit(bit + 1)) {
          int sectionY = bottomSection - 1 + bit;
          if ((sectionY << 4) + 15 >= minY && sectionY << 4 <= maxY) {
             return true;

@@ -44,6 +44,7 @@ import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.PathfinderMob;
@@ -478,9 +479,9 @@ public final class SimulationSignals {
          ENTITY_ADDED.put(id, now);
          LAST_ACTIVE.put(id, now);
          EntityType<?> type = packet.getType();
-         if (type != EntityType.PLAYER) {
+         if (type != EntityTypes.PLAYER) {
             BlockPos pos = BlockPos.containing(packet.getX(), packet.getY(), packet.getZ());
-            if (type == EntityType.LIGHTNING_BOLT) {
+            if (type == EntityTypes.LIGHTNING_BOLT) {
                LIGHTNING_PENDING.put(id, new long[]{pos.asLong(), now});
             } else if (!spawnable(type)) {
                skip(SimulationSignals.Skip.NOT_SPAWNABLE);
@@ -882,11 +883,11 @@ public final class SimulationSignals {
    }
 
    private static boolean spawnable(EntityType<?> type) {
-      return type.getCategory() == MobCategory.MONSTER || type == EntityType.ITEM || type == EntityType.EXPERIENCE_ORB;
+      return type.getCategory() == MobCategory.MONSTER || type == EntityTypes.ITEM || type == EntityTypes.EXPERIENCE_ORB;
    }
 
    private static int spill(EntityType<?> type) {
-      return type != EntityType.ITEM && type != EntityType.EXPERIENCE_ORB ? 0 : 1;
+      return type != EntityTypes.ITEM && type != EntityTypes.EXPERIENCE_ORB ? 0 : 1;
    }
 
    private static void startQuiet() {

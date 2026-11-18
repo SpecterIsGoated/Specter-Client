@@ -15,7 +15,7 @@ public abstract class ScreenMixin {
       ordinal = 0
    )
    private int specter$initWidth(int width) {
-      return InventoryScale.appliesTo((Screen)this) ? InventoryScale.width() : width;
+      return InventoryScale.appliesTo((Screen)(Object)this) ? InventoryScale.width() : width;
    }
 
    @ModifyVariable(
@@ -25,7 +25,7 @@ public abstract class ScreenMixin {
       ordinal = 1
    )
    private int specter$initHeight(int height) {
-      return InventoryScale.appliesTo((Screen)this) ? InventoryScale.height() : height;
+      return InventoryScale.appliesTo((Screen)(Object)this) ? InventoryScale.height() : height;
    }
 
    @ModifyVariable(
@@ -35,7 +35,7 @@ public abstract class ScreenMixin {
       ordinal = 0
    )
    private int specter$resizeWidth(int width) {
-      return InventoryScale.appliesTo((Screen)this) ? InventoryScale.width() : width;
+      return InventoryScale.appliesTo((Screen)(Object)this) ? InventoryScale.width() : width;
    }
 
    @ModifyVariable(
@@ -45,6 +45,6 @@ public abstract class ScreenMixin {
       ordinal = 1
    )
    private int specter$resizeHeight(int height) {
-      return InventoryScale.appliesTo((Screen)this) ? InventoryScale.height() : height;
+      return InventoryScale.appliesTo((Screen)(Object)this) ? InventoryScale.height() : height;
    }
 }

@@ -70,7 +70,7 @@ public final class Dialogs {
                }
 
                if (part instanceof ItemBody item) {
-                  items.add(item.item());
+                  items.add(item.create());
                   item.description().ifPresent(message -> body.add(Menus.normalize(visibleText(message.contents()))));
                }
             }

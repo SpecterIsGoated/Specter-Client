@@ -493,7 +493,7 @@ public class SpawnerProtect extends Module {
                   press(this.mc.options.keyUp, false);
                   if (this.mc.hitResult instanceof BlockHitResult hit && hit.getType() == Type.BLOCK && hit.getBlockPos().equals(this.target)) {
                      this.mc.gameMode.continueDestroyBlock(this.target, hit.getDirection());
-                     player.swing(InteractionHand.MAIN_HAND);
+                     player.swing(InteractionHand.MAIN_HAND, player.getItemInHand(InteractionHand.MAIN_HAND).getAttackAnimation(), false);
                   } else {
                      this.mc.gameMode.stopDestroyBlock();
                   }
@@ -551,7 +551,7 @@ public class SpawnerProtect extends Module {
                && hit.getType() == Type.BLOCK
                && hit.getBlockPos().equals(this.chest)) {
                this.mc.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, hit);
-               player.swing(InteractionHand.MAIN_HAND);
+               player.swing(InteractionHand.MAIN_HAND, player.getItemInHand(InteractionHand.MAIN_HAND).getInteractAnimation(), false);
             }
          }
       }
@@ -581,7 +581,7 @@ public class SpawnerProtect extends Module {
                   return;
                }
 
-               this.mc.gameMode.handleInventoryMouseClick(handler.containerId, chestSlots + ix, 0, ContainerInput.QUICK_MOVE, player);
+               this.mc.gameMode.handleContainerInput(handler.containerId, chestSlots + ix, 0, ContainerInput.QUICK_MOVE, player);
                this.clickGap = 2 + this.random.nextInt(4);
                return;
             }
@@ -643,7 +643,7 @@ public class SpawnerProtect extends Module {
 
    private void shopClick(String title, int slot, LocalPlayer player) {
       if (this.mc.gui.screen() != null && this.mc.gui.screen().getTitle().getString().toUpperCase(Locale.ROOT).contains(title)) {
-         this.mc.gameMode.handleInventoryMouseClick(player.containerMenu.containerId, slot, 0, ContainerInput.PICKUP, player);
+         this.mc.gameMode.handleContainerInput(player.containerMenu.containerId, slot, 0, ContainerInput.PICKUP, player);
          this.shopStep++;
          this.shopTicks = 0;
       }
@@ -673,7 +673,7 @@ public class SpawnerProtect extends Module {
             && hit.getDirection() == Direction.UP
             && this.aim.arrived(this.mc)) {
             this.mc.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, hit);
-            player.swing(InteractionHand.MAIN_HAND);
+            player.swing(InteractionHand.MAIN_HAND, player.getItemInHand(InteractionHand.MAIN_HAND).getInteractAnimation(), false);
             this.chest = this.placeSpot;
             this.placeSpot = null;
             this.placeTries++;
@@ -744,7 +744,7 @@ public class SpawnerProtect extends Module {
       BlockPos found = null;
       double best = 1.7976931348623157E308;
 
-      for (BlockPos pos : BlockPos.withinManhattan(player.blockPosition(), 16, 16, 16)) {
+      for (BlockPos pos : BlockPos.withinBoxByManhattanDistance(player.blockPosition(), 16, 16, 16)) {
          if (this.mc.level.getBlockState(pos).is(Blocks.SPAWNER) && !this.skipped.contains(pos.asLong())) {
             double distance = player.getEyePosition().distanceToSqr(Vec3.atCenterOf(pos));
             if (distance < best) {
@@ -762,7 +762,7 @@ public class SpawnerProtect extends Module {
       double best = 1.7976931348623157E308;
       BlockPos origin = this.mc.player.blockPosition();
 
-      for (BlockPos pos : BlockPos.withinManhattan(origin, radius, radius, radius)) {
+      for (BlockPos pos : BlockPos.withinBoxByManhattanDistance(origin, radius, radius, radius)) {
          if (this.mc.level.getBlockState(pos).is(block)) {
             double distance = origin.distSqr(pos);
             if (distance < best) {
@@ -857,7 +857,7 @@ public class SpawnerProtect extends Module {
          for (int ix = 9; ix < 36; ix++) {
             if (inventory.getItem(ix).is(item)) {
                if (this.stateTicks % 10 == 0) {
-                  this.mc.gameMode.handleInventoryMouseClick(player.inventoryMenu.containerId, ix, inventory.getSelectedSlot(), ContainerInput.SWAP, player);
+                  this.mc.gameMode.handleContainerInput(player.inventoryMenu.containerId, ix, inventory.getSelectedSlot(), ContainerInput.SWAP, player);
                }
 
                return false;

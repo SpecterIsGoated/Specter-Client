@@ -109,7 +109,7 @@ public final class PvpCard {
       matrices.pushMatrix();
       matrices.translate(x, y);
       matrices.scale(0.5F, 0.5F);
-      ctx.renderItem(stack, 0, 0);
+      ctx.item(stack, 0, 0);
       matrices.popMatrix();
    }
 

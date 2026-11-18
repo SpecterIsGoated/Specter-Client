@@ -90,7 +90,7 @@ public abstract class PlayerBypassNetworkMixin {
    )
    private void specter$chunk(ClientboundLevelChunkWithLightPacket packet, CallbackInfo ci) {
       if (specter$main()) {
-         SimulationSignals.onChunk(packet.getX(), packet.getZ());
+         SimulationSignals.onChunk(packet.x(), packet.z());
       }
    }
 
@@ -168,7 +168,7 @@ public abstract class PlayerBypassNetworkMixin {
    )
    private void specter$removeEntities(ClientboundRemoveEntitiesPacket packet, CallbackInfo ci) {
       if (specter$main()) {
-         SimulationSignals.onRemoveEntities(packet.getEntityIds());
+         SimulationSignals.onRemoveEntities(packet.entityIds());
       }
    }
 

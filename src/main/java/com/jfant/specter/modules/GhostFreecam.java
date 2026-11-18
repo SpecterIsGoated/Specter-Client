@@ -1,5 +1,6 @@
 package com.jfant.specter.modules;
 
+import com.jfant.specter.core.utils.misc.input.Input;
 import com.jfant.specter.SpecterClientAddon;
 import com.jfant.specter.camera.GhostView;
 import com.jfant.specter.core.events.game.GameLeftEvent;
@@ -36,7 +37,6 @@ import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix3x2fStack;
-import org.lwjgl.glfw.GLFW;
 
 public class GhostFreecam extends Module {
    private static final double MIN_SPEED = 0.05;
@@ -299,7 +299,7 @@ public class GhostFreecam extends Module {
          }
 
          Options o = this.mc.options;
-         boolean free = this.mc.gui.screen() == null && !this.keyDown(292);
+         boolean free = this.mc.gui.screen() == null && !this.keyDown(InputConstants.KEY_F3);
          if (free) {
             double forward = (this.held(o.keyUp) ? 1 : 0) - (this.held(o.keyDown) ? 1 : 0);
             double strafe = (this.held(o.keyRight) ? 1 : 0) - (this.held(o.keyLeft) ? 1 : 0);
@@ -331,13 +331,12 @@ public class GhostFreecam extends Module {
       if (key == InputConstants.UNKNOWN) {
          return false;
       } else {
-         long window = this.mc.getWindow().handle();
-         return key.getType() == Type.MOUSE ? GLFW.glfwGetMouseButton(window, key.getValue()) == 1 : GLFW.glfwGetKey(window, key.getValue()) == 1;
+         return key.getType() == Type.MOUSE ? Input.isButtonPressed(key.getValue()) : InputConstants.isKeyDown(key.getValue());
       }
    }
 
    private boolean keyDown(int glfwKey) {
-      return GLFW.glfwGetKey(this.mc.getWindow().handle(), glfwKey) == 1;
+      return InputConstants.isKeyDown(glfwKey);
    }
 
    @EventHandler(

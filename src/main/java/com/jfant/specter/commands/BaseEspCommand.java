@@ -6,7 +6,7 @@ import com.jfant.specter.modules.BaseEsp;
 import com.jfant.specter.reveal.RevealStore;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import java.util.Map.Entry;
-import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.client.multiplayer.ClientSuggestionProvider;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
 
@@ -16,7 +16,7 @@ public class BaseEspCommand extends Command {
    }
 
    @Override
-   public void build(LiteralArgumentBuilder<SharedSuggestionProvider> builder) {
+   public void build(LiteralArgumentBuilder<ClientSuggestionProvider> builder) {
       builder.executes(context -> {
          this.stats();
          return 1;

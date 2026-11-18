@@ -21,7 +21,7 @@ public abstract class MoveEntityMixin {
       method = {"move"}
    )
    private void specter$move(MoverType type, Vec3 movement, Operation<Void> original) {
-      original.call(new Object[]{type, MoveHooks.adjust((Entity)this, type, movement)});
+      original.call(new Object[]{type, MoveHooks.adjust((Entity)(Object)this, type, movement)});
    }
 
    @Inject(
@@ -30,7 +30,7 @@ public abstract class MoveEntityMixin {
       cancellable = true
    )
    private void specter$collides(Entity other, CallbackInfoReturnable<Boolean> cir) {
-      if (this == Minecraft.getInstance().player && NoClip.ignoresCollisionWith(other)) {
+      if ((Object)this == Minecraft.getInstance().player && NoClip.ignoresCollisionWith(other)) {
          cir.setReturnValue(false);
       }
    }
@@ -41,7 +41,7 @@ public abstract class MoveEntityMixin {
       cancellable = true
    )
    private void specter$push(Entity other, CallbackInfo ci) {
-      Entity self = (Entity)this;
+      Entity self = (Entity)(Object)this;
       boolean selfProtected = NoClip.blocksPush(self, other);
       boolean otherProtected = NoClip.blocksPush(other, self);
       if (selfProtected || otherProtected) {

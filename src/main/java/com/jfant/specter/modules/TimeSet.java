@@ -23,6 +23,7 @@ import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
+import net.minecraft.world.clock.ClockNetworkState;
 
 public class TimeSet extends Module {
    private static final int DAY = 24000;
@@ -291,10 +292,14 @@ public class TimeSet extends Module {
                this.world = w;
             }
 
-            this.realTod = packet.dayTime();
-            this.realTicks = packet.tickDayTime();
+            ClockNetworkState clock = w == null ? null : w.dimensionType().defaultClock().map(c -> packet.clockUpdates().get(c)).orElse(null);
+            if (clock != null) {
+               this.realTod = clock.totalTicks();
+               this.realTicks = clock.rate() != 0.0F;
+            }
+
             if (cancelled && w != null) {
-               w.setTimeFromServer(packet.gameTime(), this.displayed(), false);
+               applyClock(w, packet.gameTime(), this.displayed(), false);
             }
          });
       }
@@ -384,7 +389,7 @@ public class TimeSet extends Module {
          if (transitioning || !server) {
             controlling = true;
             shownTod = this.displayed();
-            w.setTimeFromServer(w.getGameTime(), shownTod, false);
+            applyClock(w, w.getGameTime(), shownTod, false);
          } else if (controlling) {
             this.restore(w);
             if (this.releasing) {
@@ -426,7 +431,16 @@ public class TimeSet extends Module {
    }
 
    private void restore(ClientLevel w) {
-      w.setTimeFromServer(w.getGameTime(), this.realTod, this.realTicks);
+      applyClock(w, w.getGameTime(), this.realTod, this.realTicks);
+   }
+
+   // 26.x: time of day lives in the dimension's default world clock instead of ClientLevel's day time
+   private static void applyClock(ClientLevel w, long gameTime, long timeOfDay, boolean ticking) {
+      w.setTimeFromServer(gameTime);
+      w.dimensionType().defaultClock().ifPresent(clock -> {
+         w.clockManager().handleUpdates(gameTime, Map.of(clock, new ClockNetworkState(timeOfDay, 0.0F, ticking ? 1.0F : 0.0F)));
+         w.environmentAttributes().invalidateTickCache();
+      });
    }
 
    private static double mod(double v) {

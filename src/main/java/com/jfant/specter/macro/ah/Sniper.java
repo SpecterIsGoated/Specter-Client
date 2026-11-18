@@ -274,7 +274,7 @@ public final class Sniper {
                               fingerprint,
                               identity(stack),
                               stack.getHoverName().getString(),
-                              stack.getItem().getName().getString()
+                              stack.getItem().getName(stack).getString()
                            );
                         }
                      }

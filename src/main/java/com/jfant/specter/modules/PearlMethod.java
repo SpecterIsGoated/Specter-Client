@@ -137,7 +137,7 @@ public class PearlMethod extends Module {
                   return;
                }
 
-               this.mc.player.swing(InteractionHand.MAIN_HAND);
+               this.mc.player.swing(InteractionHand.MAIN_HAND, this.mc.player.getItemInHand(InteractionHand.MAIN_HAND).getInteractAnimation(), false);
                this.next(PearlMethod.Step.RTP);
                break;
             case RTP:

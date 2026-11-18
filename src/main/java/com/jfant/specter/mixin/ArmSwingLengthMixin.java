@@ -14,6 +14,6 @@ public abstract class ArmSwingLengthMixin {
       at = {@At("RETURN")}
    )
    private int specter$swingTicks(int ticks) {
-      return this == Minecraft.getInstance().player ? SwingSpeed.swingTicks(ticks) : ticks;
+      return (Object)this == Minecraft.getInstance().player ? SwingSpeed.swingTicks(ticks) : ticks;
    }
 }

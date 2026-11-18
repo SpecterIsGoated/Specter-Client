@@ -1,5 +1,6 @@
 package com.jfant.specter.commands;
 
+import net.minecraft.commands.SharedSuggestionProvider;
 import com.jfant.specter.core.commands.Command;
 import com.jfant.specter.core.systems.modules.Modules;
 import com.jfant.specter.modules.AntiVanish;
@@ -7,7 +8,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import java.util.List;
 import net.minecraft.client.multiplayer.PlayerInfo;
-import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.client.multiplayer.ClientSuggestionProvider;
 import net.minecraft.world.entity.player.PlayerSkin;
 
 public class AntiVanishCommand extends Command {
@@ -16,7 +17,7 @@ public class AntiVanishCommand extends Command {
    }
 
    @Override
-   public void build(LiteralArgumentBuilder<SharedSuggestionProvider> builder) {
+   public void build(LiteralArgumentBuilder<ClientSuggestionProvider> builder) {
       builder.executes(context -> {
          this.preview(null);
          return 1;

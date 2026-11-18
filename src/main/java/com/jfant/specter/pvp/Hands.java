@@ -115,8 +115,8 @@ public final class Hands {
    public static boolean useOn(InteractionHand hand, BlockHitResult hit) {
       LocalPlayer player = SpecterCore.mc.player;
       if (player != null && SpecterCore.mc.gameMode != null && !PvpLock.actedThisTick()) {
-         if (SpecterCore.mc.gameMode.useItemOn(player, hand, hit) instanceof Success success && success.swingSource() == SwingSource.CLIENT) {
-            player.swing(hand);
+         if (SpecterCore.mc.gameMode.useItemOn(player, hand, hit) instanceof Success success && success.swingSource() == SwingSource.PREDICTED) {
+            player.swing(hand, player.getItemInHand(hand).getInteractAnimation(), false);
          }
 
          PvpLock.claimTick();
@@ -129,8 +129,8 @@ public final class Hands {
    public static boolean use(InteractionHand hand) {
       LocalPlayer player = SpecterCore.mc.player;
       if (player != null && SpecterCore.mc.gameMode != null && !PvpLock.actedThisTick()) {
-         if (SpecterCore.mc.gameMode.useItem(player, hand) instanceof Success success && success.swingSource() == SwingSource.CLIENT) {
-            player.swing(hand);
+         if (SpecterCore.mc.gameMode.useItem(player, hand) instanceof Success success && success.swingSource() == SwingSource.PREDICTED) {
+            player.swing(hand, player.getItemInHand(hand).getInteractAnimation(), false);
          }
 
          PvpLock.claimTick();
@@ -144,7 +144,7 @@ public final class Hands {
       LocalPlayer player = SpecterCore.mc.player;
       if (player != null && SpecterCore.mc.gameMode != null && target != null && !target.isRemoved() && !PvpLock.actedThisTick()) {
          SpecterCore.mc.gameMode.attack(player, target);
-         player.swing(InteractionHand.MAIN_HAND);
+         player.swing(InteractionHand.MAIN_HAND, player.getItemInHand(InteractionHand.MAIN_HAND).getAttackAnimation(), false);
          PvpLock.claimTick();
          return true;
       } else {

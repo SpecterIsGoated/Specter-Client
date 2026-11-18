@@ -56,9 +56,9 @@ public class JumpReset extends Module {
    @EventHandler
    private void onPacket(PacketEvent.Receive event) {
       if (event.packet instanceof ClientboundSetEntityMotionPacket packet) {
-         Vec3 velocity = packet.getMovement();
+         Vec3 velocity = packet.movement();
          if (!(velocity.y <= 0.0) && !(Math.hypot(velocity.x, velocity.z) < 0.1)) {
-            int id = packet.getId();
+            int id = packet.id();
             this.mc.execute(() -> {
                if (this.mc.player != null && this.mc.player.getId() == id) {
                   this.pending = true;

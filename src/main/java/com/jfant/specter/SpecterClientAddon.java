@@ -99,14 +99,14 @@ import org.slf4j.Logger;
 
 public final class SpecterClientAddon {
    public static final Logger LOG = LogUtils.getLogger();
-   public static final Category BASES = new Category("Base Finding", Items.ECHO_SHARD.getDefaultInstance());
-   public static final Category ESP = new Category("ESP", Items.ENDER_EYE.getDefaultInstance());
-   public static final Category DONUT = new Category("Donut", Items.GOLD_INGOT.getDefaultInstance());
-   public static final Category HUD = new Category("HUD", Items.SPYGLASS.getDefaultInstance());
-   public static final Category TOOLS = new Category("Tools", Items.COMPASS.getDefaultInstance());
-   public static final Category PVP = new Category("PVP", Items.DIAMOND_SWORD.getDefaultInstance());
-   public static final Category VISUALS = new Category("Visuals", Items.AMETHYST_SHARD.getDefaultInstance());
-   public static final Category BLATANT = new Category("Blatant", Items.NETHERITE_SWORD.getDefaultInstance());
+   public static final Category BASES = new Category("Base Finding", () -> Items.ECHO_SHARD.getDefaultInstance());
+   public static final Category ESP = new Category("ESP", () -> Items.ENDER_EYE.getDefaultInstance());
+   public static final Category DONUT = new Category("Donut", () -> Items.GOLD_INGOT.getDefaultInstance());
+   public static final Category HUD = new Category("HUD", () -> Items.SPYGLASS.getDefaultInstance());
+   public static final Category TOOLS = new Category("Tools", () -> Items.COMPASS.getDefaultInstance());
+   public static final Category PVP = new Category("PVP", () -> Items.DIAMOND_SWORD.getDefaultInstance());
+   public static final Category VISUALS = new Category("Visuals", () -> Items.AMETHYST_SHARD.getDefaultInstance());
+   public static final Category BLATANT = new Category("Blatant", () -> Items.NETHERITE_SWORD.getDefaultInstance());
 
    private SpecterClientAddon() {
    }

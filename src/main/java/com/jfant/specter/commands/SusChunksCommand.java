@@ -8,7 +8,7 @@ import com.jfant.specter.scan.Indicator;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import java.util.List;
-import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.client.multiplayer.ClientSuggestionProvider;
 
 public class SusChunksCommand extends Command {
    public SusChunksCommand() {
@@ -16,7 +16,7 @@ public class SusChunksCommand extends Command {
    }
 
    @Override
-   public void build(LiteralArgumentBuilder<SharedSuggestionProvider> builder) {
+   public void build(LiteralArgumentBuilder<ClientSuggestionProvider> builder) {
       builder.executes(context -> {
          this.stats();
          return 1;
