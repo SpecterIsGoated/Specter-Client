@@ -1,5 +1,8 @@
 package com.jfant.specter.modules;
 
+import org.joml.Vector4fc;
+import org.joml.Vector4f;
+import org.joml.Vector3f;
 import com.jfant.specter.SpecterClientAddon;
 import com.jfant.specter.anim.Channel;
 import com.jfant.specter.anim.Spring;
@@ -446,7 +449,9 @@ public class Atmosphere extends Module {
          boolean ourSky = this.sky.get() && SkyRenderer.fresh();
          if (!ourSky || attribute != EnvironmentAttributes.FOG_COLOR && attribute != EnvironmentAttributes.SKY_COLOR) {
             if (ourSky && attribute == EnvironmentAttributes.SUNRISE_SUNSET_COLOR) {
-               return (Integer)value & 16777215;
+               // 26.x: an RGBA Vector4fc (was packed ARGB); alpha 0 hides vanilla's glow under ours
+               Vector4fc glow = (Vector4fc)value;
+               return new Vector4f(glow.x(), glow.y(), glow.z(), 0.0F);
             } else if (attribute == EnvironmentAttributes.CLOUD_HEIGHT && this.clouds.get()) {
                return (float)this.cloudHeight.get().intValue();
             } else if (attribute != EnvironmentAttributes.FOG_START_DISTANCE
@@ -463,7 +468,9 @@ public class Atmosphere extends Module {
                return (float)(((Float)value).floatValue() * scale);
             }
          } else {
-            return (Integer)value & 0xFF000000 | this.horizonFogColor();
+            // 26.x: sky and fog colours are RGB Vector3fc in 0-1 (were packed ARGB ints)
+            int rgb = this.horizonFogColor();
+            return new Vector3f((rgb >> 16 & 0xFF) / 255.0F, (rgb >> 8 & 0xFF) / 255.0F, (rgb & 0xFF) / 255.0F);
          }
       } else {
          return value;

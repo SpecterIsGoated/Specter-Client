@@ -152,7 +152,12 @@ public final class SkyRenderer {
 
    // 26.x: called from inside vanilla's open sky render pass (right after the sky disc), so the sky is drawn into that
    // pass instead of a new one; the sun, moon and stars that vanilla draws next still land on top of it.
-   public static void drawSky(RenderPass pass) {
+   // 26.x: nothing but drawing may happen while a render pass is open, so the resources and this frame's uniforms
+   // are prepared from the start of vanilla's sky render (before its pass opens) and drawSky only binds and draws.
+   private static boolean skyPrepared;
+
+   public static void prepareSky() {
+      skyPrepared = false;
       afterSolidPending = false;
       boolean atmosphere = Atmosphere.drawsSky() || Atmosphere.drawsClouds();
       boolean nebulaOn = NebulaNight.on();
@@ -178,16 +183,25 @@ public final class SkyRenderer {
 
                ensureResources(mc);
                upload();
-               if (skyWanted) {
-                  pass.pushDebugGroup(() -> "Specter sky");
-                  bind(pass, SKY, true, false);
-                  pass.popDebugGroup();
-               }
-
+               skyPrepared = skyWanted;
                afterSolidPending = afterWanted;
             } catch (LinkageError | RuntimeException var9) {
                fail(var9);
             }
+         }
+      }
+   }
+
+   public static void drawSky(RenderPass pass) {
+      if (skyPrepared && !failed) {
+         skyPrepared = false;
+
+         try {
+            pass.pushDebugGroup(() -> "Specter sky");
+            bind(pass, SKY, true, false);
+            pass.popDebugGroup();
+         } catch (LinkageError | RuntimeException e) {
+            fail(e);
          }
       }
    }
