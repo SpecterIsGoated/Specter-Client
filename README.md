@@ -4,6 +4,11 @@ This is a port of Specter Client 0.93.5 from Minecraft 1.21.11 to Minecraft 26.3
 It was rebuilt from the decompiled 1.21.11 release jar. Specter is a fork of
 [Meteor Client](https://github.com/MeteorDevelopment/meteor-client) and is licensed **GPL-3.0-only** (see `LICENSE`).
 
+## Download
+**[⬇ specter-0.93.5+26.3.jar](https://github.com/doyledrew-byte/specter-26.3/raw/main/download/specter-0.93.5+26.3.jar)**
+(about 13 MB). Put it in your `mods` folder. Its SHA-256 checksum is in
+[`download/specter-0.93.5+26.3.jar.sha256`](download/specter-0.93.5+26.3.jar.sha256).
+
 ## Requirements
 - Minecraft 26.3, Fabric Loader 0.19.5 or newer
 - Java 25
