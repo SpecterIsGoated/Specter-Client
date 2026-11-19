@@ -1,5 +1,6 @@
 package com.jfant.specter.gui.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.jfant.specter.anim.Motion;
 import com.jfant.specter.core.utils.misc.Keybind;
 import java.util.function.Supplier;
@@ -67,9 +68,9 @@ final class KeyCard extends Card implements Focusable {
 
    @Override
    public boolean key(int key, int modifiers) {
-      if (key == 256) {
+      if (key == InputConstants.KEY_ESCAPE) {
          Focus.clear();
-      } else if (key != 261 && key != 259) {
+      } else if (key != InputConstants.KEY_DELETE && key != InputConstants.KEY_BACKSPACE) {
          if (this.keybind.get().canBindTo(true, key, modifiers)) {
             this.keybind.get().set(true, key, modifiers);
             this.changed.run();

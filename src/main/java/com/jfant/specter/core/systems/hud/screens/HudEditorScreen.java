@@ -1,5 +1,6 @@
 package com.jfant.specter.core.systems.hud.screens;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.gui.GuiTheme;
 import com.jfant.specter.core.gui.WidgetScreen;
@@ -90,7 +91,7 @@ public class HudEditorScreen extends WidgetScreen implements Snapper.Container {
             double mouseY = click.y();
             mouseX *= s;
             mouseY *= s;
-            if (click.button() == 0) {
+            if (click.button() == InputConstants.MOUSE_BUTTON_LEFT) {
                this.pressed = true;
                this.selectionSnapBox = null;
                HudElement hovered = this.getHovered((int)mouseX, (int)mouseY);
@@ -139,7 +140,7 @@ public class HudEditorScreen extends WidgetScreen implements Snapper.Container {
    public boolean mouseReleased(MouseButtonEvent click) {
       if (this.cardPressed) {
          this.cardPressed = false;
-         if (click.button() == 0 && this.inButton(click.x(), click.y())) {
+         if (click.button() == InputConstants.MOUSE_BUTTON_LEFT && this.inButton(click.x(), click.y())) {
             SpecterCore.mc.gui.setScreen(HudElementPanel.global(this));
          }
 
@@ -147,7 +148,7 @@ public class HudEditorScreen extends WidgetScreen implements Snapper.Container {
       } else if (this.heldCard != null) {
          CardSpot card = this.heldCard;
          this.heldCard = null;
-         if (click.button() == 1 && CardLayout.at(click.x(), click.y()) == card) {
+         if (click.button() == InputConstants.MOUSE_BUTTON_RIGHT && CardLayout.at(click.x(), click.y()) == card) {
             SpecterCore.mc.gui.setScreen(HudElementPanel.of(this, card));
          }
 
@@ -158,7 +159,7 @@ public class HudEditorScreen extends WidgetScreen implements Snapper.Container {
          double mouseY = click.y();
          mouseX *= s;
          mouseY *= s;
-         if (click.button() == 0) {
+         if (click.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             this.pressed = false;
          }
 
@@ -168,15 +169,15 @@ public class HudEditorScreen extends WidgetScreen implements Snapper.Container {
          }
 
          if (this.moved) {
-            if (click.button() == 0 && !this.dragging) {
+            if (click.button() == InputConstants.MOUSE_BUTTON_LEFT && !this.dragging) {
                this.fillSelection((int)mouseX, (int)mouseY);
             }
-         } else if (click.button() == 0) {
+         } else if (click.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             HudElement hovered = this.getHovered((int)mouseX, (int)mouseY);
             if (hovered != null) {
                hovered.toggle();
             }
-         } else if (click.button() == 1) {
+         } else if (click.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
             HudElement hovered = this.getHovered((int)mouseX, (int)mouseY);
             if (hovered != null) {
                SpecterCore.mc.gui.setScreen(HudElementPanel.of(this, hovered));
@@ -185,7 +186,7 @@ public class HudEditorScreen extends WidgetScreen implements Snapper.Container {
             }
          }
 
-         if (click.button() == 0) {
+         if (click.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             this.snapper.unsnap();
             this.moved = this.dragging = false;
          }
@@ -197,12 +198,12 @@ public class HudEditorScreen extends WidgetScreen implements Snapper.Container {
    @Override
    public boolean keyPressed(KeyEvent input) {
       if (!this.pressed) {
-         if (input.key() == 257 || input.key() == 335) {
+         if (input.key() == InputConstants.KEY_RETURN || input.key() == InputConstants.KEY_NUMPADENTER) {
             HudElement hovered = this.getHovered(this.lastMouseX, this.lastMouseY);
             if (hovered != null) {
                hovered.toggle();
             }
-         } else if (input.key() == 261) {
+         } else if (input.key() == InputConstants.KEY_DELETE) {
             HudElement hovered = this.getHovered(this.lastMouseX, this.lastMouseY);
             double s = SpecterCore.mc.getWindow().getGuiScale();
             CardSpot card = CardLayout.at(this.lastMouseX / s, this.lastMouseY / s);
@@ -220,7 +221,7 @@ public class HudEditorScreen extends WidgetScreen implements Snapper.Container {
                this.selection.clear();
             }
          } else if (!this.selection.isEmpty()) {
-            int pixels = !Input.isKeyPressed(341) && !Input.isKeyPressed(345) ? 1 : 10;
+            int pixels = !Input.isKeyPressed(InputConstants.KEY_LCONTROL) && !Input.isKeyPressed(InputConstants.KEY_RCONTROL) ? 1 : 10;
             int dx = 0;
             int dy = 0;
             switch (input.key()) {
@@ -494,6 +495,11 @@ public class HudEditorScreen extends WidgetScreen implements Snapper.Container {
    }
 
    public static boolean isOpen() {
+      // 26.x renders loading frames before the client entrypoint has set SpecterCore.mc
+      if (SpecterCore.mc == null || SpecterCore.mc.gui == null) {
+         return false;
+      }
+
       Screen s = SpecterCore.mc.gui.screen();
       return s instanceof HudEditorScreen
          || s instanceof HudElementPanel

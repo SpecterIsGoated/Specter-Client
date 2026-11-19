@@ -1,5 +1,6 @@
 package com.jfant.specter.gui.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import java.net.URI;
 import com.mojang.blaze3d.Blaze3D;
 import com.jfant.specter.core.utils.misc.input.Input;
@@ -240,7 +241,7 @@ public class SpecterScreen extends Screen {
          Ui.tip = "";
          Festive.backdrop(ctx, this.vw, this.vh, arrived);
          if (Ui.dragging != null) {
-            if (!Input.isButtonPressed(0)) {
+            if (!Input.isButtonPressed(InputConstants.MOUSE_BUTTON_LEFT)) {
                Ui.dragging.release();
                Ui.dragging = null;
             } else {
@@ -653,7 +654,7 @@ public class SpecterScreen extends Screen {
       if (focused != null) {
          focused.key(input.key(), input.modifiers());
          return true;
-      } else if (input.key() == 256) {
+      } else if (input.key() == InputConstants.KEY_ESCAPE) {
          for (SpecterScreen.Drop drop : open.values()) {
             if (!drop.closing && drop.settings.editing()) {
                drop.settings.closeEditor();
@@ -1114,7 +1115,7 @@ public class SpecterScreen extends Screen {
 
       @Override
       void click(int mx, int my, int button) {
-         if (button != 1) {
+         if (button != InputConstants.MOUSE_BUTTON_RIGHT) {
             if (this.on != null && mx >= this.x + this.w - 30) {
                this.toggle.run();
             } else {
@@ -1346,10 +1347,10 @@ public class SpecterScreen extends Screen {
       }
 
       void click(int mx, int my, int button) {
-         if (button == 0 && this.onEdge(mx, my)) {
+         if (button == InputConstants.MOUSE_BUTTON_LEFT && this.onEdge(mx, my)) {
             this.startResize(mx);
          } else if (!this.menu && my < this.y + 15) {
-            if (button == 0) {
+            if (button == InputConstants.MOUSE_BUTTON_LEFT) {
                this.startDrag(mx, my);
             }
          } else {

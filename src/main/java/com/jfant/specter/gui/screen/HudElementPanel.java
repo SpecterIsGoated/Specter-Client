@@ -1,5 +1,6 @@
 package com.jfant.specter.gui.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.jfant.specter.core.utils.misc.input.Input;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.gui.GuiKeyEvents;
@@ -163,7 +164,7 @@ public final class HudElementPanel extends Screen {
       HudEditorScreen.renderElements(ctx);
       Utils.scaledProjection();
       if (Ui.dragging != null) {
-         if (!Input.isButtonPressed(0)) {
+         if (!Input.isButtonPressed(InputConstants.MOUSE_BUTTON_LEFT)) {
             Ui.dragging.release();
             Ui.dragging = null;
          } else {
@@ -225,7 +226,7 @@ public final class HudElementPanel extends Screen {
       if (focused != null) {
          focused.key(input.key(), input.modifiers());
          return true;
-      } else if (input.key() == 256) {
+      } else if (input.key() == InputConstants.KEY_ESCAPE) {
          if (this.panel.editing()) {
             this.panel.closeEditor();
          } else {

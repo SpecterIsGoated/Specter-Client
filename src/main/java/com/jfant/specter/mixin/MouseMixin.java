@@ -42,7 +42,8 @@ public abstract class MouseMixin {
    }
 
    @Inject(
-      method = {"getScaledXPos"},
+      // 26.x added a static getScaledXPos(Window, double) overload; Specter scales the instance one.
+      method = {"getScaledXPos(Lcom/mojang/blaze3d/platform/Window;)D"},
       at = {@At("RETURN")},
       cancellable = true
    )
@@ -54,7 +55,8 @@ public abstract class MouseMixin {
    }
 
    @Inject(
-      method = {"getScaledYPos"},
+      // 26.x added a static getScaledYPos(Window, double) overload; Specter scales the instance one.
+      method = {"getScaledYPos(Lcom/mojang/blaze3d/platform/Window;)D"},
       at = {@At("RETURN")},
       cancellable = true
    )

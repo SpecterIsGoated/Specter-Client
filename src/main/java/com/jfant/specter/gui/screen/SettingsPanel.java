@@ -1,5 +1,6 @@
 package com.jfant.specter.gui.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.jfant.specter.anim.Animator;
 import com.jfant.specter.anim.Spec;
 import com.jfant.specter.core.settings.Setting;
@@ -238,7 +239,7 @@ final class SettingsPanel {
       } else if (this.page == null) {
          return false;
       } else if (this.page.toggle != null && Ui.in(mx, my, this.x + this.w - 36, this.y + 6, 30, 12)) {
-         if (button != 1) {
+         if (button != InputConstants.MOUSE_BUTTON_RIGHT) {
             this.page.toggle.run();
          }
 
@@ -254,7 +255,7 @@ final class SettingsPanel {
       for (SettingsPanel.Placed p : this.placed) {
          Card card = p.card();
          if (card == null && p.group() != null && Ui.in(mx, my, left, origin + p.cy(), p.cw(), 12)) {
-            if (button != 1) {
+            if (button != InputConstants.MOUSE_BUTTON_RIGHT) {
                p.group().sectionExpanded = !p.group().sectionExpanded;
             }
 
@@ -262,7 +263,7 @@ final class SettingsPanel {
          }
 
          if (card != null && card.contains(mx, my)) {
-            if (button == 1) {
+            if (button == InputConstants.MOUSE_BUTTON_RIGHT) {
                card.reset();
             } else {
                card.click(mx, my, button, Ui.shiftDown());

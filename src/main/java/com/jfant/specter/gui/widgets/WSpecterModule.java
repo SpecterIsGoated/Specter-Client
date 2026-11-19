@@ -1,5 +1,6 @@
 package com.jfant.specter.gui.widgets;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.gui.renderer.GuiRenderer;
 import com.jfant.specter.core.gui.themes.meteor.MeteorGuiTheme;
@@ -55,9 +56,9 @@ public class WSpecterModule extends WPressable implements MeteorWidget {
 
    @Override
    protected void onPressed(int button) {
-      if (button == 0) {
+      if (button == InputConstants.MOUSE_BUTTON_LEFT) {
          this.module.toggle();
-      } else if (button == 1) {
+      } else if (button == InputConstants.MOUSE_BUTTON_RIGHT) {
          SpecterCore.mc.gui.setScreen(this.theme.moduleScreen(this.module));
       }
    }

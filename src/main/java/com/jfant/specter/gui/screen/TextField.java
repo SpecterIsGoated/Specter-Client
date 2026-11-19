@@ -1,5 +1,6 @@
 package com.jfant.specter.gui.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.jfant.specter.anim.Animator;
 import com.jfant.specter.anim.Channel;
 import com.jfant.specter.anim.Motion;
@@ -127,25 +128,25 @@ final class TextField implements Focusable {
 
    @Override
    public boolean key(int key, int modifiers) {
-      boolean control = (modifiers & 10) != 0;
-      boolean shift = (modifiers & 1) != 0;
-      if (key == 256) {
+      boolean control = (modifiers & (InputConstants.MOD_CONTROL | InputConstants.MOD_SUPER)) != 0;
+      boolean shift = (modifiers & InputConstants.MOD_SHIFT) != 0;
+      if (key == InputConstants.KEY_ESCAPE) {
          this.text = this.atFocus;
          this.cursor = this.anchor = Math.min(this.cursor, this.text.length());
          Focus.clear();
          return true;
-      } else if (key != 257 && key != 335) {
-         if (control && key == 65) {
+      } else if (key != InputConstants.KEY_RETURN && key != InputConstants.KEY_NUMPADENTER) {
+         if (control && key == InputConstants.KEY_A) {
             this.anchor = 0;
             this.cursor = this.text.length();
             return true;
-         } else if (control && key == 67) {
+         } else if (control && key == InputConstants.KEY_C) {
             if (this.cursor != this.anchor) {
                SpecterCore.mc.keyboardHandler.setClipboard(this.selected());
             }
 
             return true;
-         } else if (control && key == 88) {
+         } else if (control && key == InputConstants.KEY_X) {
             if (this.cursor != this.anchor) {
                SpecterCore.mc.keyboardHandler.setClipboard(this.selected());
                this.deleteSelection();
@@ -153,10 +154,10 @@ final class TextField implements Focusable {
             }
 
             return true;
-         } else if (control && key == 86) {
+         } else if (control && key == InputConstants.KEY_V) {
             this.insert(SpecterCore.mc.keyboardHandler.getClipboard());
             return true;
-         } else if (key == 259) {
+         } else if (key == InputConstants.KEY_BACKSPACE) {
             if (this.cursor != this.anchor) {
                this.deleteSelection();
             } else {
@@ -171,7 +172,7 @@ final class TextField implements Focusable {
 
             this.changed();
             return true;
-         } else if (key == 261) {
+         } else if (key == InputConstants.KEY_DELETE) {
             if (this.cursor != this.anchor) {
                this.deleteSelection();
             } else {
@@ -184,28 +185,28 @@ final class TextField implements Focusable {
 
             this.changed();
             return true;
-         } else if (key == 263) {
+         } else if (key == InputConstants.KEY_LEFT) {
             this.cursor = Math.max(0, this.cursor - 1);
             if (!shift) {
                this.anchor = this.cursor;
             }
 
             return true;
-         } else if (key == 262) {
+         } else if (key == InputConstants.KEY_RIGHT) {
             this.cursor = Math.min(this.text.length(), this.cursor + 1);
             if (!shift) {
                this.anchor = this.cursor;
             }
 
             return true;
-         } else if (key == 268) {
+         } else if (key == InputConstants.KEY_HOME) {
             this.cursor = 0;
             if (!shift) {
                this.anchor = this.cursor;
             }
 
             return true;
-         } else if (key == 269) {
+         } else if (key == InputConstants.KEY_END) {
             this.cursor = this.text.length();
             if (!shift) {
                this.anchor = this.cursor;

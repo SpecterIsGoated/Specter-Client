@@ -1,5 +1,6 @@
 package com.jfant.specter.gui.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.jfant.specter.SpecterClientAddon;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.gui.GuiKeyEvents;
@@ -235,7 +236,7 @@ public final class HudAddPanel extends Screen {
          SpecterCore.mc.gui.setScreen(this.parent);
          return true;
       } else {
-         if (!this.search.click(mx, my) && click.button() != 1 && Ui.in(mx, my, this.wx + 4, this.listTop, this.ww - 8, this.listBottom - this.listTop)) {
+         if (!this.search.click(mx, my) && click.button() != InputConstants.MOUSE_BUTTON_RIGHT && Ui.in(mx, my, this.wx + 4, this.listTop, this.ww - 8, this.listBottom - this.listTop)) {
             List<HudAddPanel.Row> rows = this.rows();
             int index = (my - (this.listTop + 3 - this.scroll.offset())) / 20;
             if (index >= 0 && index < rows.size()) {
@@ -266,14 +267,14 @@ public final class HudAddPanel extends Screen {
    public boolean keyPressed(KeyEvent input) {
       Focusable focused = Focus.get();
       if (focused == null) {
-         if (input.key() == 256) {
+         if (input.key() == InputConstants.KEY_ESCAPE) {
             SpecterCore.mc.gui.setScreen(this.parent);
             return true;
          } else {
             return false;
          }
       } else {
-         if (focused == this.search && (input.key() == 257 || input.key() == 335)) {
+         if (focused == this.search && (input.key() == InputConstants.KEY_RETURN || input.key() == InputConstants.KEY_NUMPADENTER)) {
             for (HudAddPanel.Row row : this.rows()) {
                if (row.object() != null) {
                   this.pick(row.object());

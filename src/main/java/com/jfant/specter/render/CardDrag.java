@@ -1,5 +1,6 @@
 package com.jfant.specter.render;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.jfant.specter.core.utils.misc.input.Input;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.settings.Setting;
@@ -28,7 +29,7 @@ public final class CardDrag {
    public void update(Setting<Corner> corner, Setting<Integer> offsetX, Setting<Integer> offsetY, float x, float y, float width, float height) {
       Window window = SpecterCore.mc.getWindow();
       boolean down = (SpecterCore.mc.gui.screen() instanceof ChatScreen || SpecterCore.mc.gui.screen() instanceof HudEditorScreen)
-         && Input.isButtonPressed(0);
+         && Input.isButtonPressed(InputConstants.MOUSE_BUTTON_LEFT);
       boolean pressed = down && !this.wasDown;
       this.wasDown = down;
       if (!down) {
