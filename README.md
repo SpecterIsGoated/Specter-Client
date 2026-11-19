@@ -9,17 +9,15 @@ It was rebuilt from the decompiled 1.21.11 release jar. Specter is a fork of
 - Java 25
 
 ## Building
-You need **JDK 25 installed**. Fabric Loom 1.19 only runs on Java 25. If your default `java` is older, Gradle picks
-up an installed JDK 25 by itself (see `gradle/gradle-daemon-jvm.properties`), so it only has to be installed, not
-made the default. Get it from https://adoptium.net (Temurin 25).
-
 ```
 ./gradlew build        # Windows: gradlew.bat build
 ```
-The output is `build/libs/specter-0.93.5+26.3.jar`. The wrapper downloads Gradle 9.8.1.
+The output is `build/libs/specter-0.93.5+26.3.jar`.
 
-If the build fails with `Dependency requires at least JVM runtime version 25`, no JDK 25 was found. Install one, or
-set `JAVA_HOME` to it.
+Any Java version that can start Gradle is enough (Java 17 or newer). The build itself needs Java 25, because Fabric
+Loom 1.19 only runs on it. Gradle handles that on its own (see `gradle/gradle-daemon-jvm.properties`): it uses an
+installed JDK 25 if it finds one, and otherwise downloads Eclipse Temurin 25 the first time. If you build in
+IntelliJ IDEA, set *Settings → Build Tools → Gradle → Gradle JVM* to a JDK 25 if it complains.
 
 ## How the port was done
 1. **Decompiling.** The 1.21.11 jar was remapped from Fabric intermediary names to Mojang names with Loom, then
