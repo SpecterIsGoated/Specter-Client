@@ -150,6 +150,8 @@ public class SpecterScreen extends Screen {
 
       GuiKeyEvents.canUseKeys = true;
       Focus.clear();
+      // Type anywhere to search: SDL3 only sends typed characters while text input is on (see Focus).
+      this.minecraft.textInputManager().startTextInput(this);
       Ui.dragging = null;
       if (!this.opened) {
          this.opened = true;
@@ -185,6 +187,7 @@ public class SpecterScreen extends Screen {
       GuiProfile.closed();
       Profiles.get().save();
       Focus.clear();
+      this.minecraft.textInputManager().stopTextInput(this);
       Ui.dragging = null;
       GuiKeyEvents.canUseKeys = true;
    }

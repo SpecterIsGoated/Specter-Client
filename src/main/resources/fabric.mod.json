@@ -3,11 +3,17 @@
   "name": "Specter Client",
   "id": "specter",
   "version": "${version}",
-  "description": "Specter: a standalone client. Built on the Meteor Client framework (GPL-3.0, https://github.com/MeteorDevelopment/meteor-client).",
+  "description": "Specter Client: base finding, ESP, PvP, visuals and utility modules in one polished, standalone client.",
   "authors": [
     "Specter"
   ],
-  "contact": {},
+  "contributors": [
+    "Meteor Development (MineGame159, squidoodly, seasnail) - original Meteor Client framework (GPL-3.0)"
+  ],
+  "contact": {
+    "homepage": "https://discord.gg/UVjHt4QJwN",
+    "issues": "https://discord.gg/UVjHt4QJwN"
+  },
   "license": "GPL-3.0-only",
   "icon": "assets/specter/icon.png",
   "environment": "client",
@@ -37,6 +43,11 @@
     "specter:build_number": "",
     "specter:color": "150,90,220",
     "specter:commit": "",
+    "modmenu": {
+      "links": {
+        "modmenu.discord": "https://discord.gg/UVjHt4QJwN"
+      }
+    },
     "badoptimizations:cache_hooks": {
       "lightmap": "com.jfant.specter.core.modintegration.BadOptimizationsHook"
     }
@@ -47,14 +58,12 @@
     "fabricloader": ">=0.19.5"
   },
   "breaks": {
+    "meteor-client": "*",
     "optifabric": "*",
     "feather": "*",
     "origins": "*",
     "sodium": "<0.9.1",
     "morechathistory": "*",
     "lithium": "<0.22.1"
-  },
-  "contributors": [
-    "Meteor Development (MineGame159, squidoodly, seasnail) - original Meteor Client framework"
-  ]
+  }
 }

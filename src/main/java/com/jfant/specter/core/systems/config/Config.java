@@ -383,7 +383,7 @@ public class Config extends System<Config> {
       );
    public final Setting<String> prefix = this.sgChat.add(new StringSetting.Builder().name("prefix").description("Prefix.").defaultValue(".").build());
    public final Setting<Boolean> chatFeedback = this.sgChat
-      .add(new BoolSetting.Builder().name("chat-feedback").description("Sends chat feedback when meteor performs certain actions.").defaultValue(true).build());
+      .add(new BoolSetting.Builder().name("chat-feedback").description("Sends chat feedback when Specter performs certain actions.").defaultValue(true).build());
    public final Setting<Boolean> deleteChatFeedback = this.sgChat
       .add(
          new BoolSetting.Builder()

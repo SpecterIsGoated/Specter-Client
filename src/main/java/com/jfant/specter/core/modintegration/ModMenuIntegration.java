@@ -5,14 +5,14 @@
 
 package com.jfant.specter.core.modintegration;
 
+import com.jfant.specter.gui.screen.SpecterScreen;
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 import com.terraformersmc.modmenu.api.ModMenuApi;
-import com.jfant.specter.core.gui.GuiThemes;
-import com.jfant.specter.core.gui.screens.ModulesScreen;
 
+/** Mod Menu's "Configure" button opens Specter's own GUI. */
 public class ModMenuIntegration implements ModMenuApi {
     @Override
     public ConfigScreenFactory<?> getModConfigScreenFactory() {
-        return _ -> new ModulesScreen(GuiThemes.get());
+        return _ -> new SpecterScreen();
     }
 }

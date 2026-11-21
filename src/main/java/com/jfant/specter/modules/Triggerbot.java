@@ -67,7 +67,7 @@ public class Triggerbot extends Module {
    private final Setting<Boolean> weaponsOnly = this.sgGeneral
       .add(new BoolSetting.Builder().name("weapons-only").description("Only with a sword, axe, mace or trident in hand.").defaultValue(true).build());
    private final Setting<Boolean> players = this.sgTargets
-      .add(new BoolSetting.Builder().name("players").description("Hit players (never ones on your Meteor friends list).").defaultValue(true).build());
+      .add(new BoolSetting.Builder().name("players").description("Hit players (never ones on your friends list).").defaultValue(true).build());
    private final Setting<Boolean> hostiles = this.sgTargets
       .add(new BoolSetting.Builder().name("hostiles").description("Hit hostile mobs.").defaultValue(false).build());
    private final Setting<Boolean> invisible = this.sgTargets

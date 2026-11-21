@@ -52,7 +52,7 @@ public class MaceSwap extends Module {
    public void onActivate() {
       Module attributeSwap = Modules.get().get("attribute-swap");
       if (attributeSwap != null && attributeSwap.isActive()) {
-         this.warning("Meteor's Attribute Swap is on as well and also swaps on hits.", new Object[0]);
+         this.warning("Attribute Swap is on as well and also swaps on hits.", new Object[0]);
       }
    }
 
