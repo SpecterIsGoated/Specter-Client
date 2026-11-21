@@ -5,66 +5,78 @@
 
 package com.jfant.specter.core.utils;
 
-import org.reflections.Reflections;
-import org.reflections.scanners.Scanners;
+import com.jfant.specter.core.commands.Commands;
+import com.jfant.specter.core.gui.GuiThemes;
+import com.jfant.specter.core.gui.renderer.GuiRenderer;
+import com.jfant.specter.core.gui.tabs.Tabs;
+import com.jfant.specter.core.pathing.PathManagers;
+import com.jfant.specter.core.renderer.Fonts;
+import com.jfant.specter.core.renderer.FullScreenRenderer;
+import com.jfant.specter.core.renderer.Renderer2D;
+import com.jfant.specter.core.utils.misc.CPSUtils;
+import com.jfant.specter.core.utils.misc.FakeClientPlayer;
+import com.jfant.specter.core.utils.misc.MeteorStarscript;
+import com.jfant.specter.core.utils.misc.Names;
+import com.jfant.specter.core.utils.network.MeteorExecutor;
+import com.jfant.specter.core.utils.player.ChatUtils;
+import com.jfant.specter.core.utils.player.EChestMemory;
+import com.jfant.specter.core.utils.player.Rotations;
+import com.jfant.specter.core.utils.render.PlayerHeadUtils;
+import com.jfant.specter.core.utils.render.RenderUtils;
+import com.jfant.specter.core.utils.render.color.RainbowColors;
+import com.jfant.specter.core.utils.world.BlockIterator;
+import com.jfant.specter.core.utils.world.BlockUtils;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.*;
-import java.util.stream.Collectors;
 
+/**
+ * Runs the {@link PreInit} / {@link PostInit} methods.
+ * <p>
+ * Meteor finds these by scanning the jar with the reflections library, which bundles javassist
+ * (class generation, JVM attach, remote class loading). Malware scanners flag javassist, so Specter
+ * calls the methods from a fixed list instead and ships neither library.
+ * <p>
+ * <b>Adding a new @PreInit / @PostInit method? Add it here too</b>, after anything it depends on.
+ */
 public class ReflectInit {
-    private static final List<Reflections> reflections = new ArrayList<>();
-
     private ReflectInit() {
     }
 
+    /** Kept for API compatibility; nothing to register without classpath scanning. */
     public static void registerPackages() {
-        reflections.add(new Reflections("com.jfant.specter", Scanners.MethodsAnnotated));
     }
 
     public static void init(Class<? extends Annotation> annotation) {
-        for (Reflections reflection : reflections) {
-            Set<Method> initTasks = reflection.getMethodsAnnotatedWith(annotation);
-            if (initTasks == null) continue;
-
-            Map<Class<?>, List<Method>> byClass = initTasks.stream().collect(Collectors.groupingBy(Method::getDeclaringClass));
-            Set<Method> left = new HashSet<>(initTasks);
-
-            for (Method m; (m = left.stream().findAny().orElse(null)) != null; ) {
-                reflectInit(m, annotation, left, byClass);
-            }
-        }
+        if (annotation == PreInit.class) preInit();
+        else if (annotation == PostInit.class) postInit();
     }
 
-    private static <T extends Annotation> void reflectInit(Method task, Class<T> annotation, Set<Method> left, Map<Class<?>, List<Method>> byClass) {
-        left.remove(task);
-
-        for (Class<?> clazz : getDependencies(task, annotation)) {
-            for (Method m : byClass.getOrDefault(clazz, Collections.emptyList())) {
-                if (left.contains(m)) {
-                    reflectInit(m, annotation, left, byClass);
-                }
-            }
-        }
-
-        try {
-            task.invoke(null);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new IllegalStateException("Error running @%s task '%s.%s'".formatted(annotation.getSimpleName(), task.getDeclaringClass().getSimpleName(), task.getName()), e);
-        } catch (NullPointerException e) {
-            throw new RuntimeException("Method \"%s\" using Init annotations from non-static context".formatted(task.getName()), e);
-        }
+    private static void preInit() {
+        MeteorExecutor.init();
+        PathManagers.init();
+        Renderer2D.init();
+        FullScreenRenderer.init();
+        Fonts.refresh();
+        GuiThemes.init();
+        Tabs.init();                // depends on PathManagers
+        CPSUtils.init();
+        MeteorStarscript.init();    // depends on PathManagers
+        FakeClientPlayer.init();
+        Names.init();
+        EChestMemory.init();
+        Rotations.init();
+        Utils.init();
+        BlockIterator.init();
+        BlockUtils.init();
     }
 
-    private static <T extends Annotation> Class<?>[] getDependencies(Method task, Class<T> annotation) {
-        T init = task.getAnnotation(annotation);
-
-        return switch (init) {
-            case PreInit pre -> pre.dependencies();
-            case PostInit post -> post.dependencies();
-            default -> new Class<?>[]{};
-        };
+    private static void postInit() {
+        GuiThemes.postInit();
+        GuiRenderer.init();
+        ChatUtils.init();
+        RainbowColors.init();
+        PlayerHeadUtils.init();
+        RenderUtils.init();
+        Commands.init();            // depends on PathManagers
     }
 }

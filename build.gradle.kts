@@ -73,7 +73,7 @@ dependencies {
     // Bundled libraries (jar-in-jar), versions matching Meteor 26.3
     jij("meteordevelopment:orbit:0.2.4")
     jij("org.meteordev:starscript:0.2.5")
-    jij("org.reflections:reflections:0.10.2")
+    // No org.reflections: it bundles javassist, which malware scanners flag (see ReflectInit)
     jij("io.netty:netty-handler-proxy:4.2.16.Final") { isTransitive = false }
     jij("io.netty:netty-codec-socks:4.2.16.Final") { isTransitive = false }
     jij("de.florianreuth:waybackauthlib:1.1.0")
