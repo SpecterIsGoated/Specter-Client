@@ -14,6 +14,8 @@ import com.jfant.specter.core.settings.Setting;
 import com.jfant.specter.core.settings.SettingGroup;
 import com.jfant.specter.core.settings.StringListSetting;
 import com.jfant.specter.core.systems.modules.Module;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -50,6 +52,14 @@ public class TimeSet extends Module {
          ((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)new EnumSetting.Builder().name("time"))
                   .description("The time of day you see. Server shows the server's real time."))
                .defaultValue(TimeSet.Time.Noon))
+            .build()
+      );
+   private final Setting<TimeSet.Zone> zone = this.sgTime
+      .add(
+         ((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)new EnumSetting.Builder().name("time-zone"))
+                     .description("Whose real-life clock the game follows when time is Real life. Summer time is handled for you."))
+                  .defaultValue(TimeSet.Zone.ThisComputer))
+               .visible(() -> this.time.get() == TimeSet.Time.RealLife && !this.autoCycle.get()))
             .build()
       );
    private final Setting<Integer> customTime = this.sgTime
@@ -350,12 +360,14 @@ public class TimeSet extends Module {
 
          this.wasAuto = auto;
          int chosen = server ? 0 : (auto ? CYCLE[this.cycleIndex].ticks : this.chosenTicks());
-         boolean running = !server && !this.freeze.get();
+         // Real life follows the wall clock itself, so it never "runs" on its own speed.
+         boolean realLife = !server && !auto && this.time.get() == TimeSet.Time.RealLife;
+         boolean running = !server && !realLife && !this.freeze.get();
          long key = server ? -1L : chosen * 2L + (running ? 1 : 0);
          if (key != this.lastKey) {
             this.lastKey = key;
             this.runPhase = chosen;
-            this.retarget(server, running, chosen);
+            this.retarget(server, running, chosen, realLife);
          } else if (running) {
             this.runPhase = mod(this.runPhase + dt * 20.0 * this.cycleSpeed.get());
          }
@@ -401,12 +413,13 @@ public class TimeSet extends Module {
       }
    }
 
-   private void retarget(boolean server, boolean running, int chosen) {
+   private void retarget(boolean server, boolean running, int chosen, boolean realLife) {
       if (!this.smooth.get()) {
          transitioning = false;
       } else {
          double fwd = mod(this.target(server, running, chosen) - this.shownPhase);
-         if (!(fwd < 0.5) && !(fwd > 23999.5)) {
+         // Real life creeps forward ~17 ticks a minute: step straight there instead of easing each little tick.
+         if (!(fwd < 0.5) && !(fwd > 23999.5) && !(realLife && fwd < 200.0)) {
             this.from = this.shownPhase;
             this.back = fwd > 18000.0 && 24000.0 - fwd < 4000.0;
             this.transT = 0.0;
@@ -484,6 +497,7 @@ public class TimeSet extends Module {
             yield ticks == null ? TimeSet.Time.Noon.ticks : ticks;
          }
          case Server -> TimeSet.Time.Noon.ticks;
+         case RealLife -> realLifeTicks(this.zone.get().id());
          default -> this.time.get().ticks;
       };
    }
@@ -626,6 +640,68 @@ public class TimeSet extends Module {
       }
    }
 
+   /**
+    * Minecraft ticks for the wall-clock time in {@code zone} (null = this computer's zone). Tick 0 is 6:00 AM and a
+    * day is 24000 ticks, so 1 PM real time = 7000 ticks = 1 PM in game.
+    */
+   static int realLifeTicks(String zone) {
+      ZoneId id;
+      try {
+         id = zone == null ? ZoneId.systemDefault() : ZoneId.of(zone);
+      } catch (RuntimeException e) {
+         id = ZoneId.systemDefault();
+      }
+
+      ZonedDateTime now = ZonedDateTime.now(id);
+      return ticksFor(now.getHour(), now.getMinute(), now.getSecond());
+   }
+
+   /** 06:00 = 0, 12:00 = 6000, 18:00 = 12000, 00:00 = 18000. */
+   static int ticksFor(int hour, int minute, int second) {
+      int secondsSinceSix = Math.floorMod((hour - 6) * 3600 + minute * 60 + second, 86400);
+      return (int)(secondsSinceSix * 1000L / 3600L);
+   }
+
+   public static enum Zone {
+      ThisComputer("This computer", null),
+      Hawaii("Hawaii", "Pacific/Honolulu"),
+      Alaska("Alaska", "America/Anchorage"),
+      WestCoast("West Coast (Pacific)", "America/Los_Angeles"),
+      Mountain("Mountain", "America/Denver"),
+      Arizona("Arizona", "America/Phoenix"),
+      Central("Central", "America/Chicago"),
+      EastCoast("East Coast (Eastern)", "America/New_York"),
+      Atlantic("Atlantic", "America/Halifax"),
+      Brazil("Brazil", "America/Sao_Paulo"),
+      UK("UK / Ireland", "Europe/London"),
+      Europe("Central Europe", "Europe/Paris"),
+      EasternEurope("Eastern Europe", "Europe/Athens"),
+      Moscow("Moscow", "Europe/Moscow"),
+      Dubai("Dubai", "Asia/Dubai"),
+      India("India", "Asia/Kolkata"),
+      China("China / Singapore", "Asia/Shanghai"),
+      Japan("Japan / Korea", "Asia/Tokyo"),
+      Sydney("Sydney", "Australia/Sydney"),
+      NewZealand("New Zealand", "Pacific/Auckland");
+
+      private final String title;
+      private final String id;
+
+      private Zone(String title, String id) {
+         this.title = title;
+         this.id = id;
+      }
+
+      String id() {
+         return this.id;
+      }
+
+      @Override
+      public String toString() {
+         return this.title;
+      }
+   }
+
    public static enum Time {
       Sunrise("Sunrise", 23400),
       Morning("Morning", 1000),
@@ -635,6 +711,7 @@ public class TimeSet extends Module {
       Sunset("Sunset", 12650),
       Dusk("Dusk", 13150),
       Midnight("Midnight", 18000),
+      RealLife("Real life", -1),
       Custom("Custom", -1),
       Saved("Saved", -1),
       Server("Server", -1);

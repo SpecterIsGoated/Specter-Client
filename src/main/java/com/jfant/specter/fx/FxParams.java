@@ -6,6 +6,8 @@ import org.joml.Matrix4f;
 public final class FxParams {
    public static final int WAKES = 12;
    public final Matrix4f invViewProj = new Matrix4f();
+   /** Camera-relative world position -> clip space (the inverse of invViewProj), for screen-space reflections. */
+   public final Matrix4f viewProj = new Matrix4f();
    public float camX;
    public float camY;
    public float camZ;
@@ -75,9 +77,24 @@ public final class FxParams {
    public final float[] highlightTint = new float[]{0.5F, 0.5F, 0.5F};
    public float shadowTintAmount;
    public float highlightTintAmount;
+   // Realistic Rain: wet ground (see modules/RealisticRain and fx/WetMap).
+   public boolean wet;
+   public float wetness;
+   public float wetReflect;
+   public float wetRipples;
+   public float wetPuddles;
+   public float wetDarken;
+   public float wetRain;
+   public final float[] wetSky = new float[3];
+   public float wetMapX;
+   public float wetMapZ;
+   public float wetMapSize;
+   public float wetMapValid;
 
    void reset() {
-      this.bio = this.fog = this.grade = false;
+      this.bio = this.fog = this.grade = this.wet = false;
+      this.wetness = 0.0F;
+      this.wetMapValid = 0.0F;
       this.bioStrength = this.fogStrength = this.gradeMix = 0.0F;
       Arrays.fill(this.wakes, 0.0F);
    }

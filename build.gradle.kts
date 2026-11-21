@@ -84,6 +84,11 @@ dependencies {
 
     // Spotify API (only published on JitPack; the jar from the original release lives in libs/repo)
     jij("com.github.labystudio:java-spotify-api:1.4.7")
+
+    // Unit tests for the pure helpers (perf/SectionThrottle, ping/PingMath)
+    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 // Jar-in-jar transitive dependencies (same approach as Meteor's build)
@@ -128,6 +133,8 @@ tasks {
         options.release = 8
         options.compilerArgs.add("-Xlint:-options")
     }
+
+    test { useJUnitPlatform() }
 
     jar {
         from("LICENSE") { rename { "LICENSE_specter" } }

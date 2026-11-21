@@ -1,5 +1,5 @@
 
-// Specter world effects: what Bioluminescence, Marine Layer and Color Grading share. The Java side
+// Specter world effects: what Bioluminescence, Marine Layer, Color Grading and Realistic Rain share. The Java side
 // (com.jfant.specter.fx.WorldFx) fills SpecterFx once a frame in exactly this order (std140).
 
 layout(std140) uniform SpecterFx {
@@ -24,6 +24,11 @@ layout(std140) uniform SpecterFx {
     vec4 Grade3;             // x fade (lifted blacks), y mix 0-1, z seconds for the grain, w aspect (width / height)
     vec4 GradeShadowTint;    // rgb, a amount
     vec4 GradeHighlightTint; // rgb, a amount
+    mat4 FxViewProj;         // position relative to the camera -> clip space (screen-space reflections)
+    vec4 Wet0;               // x wetness 0-1 (rises in rain, dries after), y reflection strength, z ripples (rain now), w puddle amount
+    vec4 Wet1;               // rgb sky colour (display space) for reflections that leave the screen, a wet darkening
+    vec4 Wet2;               // xy corner of the sky map relative to the camera (blocks), z its size (columns), w 1 if valid
+    vec4 Wet3;               // x rain falling now 0-1, yzw unused
 };
 
 float fxLuma(vec3 c) {

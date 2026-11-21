@@ -8,6 +8,7 @@ import com.jfant.specter.core.utils.render.RenderUtils;
 import com.jfant.specter.modules.Bioluminescence;
 import com.jfant.specter.modules.ColorGrading;
 import com.jfant.specter.modules.MarineLayer;
+import com.jfant.specter.modules.RealisticRain;
 import com.jfant.specter.render.GpuKit;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.buffers.Std140SizeCalculator;
@@ -67,6 +68,8 @@ public final class WorldFx {
       new ColorTargetState(new BlendFunction(BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA, BlendFactor.ZERO, BlendFactor.ONE))
    );
    private static final RenderPipeline GRADE = base("specter_grade", BindGroupLayouts.SAMPLER0, ColorTargetState.DEFAULT);
+   // Realistic Rain wet ground: reads a copy of the frame, the depth and the sky map, writes the finished wet pixel.
+   private static final RenderPipeline WET = base("specter_wet", BindGroupLayouts.SAMPLER0_SAMPLER1_SAMPLER2, ColorTargetState.DEFAULT);
    private static final int UBO_SIZE = uboSize();
    private static final FxParams params = new FxParams();
    private static final Matrix4f scratch = new Matrix4f();
@@ -115,7 +118,7 @@ public final class WorldFx {
    }
 
    private static boolean anyOn() {
-      return Bioluminescence.on() || MarineLayer.on() || ColorGrading.on();
+      return Bioluminescence.on() || MarineLayer.on() || ColorGrading.on() || RealisticRain.on();
    }
 
    private static boolean shaderPack() {
@@ -139,7 +142,7 @@ public final class WorldFx {
    }
 
    public static void afterWorld(Matrix4f projection, Matrix4f view, float tickProgress) {
-      if (!failed && (Bioluminescence.on() || MarineLayer.on())) {
+      if (!failed && (Bioluminescence.on() || MarineLayer.on() || RealisticRain.on())) {
          Minecraft mc = Minecraft.getInstance();
          if (mc.level != null) {
             try {
@@ -153,13 +156,26 @@ public final class WorldFx {
 
                boolean bio = params.bio && params.bioStrength > 0.001F && solidDepthFrame == Motion.frameCount();
                boolean fog = params.fog && params.fogStrength > 0.001F;
-               if (!bio && !fog) {
+               boolean wet = params.wet && params.wetness > 0.002F && WetMap.update(mc.level, params.worldX, params.worldZ);
+               if (!bio && !fog && !wet) {
                   return;
                }
 
                RenderTarget main = mc.gameRenderer.mainRenderTarget();
                worldDepth = copyDepth(worldDepth, "specter-fx-world-depth", main);
                GpuTextureView depth = worldDepth.getDepthTextureView();
+               if (wet) {
+                  // First, so sea fog and glowing water still lie over the wet ground. The map corner moves with the
+                  // camera every frame, so its uniforms are written now that the map is up to date.
+                  params.wetMapX = WetMap.cornerX(params.worldX);
+                  params.wetMapZ = WetMap.cornerZ(params.worldZ);
+                  params.wetMapSize = WetMap.SIZE;
+                  params.wetMapValid = 1.0F;
+                  upload();
+                  copyFrame(main);
+                  draw("Specter wet ground", WET, main.getColorTextureView(), frameCopyView, depth, WetMap.view());
+               }
+
                if (bio) {
                   draw("Specter bioluminescence", BIO, main.getColorTextureView(), noiseView, solidDepth.getDepthTextureView(), depth);
                }
@@ -213,7 +229,8 @@ public final class WorldFx {
       ClientLevel world = mc.level;
       Camera camera = mc.gameRenderer.mainCamera();
       if (projection != null && view != null) {
-         scratch.set(projection).mul(view).invert(p.invViewProj);
+         p.viewProj.set(projection).mul(view);
+         scratch.set(p.viewProj).invert(p.invViewProj);
       }
 
       double x = camera.position().x;
@@ -248,6 +265,7 @@ public final class WorldFx {
       Bioluminescence.fill(p);
       MarineLayer.fill(p);
       ColorGrading.fill(p);
+      RealisticRain.fill(p);
       if (!anyOn()) {
          release();
          return false;
@@ -268,6 +286,13 @@ public final class WorldFx {
       c.putMat4f();
 
       for (int i = 0; i < 31; i++) {
+         c.putVec4();
+      }
+
+      // Realistic Rain: FxViewProj, then Wet0..Wet3.
+      c.putMat4f();
+
+      for (int i = 0; i < 4; i++) {
          c.putVec4();
       }
 
@@ -306,6 +331,11 @@ public final class WorldFx {
          b.putVec4(p.fade, p.gradeMix, p.seconds, p.aspect);
          b.putVec4(p.shadowTint[0], p.shadowTint[1], p.shadowTint[2], p.shadowTintAmount);
          b.putVec4(p.highlightTint[0], p.highlightTint[1], p.highlightTint[2], p.highlightTintAmount);
+         b.putMat4f(p.viewProj);
+         b.putVec4(p.wetness, p.wetReflect, p.wetRipples, p.wetPuddles);
+         b.putVec4(p.wetSky[0], p.wetSky[1], p.wetSky[2], p.wetDarken);
+         b.putVec4(p.wetMapX, p.wetMapZ, p.wetMapSize, p.wetMapValid);
+         b.putVec4(p.wetRain, 0.0F, 0.0F, 0.0F);
       }
    }
 
@@ -318,10 +348,13 @@ public final class WorldFx {
          pass.setPipeline(RenderSystem.getCompiledPipeline(pipeline));
          pass.setUniform("SpecterFx", ubo.currentBuffer());
          boolean frame = pipeline == GRADE;
+         boolean wetPass = pipeline == WET;
          pass.setUniform(
             "Sampler0",
             sampler0,
-            frame ? RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST) : RenderSystem.getSamplerCache().getRepeat(FilterMode.LINEAR, true)
+            frame
+               ? RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST)
+               : (wetPass ? RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR) : RenderSystem.getSamplerCache().getRepeat(FilterMode.LINEAR, true))
          );
          if (sampler1 != null) {
             pass.setUniform("Sampler1", sampler1, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
@@ -436,6 +469,7 @@ public final class WorldFx {
             worldDepth = null;
          }
 
+         WetMap.release();
          solidDepthFrame = -1L;
          preparedFrame = -1L;
       }
