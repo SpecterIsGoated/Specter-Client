@@ -57,7 +57,6 @@ import com.jfant.specter.modules.NoInvLeak;
 import com.jfant.specter.modules.OpponentStats;
 import com.jfant.specter.modules.OrderAhTrader;
 import com.jfant.specter.modules.PearlMethod;
-import com.jfant.specter.modules.PlayerBypass;
 import com.jfant.specter.modules.PlayerDetection;
 import com.jfant.specter.modules.PrimeChunkFinder;
 import com.jfant.specter.modules.Reach;
@@ -114,7 +113,6 @@ public final class SpecterClientAddon {
    public static void init() {
       LOG.info("Initializing Specter Client");
       GuiThemes.add(new SpecterGuiTheme());
-      renameSavedModule("player-bypass-2", "player-bypass");
       Modules.get().add(new SusChunks());
       Modules.get().add(new BaseEsp());
       Modules.get().add(new HoleEsp());
@@ -129,7 +127,6 @@ public final class SpecterClientAddon {
       Modules.get().add(new BlockUpdateFinder());
       Memory.init();
       Leaving.init();
-      Modules.get().add(new PlayerBypass());
       Modules.get().add(new MediaBaseFinder());
       Modules.get().add(new DebrisFinder());
       Modules.get().add(new WhereAreYou());
