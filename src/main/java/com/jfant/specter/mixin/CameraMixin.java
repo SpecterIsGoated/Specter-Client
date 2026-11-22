@@ -1,6 +1,9 @@
 package com.jfant.specter.mixin;
 
+import com.jfant.specter.camera.GhostView;
 import com.jfant.specter.modules.CustomFov;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.jfant.specter.modules.GhostFreecam;
 import com.jfant.specter.modules.GhostFreelook;
@@ -66,6 +69,19 @@ public abstract class CameraMixin {
       if (cam != null) {
          this.setPosition(cam.x, cam.y, cam.z);
          this.detached = true;
+      }
+   }
+
+   // A ghost camera inside blocks would have every cave culled away (and Sodium 0.9 never reaches the old VisGraph
+   // hook). Cave culling is off while one can be in there - what vanilla does for a spectator inside a block; vanilla's
+   // SectionOcclusionGraph and Sodium's terrain setup both read this flag after it is filled in here, the same frame.
+   @Inject(
+      method = {"extractRenderState"},
+      at = {@At("TAIL")}
+   )
+   private void specter$ghostSeesCaves(CameraRenderState cameraState, DeltaTracker deltaTracker, CallbackInfo ci) {
+      if (GhostView.seesThroughBlocks()) {
+         cameraState.smartCull = false;
       }
    }
 

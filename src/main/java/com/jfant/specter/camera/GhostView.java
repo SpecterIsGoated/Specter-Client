@@ -2,40 +2,53 @@ package com.jfant.specter.camera;
 
 import com.jfant.specter.SpecterClientAddon;
 import com.jfant.specter.core.SpecterCore;
-import com.jfant.specter.core.events.game.GameLeftEvent;
-import com.jfant.specter.core.events.world.ChunkOcclusionEvent;
+import com.jfant.specter.modules.GhostFreecam;
+import com.jfant.specter.modules.GhostFreelook;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Options;
 
+/**
+ * What Ghost Freecam and Ghost Freelook share: drawing everything around a camera that may sit inside
+ * blocks, and keeping the keys the body was holding held.
+ *
+ * <p>Inside a block, cave culling hides every cave and Entity Culling hides every chest and mob,
+ * because nothing is "visible" from in there. On 1.21.11 this rebuilt the chunks once with see-through
+ * occlusion data, but Sodium 0.9 for 26.3 builds that data with its own DirectionalVisGraph, which
+ * Specter's VisGraph hook never reaches - so caves vanished. Now cave culling is simply switched off
+ * while a ghost camera can be inside blocks ({@link #seesThroughBlocks}, read by the camera mixin),
+ * the same thing the game does for a spectator inside a block. Vanilla and Sodium both read that flag,
+ * nothing has to be rebuilt, and normal play keeps full culling. Entity Culling's own switch is off
+ * while a module is on.
+ */
 public final class GhostView {
    private static final String CULLING_CLASS = "dev.tr7zw.entityculling.versionless.EntityCullingVersionlessBase";
-   private static final GhostView.Listener LISTENER = new GhostView.Listener();
-   private static boolean subscribed;
    private static int users;
-   private static volatile boolean cavesOpen;
    private static Boolean cullingWas;
 
    private GhostView() {
    }
 
+   /** Kept for the modules' constructors; nothing needs setting up any more. */
    public static void init() {
-      if (!subscribed) {
-         subscribed = true;
-         SpecterCore.EVENT_BUS.subscribe(LISTENER);
-      }
+   }
+
+   /**
+    * True while a ghost camera can sit inside blocks: Ghost Freecam, or Ghost Freelook with
+    * see-through-walls. Cave culling is off then.
+    */
+   public static boolean seesThroughBlocks() {
+      if (users <= 0) return false;
+      if (GhostFreecam.on() != null) return true;
+      GhostFreelook look = GhostFreelook.on();
+      return look != null && look.seeThroughWalls();
    }
 
    public static void enter() {
       if (users++ <= 0) {
          cullingWas = setEntityCulling(false);
-         if (!cavesOpen) {
-            cavesOpen = true;
-            reloadChunks();
-         }
       }
    }
 
@@ -49,17 +62,9 @@ public final class GhostView {
       }
    }
 
-   private static void reloadChunks() {
-      SpecterCore.mc.execute(() -> {
-         if (SpecterCore.mc.levelRenderer != null && SpecterCore.mc.level != null) {
-            SpecterCore.mc.levelExtractor.allChanged();
-         }
-      });
-   }
-
    private static Boolean setEntityCulling(boolean on) {
       try {
-         Field enabled = Class.forName("dev.tr7zw.entityculling.versionless.EntityCullingVersionlessBase").getField("enabled");
+         Field enabled = Class.forName(CULLING_CLASS).getField("enabled");
          boolean was = enabled.getBoolean(null);
          enabled.setBoolean(null, on);
          return was;
@@ -115,20 +120,6 @@ public final class GhostView {
          }
 
          this.held.clear();
-      }
-   }
-
-   private static final class Listener {
-      @EventHandler
-      private void onChunkOcclusion(ChunkOcclusionEvent event) {
-         if (GhostView.cavesOpen) {
-            event.cancel();
-         }
-      }
-
-      @EventHandler
-      private void onGameLeft(GameLeftEvent event) {
-         GhostView.cavesOpen = false;
       }
    }
 }
