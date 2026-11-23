@@ -3,6 +3,11 @@ package com.jfant.specter.modules;
 import com.jfant.specter.SpecterClientAddon;
 import com.jfant.specter.auto.inv.InvJob;
 import com.jfant.specter.auto.inv.InvSync;
+import com.jfant.specter.auto.inv.InvTiming;
+import com.jfant.specter.pvp.Hands;
+import com.jfant.specter.pvp.PvpLock;
+import com.jfant.specter.pvp.SlotReturn;
+import net.minecraft.world.InteractionHand;
 import com.jfant.specter.core.events.render.Render2DEvent;
 import com.jfant.specter.core.events.world.TickEvent;
 import com.jfant.specter.core.settings.BoolSetting;
@@ -20,7 +25,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ClipContext;
@@ -45,7 +49,6 @@ import org.joml.Vector3d;
  * elytra goes back on once you have landed.
  */
 public class ElytraSaver extends Module {
-   private static final int CHEST_MENU_SLOT = 6;
    private final SettingGroup sgWarning = this.settings.createGroup("Low Durability");
    private final SettingGroup sgCrash = this.settings.createGroup("Crash Guard");
    private final Setting<Boolean> warn = this.sgWarning
@@ -93,11 +96,81 @@ public class ElytraSaver extends Module {
       .add(
          new BoolSetting.Builder()
             .name("open-inventory")
-            .description("Open the inventory for the swap like a player would (slower, safest on strict servers).")
-            .defaultValue(false)
+            .description("When the chestplate is not in your hotbar: open the inventory to move it there, like a player (off: moved without opening anything).")
+            .defaultValue(true)
             .visible(this.crashGuard::get)
             .build()
       );
+   private final Setting<Integer> hotbarSlot = this.sgCrash
+      .add(
+         new IntSetting.Builder()
+            .name("hotbar-slot")
+            .description("Hotbar slot (1-9) a chestplate from the inventory is moved to, when no hotbar slot is empty.")
+            .defaultValue(9)
+            .range(1, 9)
+            .sliderRange(1, 9)
+            .visible(this.crashGuard::get)
+            .build()
+      );
+   private final Setting<Integer> delay = this.sgCrash
+      .add(
+         new IntSetting.Builder()
+            .name("swap-delay")
+            .description("Milliseconds between each human step: inventory open, the move, closing, picking the slot, the right click.")
+            .defaultValue(60)
+            .range(0, 300)
+            .sliderRange(0, 200)
+            .visible(this.crashGuard::get)
+            .build()
+      );
+   private final Setting<Boolean> randomize = this.sgCrash
+      .add(
+         new BoolSetting.Builder()
+            .name("randomize-timings")
+            .description("Draw every wait fresh around swap-delay, never the same twice in a row (like Human Totem).")
+            .defaultValue(true)
+            .visible(this.crashGuard::get)
+            .build()
+      );
+   private final Setting<Integer> variation = this.sgCrash
+      .add(
+         new IntSetting.Builder()
+            .name("timing-variation")
+            .description("How far each wait may stray from swap-delay, in percent.")
+            .defaultValue(35)
+            .range(0, 60)
+            .sliderRange(0, 60)
+            .visible(() -> this.crashGuard.get() && this.randomize.get())
+            .build()
+      );
+   private final Setting<Boolean> switchBack = this.sgCrash
+      .add(
+         new BoolSetting.Builder()
+            .name("switch-back")
+            .description("Go back to the hotbar slot you had once the swap is done.")
+            .defaultValue(true)
+            .visible(this.crashGuard::get)
+            .build()
+      );
+
+   /** The human swap: move to the hotbar (if needed), pick the slot, right-click it on, confirm, switch back. */
+   private enum Step {
+      IDLE,
+      MOVING,
+      SELECT,
+      USE,
+      CONFIRM,
+      BACK
+   }
+
+   private final InvTiming timing = new InvTiming();
+   private final SlotReturn slots = new SlotReturn();
+   private Step step = Step.IDLE;
+   private long stepAt;
+   private int useSlot = -1;
+   private boolean wantElytra;
+   private int tries;
+   private int jobToken;
 
    private boolean warned;
    private boolean swapped;
@@ -125,6 +198,7 @@ public class ElytraSaver extends Module {
    @Override
    public void onDeactivate() {
       InvSync.cancel(this);
+      this.finish(false);
    }
 
    private ItemStack chest() {
@@ -151,6 +225,11 @@ public class ElytraSaver extends Module {
       }
 
       if (!this.crashGuard.get()) return;
+      this.timing.configure(this.randomize.get(), this.variation.get());
+      if (this.step != Step.IDLE) {
+         this.runStep();
+         return;
+      }
       this.glideTicks = this.mc.player.isFallFlying() ? this.glideTicks + 1 : 0;
       if (this.mc.player.isFallFlying() && !this.swapped && this.cooldown == 0 && this.aboutToCrash()) {
          this.equipChestplate();
@@ -158,11 +237,10 @@ public class ElytraSaver extends Module {
 
       if (this.swapped && this.reequip.get()) {
          this.groundTicks = this.mc.player.onGround() ? this.groundTicks + 1 : 0;
-         if (this.groundTicks >= 20 && !InvSync.busy(this)) this.equipElytra();
+         if (this.groundTicks >= 20 + (int)(this.timing.nextMs(this.delay.get() * 4.0, -1.0) / 50.0) && !InvSync.busy(this)) this.equipElytra();
       }
    }
 
-   /** Rays along the velocity from the eyes, the feet and both shoulders. */
    /**
     * Only walls count: elytra "kinetic" damage comes from hitting something sideways, so the rays follow the
     * HORIZONTAL velocity and a hit on the top of a block (the ground) is ignored. Never in the first second and a half
@@ -174,7 +252,8 @@ public class ElytraSaver extends Module {
       double speed = Math.sqrt(v.x * v.x + v.z * v.z);
       if (speed * 20.0 < this.minSpeed.get() || speed < 1.0E-4) return false;
       Vec3 dir = new Vec3(v.x / speed, 0.0, v.z / speed);
-      double reach = this.distance.get() + speed * 2.0; // two ticks of travel for the swap to land
+      double lead = this.leadTicks();
+      double reach = this.distance.get() + speed * (lead + 2.0); // the human swap takes this long to land
       Vec3 eye = this.mc.player.getEyePosition();
       Vec3 feet = this.mc.player.position().add(0.0, 0.3, 0.0);
       Vec3 side = new Vec3(-dir.z, 0.0, dir.x);
@@ -185,7 +264,7 @@ public class ElytraSaver extends Module {
          Vec3 to = from.add(dir.scale(reach));
          BlockHitResult hit = this.mc.level.clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this.mc.player));
          if (hit.getType() != HitResult.Type.BLOCK || hit.getDirection() == net.minecraft.core.Direction.UP) continue;
-         if (hit.getLocation().distanceTo(from) <= this.distance.get() + speed) return true;
+         if (hit.getLocation().distanceTo(from) <= this.distance.get() + speed * (lead + 1.0)) return true;
       }
       return false;
    }
@@ -213,6 +292,15 @@ public class ElytraSaver extends Module {
       return best;
    }
 
+   /** Roughly how many ticks the human swap takes from now: the crash look-ahead is stretched by this much. */
+   private double leadTicks() {
+      double d = this.delay.get() * (this.randomize.get() ? 1.0 + this.variation.get() / 100.0 : 1.0);
+      int best = this.bestChestplate();
+      boolean inHotbar = best >= 0 && Inventory.isHotbarSlot(best);
+      double ms = inHotbar ? d * 2.0 : d * (this.openInventory.get() ? 4.0 : 2.5) + 60.0;
+      return ms / 50.0 + 1.0;
+   }
+
    private void equipChestplate() {
       int slot = this.bestChestplate();
       if (slot < 0) {
@@ -221,11 +309,10 @@ public class ElytraSaver extends Module {
          this.cooldown = 40;
          return;
       }
-      this.swapInto(slot, "chestplate on (crash guard)", () -> this.chest().is(Items.ELYTRA));
       this.swapped = true;
       this.cooldown = 40;
       this.lastAction = "chestplate";
-      this.info("Crash ahead - chestplate on.");
+      this.begin(slot, false);
    }
 
    private void equipElytra() {
@@ -233,32 +320,135 @@ public class ElytraSaver extends Module {
       int slot = -1;
       for (int i = 0; i < 36; i++) {
          if (inv.getItem(i).is(Items.ELYTRA)) {
-            slot = i;
-            break;
+            // a hotbar elytra (where the chestplate was clicked from) is the natural one to use
+            if (slot < 0 || Inventory.isHotbarSlot(i) && !Inventory.isHotbarSlot(slot)) slot = i;
          }
       }
       this.swapped = false;
       this.groundTicks = 0;
       if (slot < 0 || this.chest().is(Items.ELYTRA)) return;
-      this.swapInto(slot, "elytra back on", () -> !this.chest().is(Items.ELYTRA));
+      this.begin(slot, true);
+   }
+
+   private boolean isWanted(ItemStack stack) {
+      if (this.wantElytra) return stack.is(Items.ELYTRA);
+      var equippable = stack.get(net.minecraft.core.component.DataComponents.EQUIPPABLE);
+      return equippable != null && equippable.slot() == EquipmentSlot.CHEST && !stack.is(Items.ELYTRA);
+   }
+
+   private long wait(double factor) {
+      return System.nanoTime() + this.timing.nextNanos(this.delay.get() * factor, -1.0);
    }
 
    /**
-    * Swaps inventory slot {@code index} with the chest armour slot. A hotbar item swaps in one click; anything else
-    * goes through hotbar slot 9 and is put back, so nothing ends up on the cursor or in the wrong place.
+    * Starts the human swap for the item in inventory slot {@code index}: from the hotbar it is picked and right-clicked
+    * on; from the rest of the inventory it is first moved into the hotbar (inventory opened and closed like a player,
+    * an empty hotbar slot preferred), then picked and right-clicked. Right-clicking armour swaps it with what is worn.
     */
-   private void swapInto(int index, String label, java.util.function.BooleanSupplier guard) {
-      InvJob.Builder job = InvJob.builder(this, label).priority(InvJob.Priority.HIGH).openInventory(this.openInventory.get());
+   private void begin(int index, boolean elytra) {
+      this.wantElytra = elytra;
+      this.tries = 0;
       if (Inventory.isHotbarSlot(index)) {
-         job.click(CHEST_MENU_SLOT, index, ContainerInput.SWAP, guard);
-      } else {
-         int via = 8;
-         int menu = InvSync.menuSlot(index);
-         job.hotbarSwap(menu, via, () -> true);
-         job.click(CHEST_MENU_SLOT, via, ContainerInput.SWAP, () -> true);
-         job.hotbarSwap(menu, via, () -> true);
+         this.useSlot = index;
+         this.step = Step.SELECT;
+         this.stepAt = this.wait(0.6);
+         return;
       }
-      InvSync.submit(job.build());
+      int target = this.emptyHotbarSlot();
+      if (target < 0) target = this.hotbarSlot.get() - 1;
+      int to = target;
+      int token = ++this.jobToken;
+      InvJob job = InvJob.builder(this, elytra ? "elytra to hotbar" : "chestplate to hotbar")
+         .priority(InvJob.Priority.HIGH)
+         .openInventory(this.openInventory.get())
+         .pace(this.timing, this.delay.get(), this.delay.get(), this.delay.get() * 0.7, -1.0)
+         .hotbarSwap(InvSync.menuSlot(index), to, () -> this.mc.player != null && this.isWanted(this.mc.player.getInventory().getItem(index)))
+         .onDone(result -> {
+            if (token != this.jobToken || this.step != Step.MOVING) return;
+            if (!result.outcome().success()) {
+               this.warning("Could not move the %s to the hotbar (%s).", elytra ? "elytra" : "chestplate", result.detail());
+               this.finish(false);
+               return;
+            }
+            this.useSlot = to;
+            this.step = Step.SELECT;
+            this.stepAt = this.wait(0.8);
+         })
+         .build();
+      InvSync.submit(job);
+      this.step = Step.MOVING;
+      this.stepAt = System.nanoTime() + 4_000_000_000L;
+   }
+
+   private int emptyHotbarSlot() {
+      Inventory inv = this.mc.player.getInventory();
+      for (int i = 0; i < Inventory.getSelectionSize(); i++) {
+         if (inv.getItem(i).isEmpty()) return i;
+      }
+      return -1;
+   }
+
+   private void runStep() {
+      long now = System.nanoTime();
+      switch (this.step) {
+         case MOVING -> {
+            if (now > this.stepAt) {
+               this.warning("Moving the item to the hotbar took too long.");
+               this.finish(false);
+            }
+         }
+         case SELECT -> {
+            if (now < this.stepAt || this.mc.gui.screen() != null) return;
+            if (!this.isWanted(this.mc.player.getInventory().getItem(this.useSlot))) {
+               this.finish(false);
+               return;
+            }
+            if (!PvpLock.acquire(this)) return;
+            this.slots.take(this.useSlot);
+            this.step = Step.USE;
+            this.stepAt = this.wait(0.8);
+         }
+         case USE -> {
+            if (now < this.stepAt) return;
+            if (!this.slots.holding() || !this.isWanted(this.mc.player.getMainHandItem())) {
+               this.finish(true);
+               return;
+            }
+            // right click, like a player: armour in hand swaps with what is worn
+            if (!Hands.use(InteractionHand.MAIN_HAND)) return;
+            this.step = Step.CONFIRM;
+            this.stepAt = now + Math.max(300L, Hands.pingMs() * 2L + 150L) * 1_000_000L;
+         }
+         case CONFIRM -> {
+            boolean done = this.wantElytra ? this.chest().is(Items.ELYTRA) : !this.chest().is(Items.ELYTRA) && !this.chest().isEmpty();
+            if (done) {
+               if (!this.wantElytra) this.info("Crash ahead - chestplate on.");
+               this.step = Step.BACK;
+               this.stepAt = this.wait(1.0);
+            } else if (now > this.stepAt) {
+               if (++this.tries < 2) {
+                  this.step = Step.USE;
+                  this.stepAt = this.wait(0.5);
+               } else {
+                  this.warning("The %s did not go on.", this.wantElytra ? "elytra" : "chestplate");
+                  this.finish(true);
+               }
+            }
+         }
+         case BACK -> {
+            if (now >= this.stepAt) this.finish(true);
+         }
+         default -> {
+         }
+      }
+   }
+
+   /** Ends the swap: back to your slot (if wanted) and the hands free for other modules. */
+   private void finish(boolean back) {
+      this.slots.restore(back && this.switchBack.get());
+      PvpLock.release(this);
+      this.step = Step.IDLE;
+      this.useSlot = -1;
    }
 
    @EventHandler
