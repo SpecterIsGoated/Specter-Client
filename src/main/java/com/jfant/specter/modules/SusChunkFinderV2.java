@@ -326,6 +326,11 @@ public class SusChunkFinderV2 extends Module {
       this.dirty = true;
    }
 
+   /** Marked chunks ({@code ChunkPos.pack} keys) split by evidence tier 0-2 (2 = surrounded on all sides and twice the support). */
+   public long[][] tierChunks() {
+      return this.tiers;
+   }
+
    @Override
    public void onActivate() {
       this.resetState();
