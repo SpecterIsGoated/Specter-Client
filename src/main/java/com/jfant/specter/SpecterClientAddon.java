@@ -51,6 +51,7 @@ import com.jfant.specter.modules.ElytraSaver;
 import com.jfant.specter.modules.LegitAutoTool;
 import com.jfant.specter.modules.SpearLunge;
 import com.jfant.specter.modules.AutoCliper;
+import com.jfant.specter.modules.TokenSwitcher;
 import com.jfant.specter.modules.DonutPhone;
 import com.jfant.specter.phone.PhoneOS;
 import com.jfant.specter.modules.HoleEsp;
@@ -219,6 +220,7 @@ public final class SpecterClientAddon {
       Modules.get().add(new LegitAutoTool());
       Modules.get().add(new SpearLunge());
       Modules.get().add(new AutoCliper());
+      Modules.get().add(new TokenSwitcher());
       Modules.get().add(new DonutPhone());
       PhoneOS.init();
       NotificationOverlay.init();

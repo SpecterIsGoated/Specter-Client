@@ -8,6 +8,7 @@ package com.jfant.specter.core.systems.accounts.types;
 import com.mojang.util.UndashedUuid;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.systems.accounts.Account;
+import com.jfant.specter.core.systems.accounts.TokenVault;
 import com.jfant.specter.core.systems.accounts.AccountType;
 import com.jfant.specter.core.systems.accounts.TokenAccount;
 import com.jfant.specter.core.utils.network.Http;
@@ -28,14 +29,14 @@ public class SessionAccount extends Account<SessionAccount> implements TokenAcco
     public SessionAccount fromTag(CompoundTag tag) {
         super.fromTag(tag);
 
-        accessToken = tag.getStringOr("token", "");
+        accessToken = TokenVault.reveal(tag.getStringOr("token", ""));
         return this;
     }
 
     @Override
     public CompoundTag toTag() {
         CompoundTag tag = super.toTag();
-        tag.putString("token", accessToken);
+        tag.putString("token", TokenVault.protect(accessToken));
         return tag;
     }
 
@@ -49,7 +50,7 @@ public class SessionAccount extends Account<SessionAccount> implements TokenAcco
                 .bearer(accessToken)
                 .sendJson(ProfileResponse.class);
         } catch (IllegalArgumentException e) {
-            SpecterCore.LOG.error("Invalid session account token", e);
+            SpecterCore.LOG.error("Session account token was rejected ({})", e.getClass().getSimpleName());
             return false;
         }
 
