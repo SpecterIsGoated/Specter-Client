@@ -56,8 +56,11 @@ import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CopperChestBlock;
+import net.minecraft.world.level.block.ShelfBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.BlockEntityTypes;
@@ -73,7 +76,7 @@ public class BaseEsp extends Module {
    private final SettingGroup sgRender = this.settings.createGroup("Render");
    private final SettingGroup sgColors = this.settings.createGroup("Colors");
    private final SettingGroup sgStorage = this.settings.createGroup("Storage");
-   private static final List<Block> STORAGE_BLOCKS = List.of(
+   private static final List<Block> STORAGE_BLOCKS = withNewStorage(
       Blocks.CHEST,
       Blocks.TRAPPED_CHEST,
       Blocks.BARREL,
@@ -101,6 +104,20 @@ public class BaseEsp extends Module {
       Blocks.BLAST_FURNACE,
       Blocks.ENCHANTING_TABLE
    );
+
+   /**
+    * The list above plus storage added in 1.21.9: copper chests (all eight weathering stages, waxed or not) and the
+    * wooden shelves. DonutSMP sends both like any chest; without this a base kept in copper chests or on shelves
+    * showed nothing.
+    */
+   private static List<Block> withNewStorage(Block... classic) {
+      List<Block> out = new java.util.ArrayList<>(List.of(classic));
+      out.addAll(Blocks.COPPER_CHEST.asList());
+      for (Block block : BuiltInRegistries.BLOCK) {
+         if (block instanceof ShelfBlock) out.add(block);
+      }
+      return List.copyOf(out);
+   }
    private static final List<Block> REDSTONE_BLOCKS = List.of(
       Blocks.PISTON,
       Blocks.STICKY_PISTON,
@@ -405,24 +422,25 @@ public class BaseEsp extends Module {
    private byte[] candidateTint = new byte[0];
    private float[] candidateDist = new float[0];
    private int[] order = new int[0];
-   private static final Map<SoundEvent, Block> OPEN_SOUNDS = Map.of(
-      SoundEvents.CHEST_OPEN,
-      Blocks.CHEST,
-      SoundEvents.CHEST_CLOSE,
-      Blocks.CHEST,
-      SoundEvents.BARREL_OPEN,
-      Blocks.BARREL,
-      SoundEvents.BARREL_CLOSE,
-      Blocks.BARREL,
-      SoundEvents.SHULKER_BOX_OPEN,
-      Blocks.SHULKER_BOX,
-      SoundEvents.SHULKER_BOX_CLOSE,
-      Blocks.SHULKER_BOX,
-      SoundEvents.ENDER_CHEST_OPEN,
-      Blocks.ENDER_CHEST,
-      SoundEvents.ENDER_CHEST_CLOSE,
-      Blocks.ENDER_CHEST
+   /** Any copper chest stands for all eight of them here (see recordOpened). */
+   private static final Block COPPER_CHEST = Blocks.COPPER_CHEST.asList().get(0);
+   private static final Map<SoundEvent, Block> OPEN_SOUNDS = Map.ofEntries(
+      Map.entry(SoundEvents.CHEST_OPEN, Blocks.CHEST),
+      Map.entry(SoundEvents.CHEST_CLOSE, Blocks.CHEST),
+      Map.entry(SoundEvents.BARREL_OPEN, Blocks.BARREL),
+      Map.entry(SoundEvents.BARREL_CLOSE, Blocks.BARREL),
+      Map.entry(SoundEvents.SHULKER_BOX_OPEN, Blocks.SHULKER_BOX),
+      Map.entry(SoundEvents.SHULKER_BOX_CLOSE, Blocks.SHULKER_BOX),
+      Map.entry(SoundEvents.ENDER_CHEST_OPEN, Blocks.ENDER_CHEST),
+      Map.entry(SoundEvents.ENDER_CHEST_CLOSE, Blocks.ENDER_CHEST),
+      Map.entry(SoundEvents.COPPER_CHEST_OPEN, COPPER_CHEST),
+      Map.entry(SoundEvents.COPPER_CHEST_CLOSE, COPPER_CHEST),
+      Map.entry(SoundEvents.COPPER_CHEST_WEATHERED_OPEN, COPPER_CHEST),
+      Map.entry(SoundEvents.COPPER_CHEST_WEATHERED_CLOSE, COPPER_CHEST),
+      Map.entry(SoundEvents.COPPER_CHEST_OXIDIZED_OPEN, COPPER_CHEST),
+      Map.entry(SoundEvents.COPPER_CHEST_OXIDIZED_CLOSE, COPPER_CHEST)
    );
+
 
    private Setting<SettingColor> tint(String name, String what, SettingColor color) {
       return this.sgColors
@@ -447,8 +465,10 @@ public class BaseEsp extends Module {
    }
 
    private static BaseEsp.Tint tintOf(Block block) {
-      if (block == Blocks.CHEST) {
+      if (block == Blocks.CHEST || block instanceof CopperChestBlock) {
          return BaseEsp.Tint.CHEST;
+      } else if (block instanceof ShelfBlock) {
+         return BaseEsp.Tint.BARREL;
       } else if (block == Blocks.TRAPPED_CHEST) {
          return BaseEsp.Tint.TRAPPED_CHEST;
       } else if (block == Blocks.BARREL) {
@@ -570,7 +590,7 @@ public class BaseEsp extends Module {
    }
 
    private static Block storageOf(Block block) {
-      if (block == Blocks.CHEST || block == Blocks.TRAPPED_CHEST || block == Blocks.ENDER_CHEST) {
+      if (block == Blocks.CHEST || block == Blocks.TRAPPED_CHEST || block == Blocks.ENDER_CHEST || block instanceof CopperChestBlock) {
          return block;
       } else {
          return block instanceof ShulkerBoxBlock ? Blocks.SHULKER_BOX : null;
@@ -586,7 +606,8 @@ public class BaseEsp extends Module {
                   Block shown = this.mc.level.getBlockState(at).getBlock();
                   boolean sameKind = shown == block
                      || block == Blocks.SHULKER_BOX && shown instanceof ShulkerBoxBlock
-                     || block == Blocks.CHEST && shown == Blocks.TRAPPED_CHEST;
+                     || block == Blocks.CHEST && shown == Blocks.TRAPPED_CHEST
+                     || block instanceof CopperChestBlock && shown instanceof CopperChestBlock;
                   if (!sameKind) {
                      this.store.put(at.asLong(), block);
                   }
@@ -613,6 +634,9 @@ public class BaseEsp extends Module {
          return Blocks.SHULKER_BOX;
       } else if (type == BlockEntityTypes.BARREL) {
          return Blocks.BARREL;
+      } else if (type == BlockEntityTypes.SHELF) {
+         // Copper chests already arrive as CHEST; shelves have their own type (any wood stands for all of them).
+         return Blocks.OAK_SHELF;
       } else if (type == BlockEntityTypes.HOPPER) {
          return Blocks.HOPPER;
       } else if (type == BlockEntityTypes.MOB_SPAWNER) {

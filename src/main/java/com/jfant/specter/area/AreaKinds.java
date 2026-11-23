@@ -16,7 +16,9 @@ import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CarpetBlock;
+import net.minecraft.world.level.block.CopperChestBlock;
 import net.minecraft.world.level.block.LeavesBlock;
+import net.minecraft.world.level.block.ShelfBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraft.world.level.block.SignBlock;
 import net.minecraft.world.level.block.StainedGlassBlock;
@@ -121,6 +123,14 @@ public final class AreaKinds {
       "oak_log",
       "spruce_log",
       "birch_log",
+      // 26.3 world generation (dappled forest, sulfur caves): natural, not built
+      "poplar_log",
+      "red_shrub",
+      "shelf_mushroom",
+      "sulfur",
+      "sulfur_spike",
+      "potent_sulfur",
+      "cinnabar",
       "pumpkin",
       "turtle_egg",
       "frogspawn",
@@ -274,10 +284,14 @@ public final class AreaKinds {
       Block block = state.getBlock();
       if (block instanceof ShulkerBoxBlock) {
          return AreaKinds.Kind.SHULKER;
-      } else if (block == Blocks.CHEST || block == Blocks.TRAPPED_CHEST) {
+      } else if (block == Blocks.CHEST || block == Blocks.TRAPPED_CHEST || block instanceof CopperChestBlock) {
+         // Copper chests (1.21.9+, all eight weathering stages) only generate in 26.3 abandoned camps.
          return AreaKinds.Kind.CHEST;
       } else if (block == Blocks.BARREL) {
          return AreaKinds.Kind.BARREL;
+      } else if (block instanceof ShelfBlock) {
+         // Shelves (1.21.9+) never generate: always a player's.
+         return AreaKinds.Kind.SHELF;
       } else if (block == Blocks.HOPPER) {
          return AreaKinds.Kind.HOPPER;
       } else if (block == Blocks.DISPENSER || block == Blocks.DROPPER || block == Blocks.CRAFTER) {
@@ -515,7 +529,9 @@ public final class AreaKinds {
       PATH("dirt path", "dirt paths", 0.0, 0, false, false),
       VILLAGER("villager", "villagers", 0.0, 0, false, false),
       BUILT("built block", "built blocks", 0.02, 250, true, false),
-      MISPLACED("out-of-biome block", "out-of-biome blocks", 0.2, 25, false, false);
+      MISPLACED("out-of-biome block", "out-of-biome blocks", 0.2, 25, false, false),
+      // Last so the older kinds keep their numbers.
+      SHELF("shelf", "shelves", 3.0, 0, false, true);
 
       public final String one;
       public final String many;

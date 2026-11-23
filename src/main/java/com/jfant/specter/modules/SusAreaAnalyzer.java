@@ -637,7 +637,9 @@ public class SusAreaAnalyzer extends Module {
          > 0) {
          return true;
       } else {
-         return counts[AreaKinds.Kind.CHEST.ordinal()] + counts[AreaKinds.Kind.BARREL.ordinal()] >= 6 ? true : counts[AreaKinds.Kind.MINERAL.ordinal()] >= 4;
+         return counts[AreaKinds.Kind.CHEST.ordinal()] + counts[AreaKinds.Kind.BARREL.ordinal()] + counts[AreaKinds.Kind.SHELF.ordinal()] >= 6
+            ? true
+            : counts[AreaKinds.Kind.MINERAL.ordinal()] >= 4;
       }
    }
 
