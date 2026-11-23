@@ -229,10 +229,32 @@ public final class DonutGoliaths {
    private DonutGoliaths() {
    }
 
+   /** Map colour of each region (same order as {@link #REGIONS}). */
+   public static final int[] REGION_RGB = new int[]{0x9FCE63, 0x00A663, 0xC77DD6, 0x2F6EBA, 0x4FADEA, 0xF5C242, 0xFC8803};
+
    public static int number(double x, double z) {
-      int u = (int)Math.floor((x + 225000.0) / 12500.0);
-      int v = (int)Math.floor((z + 225000.0) / 12500.0);
-      return u >= 0 && v >= 0 && u < 36 && v < 36 ? LOOKUP[v][u] : -1;
+      return square(cell(x), cell(z));
+   }
+
+   /** Grid cell (0..35 on the map) a world coordinate falls in; outside the map is below 0 or above 35. */
+   public static int cell(double coordinate) {
+      return (int)Math.floor((coordinate + HALF) / SQUARE);
+   }
+
+   /** {@code region * 1000 + goliath index} of a grid cell, or -1 when the cell is off the map or unassigned. */
+   public static int square(int u, int v) {
+      return u >= 0 && v >= 0 && u < GRID && v < GRID ? LOOKUP[v][u] : -1;
+   }
+
+   /** World X/Z of the middle of a goliath. */
+   public static double centreX(int region, int index) {
+      int[] c = CELLS[region][index];
+      return (c[0] + c[2]) * 0.5 * SQUARE - HALF;
+   }
+
+   public static double centreZ(int region, int index) {
+      int[] c = CELLS[region][index];
+      return (c[1] + c[3]) * 0.5 * SQUARE - HALF;
    }
 
    public static DonutGoliaths.Goliath at(double x, double z) {

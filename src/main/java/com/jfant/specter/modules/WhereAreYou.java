@@ -4,9 +4,11 @@ import com.jfant.specter.SpecterClientAddon;
 import com.jfant.specter.core.events.render.Render2DEvent;
 import com.jfant.specter.core.settings.BoolSetting;
 import com.jfant.specter.core.settings.DoubleSetting;
+import com.jfant.specter.core.settings.IntSetting;
 import com.jfant.specter.core.settings.Setting;
 import com.jfant.specter.core.settings.SettingGroup;
 import com.jfant.specter.core.systems.modules.Module;
+import com.jfant.specter.region.DonutGoliaths;
 import com.jfant.specter.region.DonutRegions;
 import com.jfant.specter.render.CardSpot;
 import com.jfant.specter.render.CardText;
@@ -24,39 +26,69 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import org.joml.Matrix3x2fStack;
 
+/**
+ * DonutSMP region map.
+ *
+ * <p>The map is the real goliath layout: a 36 x 36 grid of 12,500-block cells (x/z from -225,000 to 225,000). Each
+ * goliath is a rectangle of one to eight cells, so goliaths are not all the same size or shape, and each of the seven
+ * regions holds between 13 and 57 of them, numbered from 1 inside its region ({@link DonutGoliaths}). The old map used a
+ * 9 x 9 grid of 50,000-block squares numbered 1-113, which matched neither the borders nor the numbers players use.
+ *
+ * <p>The player-passed region tags (media/baltop bases, other bases, no RTP) were recorded against those old squares, so
+ * they are still looked up by world position ({@link DonutRegions#tag}) - a goliath takes the tag of the old square its
+ * middle lies in, and the Tag row uses the old square you are standing in.
+ */
 public class WhereAreYou extends Module {
-   private static final int CELL_NUMBER = -1;
-   private static final int CURRENT_NUMBER = -15071962;
-   private static final int CURRENT_OUTLINE = 15916543;
-   private static final int UNTAGGED = 9208982;
+   private static final int CURRENT_NUMBER = 0xFF1A0A26;
+   private static final int CURRENT_OUTLINE = 0xF2DCFF;
+   private static final int UNTAGGED = 0x8C8496;
+   private static final int REGION_BORDER = 0xB4FFFFFF;
    private static final Identifier PLAYER_MARKER = Identifier.withDefaultNamespace("textures/map/decorations/player.png");
    private static final Identifier PLAYER_OFF_MAP = Identifier.withDefaultNamespace("textures/map/decorations/player_off_map.png");
-   private static final float MARKER_PIVOT_X = 4.5F;
-   private static final float MARKER_PIVOT_Y = 3.5F;
-   private static final float OFF_MAP_PIVOT = 4.0F;
    private static final String TITLE_TEXT = "Where Are You?";
-   private static final int SIZE = 9;
-   private static final String[] REGION_NUMBERS = new String[81];
+   private static final int GRID = DonutGoliaths.GRID;
    private static final int PAD = 7;
-   private static final int CELL = 14;
-   private static final int MAP = 127;
    private static final int GAP = 8;
-   private static final int DIVIDER_Y = 11;
    private static final int HEADER = 15;
    private static final int LINE = 11;
    private static final int LEGEND_LINE = 10;
    private static final int MIN_INFO_WIDTH = 80;
    private static final int COLUMN_GAP = 8;
-   private static final int LEGEND_GAP = 6;
+   /** Region borders as runs {vertical ? 1 : 0, line, from, to} in grid cells, worked out once from the table. */
+   private static final List<int[]> BORDERS = new ArrayList<>();
+   /** Legacy tag of each goliath ({@link DonutRegions.Tag} ordinal, or -1), by the old square its middle is in. */
+   private static final int[][] GOLIATH_TAGS = new int[DonutGoliaths.CELLS.length][];
+   private static final String[][] NUMBERS = new String[DonutGoliaths.CELLS.length][];
+
    private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
    private final SettingGroup sgPosition = this.settings.createGroup("Position");
    private final Setting<Boolean> showMap = this.sgGeneral
-      .add(new BoolSetting.Builder().name("map").description("Show the DonutSMP region map with you marked on it.").defaultValue(true).build());
+      .add(new BoolSetting.Builder().name("map").description("Show the DonutSMP goliath map with you marked on it.").defaultValue(true).build());
+   private final Setting<Integer> cellSize = this.sgGeneral
+      .add(
+         new IntSetting.Builder()
+            .name("map-detail")
+            .description("Pixels per 12,500 blocks on the map. Bigger shows goliath numbers on more of the small goliaths.")
+            .defaultValue(4)
+            .range(3, 8)
+            .sliderRange(3, 8)
+            .visible(this.showMap::get)
+            .build()
+      );
    private final Setting<Boolean> regionNumbers = this.sgGeneral
       .add(
          new BoolSetting.Builder()
             .name("region-numbers")
-            .description("Write each region's number on the map.")
+            .description("Write each goliath's number (inside its region) on the map, where it fits.")
+            .defaultValue(true)
+            .visible(this.showMap::get)
+            .build()
+      );
+   private final Setting<Boolean> regionBorders = this.sgGeneral
+      .add(
+         new BoolSetting.Builder()
+            .name("region-borders")
+            .description("Draw a bright line where one region ends and the next begins.")
             .defaultValue(true)
             .visible(this.showMap::get)
             .build()
@@ -68,9 +100,9 @@ public class WhereAreYou extends Module {
          new BoolSetting.Builder()
             .name("tags")
             .description(
-               "Colour the map by what regions are known for - media/baltop bases, other bases, no RTP spots - instead of by server, and show your region's tag. Tags are passed around by players, not detected."
+               "Colour the map by what areas are known for - media/baltop bases, other bases, no RTP spots - instead of by region, and show the tag where you are. Tags are passed around by players, not detected."
             )
-            .defaultValue(true)
+            .defaultValue(false)
             .build()
       );
    private final Setting<Boolean> otherDimension = this.sgGeneral
@@ -103,7 +135,7 @@ public class WhereAreYou extends Module {
    private float cardPixels = 1.0F;
 
    public WhereAreYou() {
-      super(SpecterClientAddon.HUD, "where-are-you", "Shows your coordinates and which DonutSMP region you are in, on the region map.");
+      super(SpecterClientAddon.HUD, "where-are-you", "Shows your coordinates and which DonutSMP region and goliath you are in, on the goliath map.");
    }
 
    @Override
@@ -112,91 +144,72 @@ public class WhereAreYou extends Module {
       this.lastLayout = -1;
    }
 
-   @EventHandler
-   private void onRender2D(Render2DEvent event) {
-      if (this.mc.player != null && this.mc.level != null) {
-         if (!this.mc.gui.hud.isHidden() && !this.mc.debugEntries.isOverlayVisible()) {
-            GuiGraphicsExtractor ctx = event.graphics;
-            Font tr = this.mc.font;
-            boolean nether = this.mc.level.dimension() == Level.NETHER;
-            boolean end = this.mc.level.dimension() == Level.END;
-            double mapX = nether ? this.mc.player.getX() * 8.0 : this.mc.player.getX();
-            double mapZ = nether ? this.mc.player.getZ() * 8.0 : this.mc.player.getZ();
-            int column = DonutRegions.cell(mapX);
-            int row = DonutRegions.cell(mapZ);
-            DonutRegions.Group here = !end && DonutRegions.onMap(column, row) ? DonutRegions.group(column, row) : null;
-            DonutRegions.Tag hereTag = here != null ? DonutRegions.tag(column, row) : null;
-            this.buildRows(nether, end, column, row, here, hereTag);
-            boolean map = this.showMap.get();
-            boolean drawLegend = map && this.legend.get();
-            int layout = this.rows.size() * 4 + (drawLegend ? 2 : 0) + (this.tags.get() ? 1 : 0) + (this.otherTitle.isEmpty() ? 0 : 64);
-            if (layout != this.lastLayout) {
-               this.infoWidth = 0;
-               this.lastLayout = layout;
-            }
-
-            this.coordColumn = 0;
-            this.otherColumn = 0;
-
-            for (WhereAreYou.Row r : this.rows) {
-               if (r.coord()) {
-                  this.coordColumn = Math.max(this.coordColumn, CardText.width(r.value()));
-                  this.otherColumn = Math.max(this.otherColumn, CardText.width(r.other()));
-               }
-            }
-
-            int needed = CardText.width("Where Are You?") + (this.otherTitle.isEmpty() ? 0 : 8 + CardText.width(this.otherTitle));
-
-            for (WhereAreYou.Row rx : this.rows) {
-               needed = Math.max(needed, this.rowWidth(tr, rx));
-            }
-
-            if (drawLegend) {
-               needed = Math.max(needed, this.legendWidth(tr));
-            }
-
-            this.infoWidth = Math.max(this.infoWidth, Math.max(needed, 80));
-            int infoHeight = 15 + this.rows.size() * 11 - 3;
-            int legendTop = 15 + this.rows.size() * 11 + 4;
-            if (drawLegend && this.tags.get()) {
-               legendTop = Math.max(legendTop, (map ? 127 : 0) - 8);
-               infoHeight = legendTop + 8;
-            } else if (drawLegend) {
-               infoHeight = legendTop + 30 - 2;
-            }
-
-            int width = map ? 135 + this.infoWidth : this.infoWidth;
-            int height = map ? Math.max(127, infoHeight) : infoHeight;
-            int boxWidth = width + 14;
-            int boxHeight = height + 14;
-            float s = this.scale.get().floatValue();
-            this.cardPixels = s * this.mc.getWindow().getGuiScale();
-            this.spot.place(boxWidth * s, boxHeight * s);
-            float x = this.spot.x();
-            float y = this.spot.y();
-            Matrix3x2fStack matrices = ctx.pose();
-            matrices.pushMatrix();
-            matrices.translate(Math.round(x), Math.round(y));
-            matrices.scale(s, s);
-            PurpleCard.card(ctx, 0, 0, boxWidth, boxHeight);
-            matrices.translate(7.0F, 7.0F);
-            int mapTop = (height - 127) / 2;
-            int infoX = map ? 135 : 0;
-            if (map) {
-               this.drawMap(ctx, tr, mapTop, column, row, here != null);
-            }
-
-            this.drawInfo(ctx, tr, infoX, legendTop, drawLegend, here, hereTag);
-            if (map && !end) {
-               this.drawMarker(ctx, mapTop, mapX, mapZ, here != null);
-            }
-
-            matrices.popMatrix();
-         }
-      }
+   private int mapPixels() {
+      return GRID * this.cellSize.get() + 2;
    }
 
-   private void buildRows(boolean nether, boolean end, int column, int row, DonutRegions.Group here, DonutRegions.Tag hereTag) {
+   @EventHandler
+   private void onRender2D(Render2DEvent event) {
+      if (this.mc.player == null || this.mc.level == null) return;
+      if (this.mc.gui.hud.isHidden() || this.mc.debugEntries.isOverlayVisible()) return;
+      GuiGraphicsExtractor ctx = event.graphics;
+      Font tr = this.mc.font;
+      boolean nether = this.mc.level.dimension() == Level.NETHER;
+      boolean end = this.mc.level.dimension() == Level.END;
+      double mapX = nether ? this.mc.player.getX() * 8.0 : this.mc.player.getX();
+      double mapZ = nether ? this.mc.player.getZ() * 8.0 : this.mc.player.getZ();
+      int found = end ? -1 : DonutGoliaths.number(mapX, mapZ);
+      DonutGoliaths.Goliath here = found < 0 ? null : new DonutGoliaths.Goliath(found / 1000, found % 1000);
+      DonutRegions.Tag hereTag = here == null ? null : legacyTag(mapX, mapZ);
+      this.buildRows(nether, end, here, hereTag);
+      boolean map = this.showMap.get();
+      int mapSize = this.mapPixels();
+      boolean drawLegend = map && this.legend.get();
+      int layout = this.rows.size() * 4 + (drawLegend ? 2 : 0) + (this.tags.get() ? 1 : 0) + (this.otherTitle.isEmpty() ? 0 : 64) + mapSize * 256;
+      if (layout != this.lastLayout) {
+         this.infoWidth = 0;
+         this.lastLayout = layout;
+      }
+
+      this.coordColumn = 0;
+      this.otherColumn = 0;
+      for (WhereAreYou.Row r : this.rows) {
+         if (r.coord()) {
+            this.coordColumn = Math.max(this.coordColumn, CardText.width(r.value()));
+            this.otherColumn = Math.max(this.otherColumn, CardText.width(r.other()));
+         }
+      }
+
+      int needed = CardText.width(TITLE_TEXT) + (this.otherTitle.isEmpty() ? 0 : COLUMN_GAP + CardText.width(this.otherTitle));
+      for (WhereAreYou.Row r : this.rows) needed = Math.max(needed, this.rowWidth(r));
+      if (drawLegend) needed = Math.max(needed, this.legendWidth());
+      this.infoWidth = Math.max(this.infoWidth, Math.max(needed, MIN_INFO_WIDTH));
+
+      int legendRows = drawLegend ? this.legendRows() : 0;
+      int legendTop = HEADER + this.rows.size() * LINE + 4;
+      int infoHeight = drawLegend ? legendTop + legendRows * LEGEND_LINE - 2 : HEADER + this.rows.size() * LINE - 3;
+      int width = map ? mapSize + GAP + this.infoWidth : this.infoWidth;
+      int height = map ? Math.max(mapSize, infoHeight) : infoHeight;
+      int boxWidth = width + PAD * 2;
+      int boxHeight = height + PAD * 2;
+      float s = this.scale.get().floatValue();
+      this.cardPixels = s * this.mc.getWindow().getGuiScale();
+      this.spot.place(boxWidth * s, boxHeight * s);
+      Matrix3x2fStack matrices = ctx.pose();
+      matrices.pushMatrix();
+      matrices.translate(Math.round(this.spot.x()), Math.round(this.spot.y()));
+      matrices.scale(s, s);
+      PurpleCard.card(ctx, 0, 0, boxWidth, boxHeight);
+      matrices.translate(PAD, PAD);
+      int mapTop = (height - mapSize) / 2;
+      int infoX = map ? mapSize + GAP : 0;
+      if (map) this.drawMap(ctx, mapTop, here);
+      this.drawInfo(ctx, infoX, legendTop, drawLegend, here, hereTag);
+      if (map && !end) this.drawMarker(ctx, mapTop, mapX, mapZ, here != null);
+      matrices.popMatrix();
+   }
+
+   private void buildRows(boolean nether, boolean end, DonutGoliaths.Goliath here, DonutRegions.Tag hereTag) {
       this.rows.clear();
       int bx = this.mc.player.getBlockX();
       int bz = this.mc.player.getBlockZ();
@@ -220,144 +233,158 @@ public class WhereAreYou extends Module {
       this.rows.add(WhereAreYou.Row.coord("Z", format(bz), otherZ));
       String regionLabel = nether ? "Above" : "Region";
       if (end) {
-         this.rows.add(new WhereAreYou.Row("Region", "None in the End", -4149795, "", 0));
+         this.rows.add(new WhereAreYou.Row("Region", "None in the End", PurpleCard.DIM, "", 0));
       } else if (here == null) {
-         this.rows.add(new WhereAreYou.Row(regionLabel, "Off the map", -4149795, "", 0));
+         this.rows.add(new WhereAreYou.Row(regionLabel, "Off the map", PurpleCard.DIM, "", 0));
       } else {
-         this.rows.add(new WhereAreYou.Row(regionLabel, "#" + DonutRegions.id(column, row), -1, here.title, 0xFF000000 | here.textRgb));
+         int rgb = DonutGoliaths.REGION_RGB[here.region()];
+         this.rows.add(new WhereAreYou.Row(regionLabel, DonutGoliaths.REGIONS[here.region()], 0xFF000000 | lighten(rgb), "", 0));
+         String size = (here.width() / 1000) + "k x " + (here.length() / 1000) + "k";
+         this.rows.add(new WhereAreYou.Row("Goliath", "#" + (here.index() + 1), PurpleCard.VALUE, size, PurpleCard.DIM));
       }
 
       if (this.tags.get() && here != null) {
-         if (hereTag == null) {
-            this.rows.add(new WhereAreYou.Row("Tag", "None", -4149795, "", 0));
-         } else {
-            this.rows.add(new WhereAreYou.Row("Tag", hereTag.shortTitle, 0xFF000000 | hereTag.textRgb, "", 0));
-         }
+         if (hereTag == null) this.rows.add(new WhereAreYou.Row("Tag", "None", PurpleCard.DIM, "", 0));
+         else this.rows.add(new WhereAreYou.Row("Tag", hereTag.shortTitle, 0xFF000000 | hereTag.textRgb, "", 0));
       }
 
       if (this.facing.get()) {
          float yaw = this.mc.player.getYRot();
-         this.rows.add(new WhereAreYou.Row("Facing", Facing.name(yaw), -1, Facing.axes(yaw), -4149795));
+         this.rows.add(new WhereAreYou.Row("Facing", Facing.name(yaw), PurpleCard.VALUE, Facing.axes(yaw), PurpleCard.DIM));
       }
    }
 
-   private void drawMap(GuiGraphicsExtractor ctx, Font tr, int top, int column, int row, boolean onMap) {
-      PurpleCard.fillRounded(ctx, -1, top - 1, 128, top + 127 + 1, 4, 15, -1333837902, -1333837902);
-      PurpleCard.fillRounded(ctx, 0, top, 127, top + 127, 3, 15, -2145973978, -2145973978);
+   private void drawMap(GuiGraphicsExtractor ctx, int top, DonutGoliaths.Goliath here) {
+      int cell = this.cellSize.get();
+      int size = this.mapPixels();
+      PurpleCard.fillRounded(ctx, -1, top - 1, size + 1, top + size + 1, 4, 15, PurpleCard.INSET_EDGE, PurpleCard.INSET_EDGE);
+      PurpleCard.fillRounded(ctx, 0, top, size, top + size, 3, 15, PurpleCard.INSET, PurpleCard.INSET);
+      int gap = cell >= 4 ? 1 : 0;
+      int radius = cell >= 6 ? 2 : 1;
+      boolean byTag = this.tags.get();
 
-      for (int r = 0; r < 9; r++) {
-         for (int c = 0; c < 9; c++) {
-            int x = 1 + c * 14;
-            int y = top + 1 + r * 14;
-            int rgb = this.squareColour(c, r);
-            boolean current = onMap && c == column && r == row;
+      for (int region = 0; region < DonutGoliaths.CELLS.length; region++) {
+         int[][] goliaths = DonutGoliaths.CELLS[region];
+         for (int index = 0; index < goliaths.length; index++) {
+            int[] c = goliaths[index];
+            int rgb = byTag ? tagColour(GOLIATH_TAGS[region][index]) : DonutGoliaths.REGION_RGB[region];
+            boolean current = here != null && here.region() == region && here.index() == index;
+            int x1 = 1 + c[0] * cell;
+            int y1 = top + 1 + c[1] * cell;
+            int x2 = 1 + c[2] * cell - gap;
+            int y2 = top + 1 + c[3] * cell - gap;
             PurpleCard.fillRounded(
-               ctx,
-               x,
-               y,
-               x + 14 - 1,
-               y + 14 - 1,
-               2,
-               outerCorners(c, r),
-               0xFF000000 | (current ? rgb : shade(rgb, 0.62F)),
-               0xFF000000 | shade(rgb, current ? 0.85F : 0.5F)
+               ctx, x1, y1, x2, y2, radius, 15, 0xFF000000 | (current ? rgb : shade(rgb, 0.6F)), 0xFF000000 | shade(rgb, current ? 0.85F : 0.46F)
             );
          }
       }
 
-      if (onMap) {
-         double phase = System.currentTimeMillis() % 1600L / 1600.0 * 2.0 * 3.141592653589793;
-         int alpha = (int)(150.0 + 105.0 * (0.5 + 0.5 * Math.sin(phase)));
-         int color = alpha << 24 | 15916543;
-         PurpleCard.strokeRounded(ctx, column * 14, top + row * 14, (column + 1) * 14 + 1, top + (row + 1) * 14 + 1, 2, color, color);
+      if (this.regionBorders.get()) {
+         for (int[] run : BORDERS) {
+            int line = 1 + run[1] * cell - (gap > 0 ? 1 : 0);
+            int from = 1 + run[2] * cell;
+            int to = 1 + run[3] * cell - gap;
+            if (run[0] == 1) ctx.fill(line, top + from, line + 1, top + to, REGION_BORDER);
+            else ctx.fill(from, top + line, to, top + line + 1, REGION_BORDER);
+         }
       }
 
-      if (this.regionNumbers.get()) {
-         int numberPixels = Math.max(1, Math.round(this.cardPixels * 0.5F));
-         float size = numberPixels / this.cardPixels;
-         if (!(CardText.width("113") * size > 13.0F)) {
-            Matrix3x2fStack matrices = ctx.pose();
+      if (here != null) {
+         int[] c = DonutGoliaths.CELLS[here.region()][here.index()];
+         double phase = System.currentTimeMillis() % 1600L / 1600.0 * 2.0 * Math.PI;
+         int alpha = (int)(150.0 + 105.0 * (0.5 + 0.5 * Math.sin(phase)));
+         int color = alpha << 24 | CURRENT_OUTLINE;
+         PurpleCard.strokeRounded(ctx, c[0] * cell, top + c[1] * cell, c[2] * cell + 1, top + c[3] * cell + 1, radius, color, color);
+      }
 
-            for (int r = 0; r < 9; r++) {
-               for (int c = 0; c < 9; c++) {
-                  String number = REGION_NUMBERS[r * 9 + c];
-                  boolean current = onMap && c == column && r == row;
-                  float left = this.onPixel(1 + c * 14 + (13.0F - CardText.width(number) * size) / 2.0F);
-                  float numberTop = this.onPixel(top + 1 + r * 14 + (13.0F - 7.0F * size) / 2.0F);
-                  matrices.pushMatrix();
-                  matrices.translate(left, numberTop);
-                  matrices.scale(size, size);
-                  CardText.draw(ctx, number, 0.0F, 0.0F, current ? -15071962 : -1, false);
-                  matrices.popMatrix();
-               }
-            }
+      if (this.regionNumbers.get()) this.drawNumbers(ctx, top, cell, here);
+   }
+
+   private void drawNumbers(GuiGraphicsExtractor ctx, int top, int cell, DonutGoliaths.Goliath here) {
+      int numberPixels = Math.max(1, Math.round(this.cardPixels * 0.5F));
+      float size = numberPixels / this.cardPixels;
+      float glyphHeight = 7.0F * size;
+      Matrix3x2fStack matrices = ctx.pose();
+      for (int region = 0; region < DonutGoliaths.CELLS.length; region++) {
+         int[][] goliaths = DonutGoliaths.CELLS[region];
+         for (int index = 0; index < goliaths.length; index++) {
+            int[] c = goliaths[index];
+            String number = NUMBERS[region][index];
+            float w = (c[2] - c[0]) * cell - 1;
+            float h = (c[3] - c[1]) * cell - 1;
+            float textW = CardText.width(number) * size;
+            if (textW + 1.0F > w || glyphHeight + 1.0F > h) continue;
+            boolean current = here != null && here.region() == region && here.index() == index;
+            float left = this.onPixel(1 + c[0] * cell + (w - textW) / 2.0F);
+            float numberTop = this.onPixel(top + 1 + c[1] * cell + (h - glyphHeight) / 2.0F);
+            matrices.pushMatrix();
+            matrices.translate(left, numberTop);
+            matrices.scale(size, size);
+            CardText.draw(ctx, number, 0.0F, 0.0F, current ? CURRENT_NUMBER : 0xFFFFFFFF, false);
+            matrices.popMatrix();
          }
       }
    }
 
-   private void drawInfo(GuiGraphicsExtractor ctx, Font tr, int left, int legendTop, boolean drawLegend, DonutRegions.Group here, DonutRegions.Tag hereTag) {
-      CardText.draw(ctx, "Where Are You?", (float)left, 0.0F, -1065473, true);
+   private void drawInfo(GuiGraphicsExtractor ctx, int left, int legendTop, boolean drawLegend, DonutGoliaths.Goliath here, DonutRegions.Tag hereTag) {
+      CardText.draw(ctx, TITLE_TEXT, (float)left, 0.0F, PurpleCard.TITLE, true);
       if (!this.otherTitle.isEmpty()) {
-         CardText.draw(ctx, this.otherTitle, (float)(left + this.infoWidth - CardText.width(this.otherTitle)), 0.0F, -4149795, true);
+         CardText.draw(ctx, this.otherTitle, (float)(left + this.infoWidth - CardText.width(this.otherTitle)), 0.0F, PurpleCard.DIM, true);
       }
 
-      ctx.fill(left, 11, left + this.infoWidth, 12, 1440926975);
-      int y = 15;
-
+      ctx.fill(left, 11, left + this.infoWidth, 12, PurpleCard.DIVIDER);
+      int y = HEADER;
       for (WhereAreYou.Row r : this.rows) {
-         CardText.draw(ctx, r.label, (float)left, (float)y, -1911561, true);
+         CardText.draw(ctx, r.label, (float)left, (float)y, PurpleCard.LABEL, true);
          int right = left + this.infoWidth;
          if (r.coord() && this.otherColumn > 0) {
-            if (!r.other().isEmpty()) {
-               CardText.draw(ctx, r.other(), (float)(right - CardText.width(r.other())), (float)y, -4149795, true);
-            }
-
-            right -= this.otherColumn + 8;
+            if (!r.other().isEmpty()) CardText.draw(ctx, r.other(), (float)(right - CardText.width(r.other())), (float)y, PurpleCard.DIM, true);
+            right -= this.otherColumn + COLUMN_GAP;
          }
 
-         int valueX = right - r.valueWidth(tr);
+         int valueX = right - r.valueWidth();
          CardText.draw(ctx, r.value, (float)valueX, (float)y, r.valueColor, true);
-         if (!r.extra.isEmpty()) {
-            CardText.draw(ctx, r.extra, (float)(valueX + CardText.width(r.value) + 4), (float)y, r.extraColor, true);
-         }
-
-         y += 11;
+         if (!r.extra.isEmpty()) CardText.draw(ctx, r.extra, (float)(valueX + CardText.width(r.value) + 4), (float)y, r.extraColor, true);
+         y += LINE;
       }
 
-      if (drawLegend) {
-         ctx.fill(left, legendTop - 4, left + this.infoWidth, legendTop - 3, 1440926975);
-         if (this.tags.get()) {
-            int x = left;
-
-            for (DonutRegions.Tag t : DonutRegions.Tag.values()) {
-               legendEntry(ctx, x, legendTop, t.rgb, t.legendTitle, t == hereTag ? 0xFF000000 | t.textRgb : -1911561);
-               x += 10 + CardText.width(t.legendTitle) + 6;
-            }
-         } else {
-            DonutRegions.Group[] groups = DonutRegions.Group.values();
-
-            for (int i = 0; i < groups.length; i++) {
-               DonutRegions.Group g = groups[i];
-               int x = left + (i % 2 == 0 ? 0 : this.infoWidth / 2 + 4);
-               int ly = legendTop + i / 2 * 10;
-               legendEntry(ctx, x, ly, g.rgb, g.title, g == here ? 0xFF000000 | g.textRgb : -1911561);
-            }
+      if (!drawLegend) return;
+      ctx.fill(left, legendTop - 4, left + this.infoWidth, legendTop - 3, PurpleCard.DIVIDER);
+      if (this.tags.get()) {
+         DonutRegions.Tag[] all = DonutRegions.Tag.values();
+         for (int i = 0; i < all.length; i++) {
+            DonutRegions.Tag t = all[i];
+            legendEntry(ctx, left, legendTop + i * LEGEND_LINE, t.rgb, t.title, t == hereTag ? 0xFF000000 | t.textRgb : PurpleCard.LABEL);
+         }
+      } else {
+         int half = this.infoWidth / 2 + 4;
+         for (int i = 0; i < DonutGoliaths.REGIONS.length; i++) {
+            int x = left + (i % 2 == 0 ? 0 : half);
+            int ly = legendTop + i / 2 * LEGEND_LINE;
+            int rgb = DonutGoliaths.REGION_RGB[i];
+            boolean mine = here != null && here.region() == i;
+            legendEntry(ctx, x, ly, rgb, DonutGoliaths.REGIONS[i], mine ? 0xFF000000 | lighten(rgb) : PurpleCard.LABEL);
          }
       }
+   }
+
+   private int legendRows() {
+      return this.tags.get() ? DonutRegions.Tag.values().length : (DonutGoliaths.REGIONS.length + 1) / 2;
    }
 
    private static void legendEntry(GuiGraphicsExtractor ctx, int x, int y, int rgb, String title, int textColor) {
-      PurpleCard.fillRounded(ctx, x, y, x + 7, y + 7, 2, 15, 0xFF000000 | rgb, 0xFF000000 | darken(rgb));
+      PurpleCard.fillRounded(ctx, x, y, x + 7, y + 7, 2, 15, 0xFF000000 | rgb, 0xFF000000 | shade(rgb, 0.75F));
       CardText.draw(ctx, title, (float)(x + 10), (float)y, textColor, true);
    }
 
    private void drawMarker(GuiGraphicsExtractor ctx, int top, double mapX, double mapZ, boolean onMap) {
-      double fx = Math.clamp((mapX + 225000.0) / 50000.0, 0.0, 9.0);
-      double fz = Math.clamp((mapZ + 225000.0) / 50000.0, 0.0, 9.0);
+      int cell = this.cellSize.get();
+      double fx = Math.clamp((mapX + DonutGoliaths.HALF) / DonutGoliaths.SQUARE, 0.0, GRID);
+      double fz = Math.clamp((mapZ + DonutGoliaths.HALF) / DonutGoliaths.SQUARE, 0.0, GRID);
       ctx.nextStratum();
       Matrix3x2fStack matrices = ctx.pose();
       matrices.pushMatrix();
-      matrices.translate(1.0F + (float)fx * 14.0F, top + 1 + (float)fz * 14.0F);
+      matrices.translate(1.0F + (float)fx * cell, top + 1 + (float)fz * cell);
       if (onMap) {
          float turns = Math.round((this.mc.player.getYRot() + 180.0F) / 22.5F) * 22.5F;
          matrices.rotate((float)Math.toRadians(turns));
@@ -371,62 +398,37 @@ public class WhereAreYou extends Module {
       matrices.popMatrix();
    }
 
-   private static int outerCorners(int column, int row) {
-      int last = 8;
-      int corners = 0;
-      if (row == 0 && column == 0) {
-         corners |= 1;
-      }
-
-      if (row == 0 && column == last) {
-         corners |= 2;
-      }
-
-      if (row == last && column == 0) {
-         corners |= 4;
-      }
-
-      if (row == last && column == last) {
-         corners |= 8;
-      }
-
-      return corners;
-   }
-
-   private int legendWidth(Font tr) {
+   private int legendWidth() {
       int widest = 0;
       if (this.tags.get()) {
-         int line = -6;
-
-         for (DonutRegions.Tag t : DonutRegions.Tag.values()) {
-            line += 10 + CardText.width(t.legendTitle) + 6;
-         }
-
-         return line;
-      } else {
-         for (DonutRegions.Group g : DonutRegions.Group.values()) {
-            widest = Math.max(widest, CardText.width(g.title));
-         }
-
-         return 2 * (10 + widest) + 8;
+         for (DonutRegions.Tag t : DonutRegions.Tag.values()) widest = Math.max(widest, 10 + CardText.width(t.title));
+         return widest;
       }
+
+      for (String name : DonutGoliaths.REGIONS) widest = Math.max(widest, CardText.width(name));
+      return 2 * (10 + widest) + 8;
    }
 
-   private int squareColour(int column, int row) {
-      if (!this.tags.get()) {
-         return DonutRegions.group(column, row).rgb;
-      } else {
-         DonutRegions.Tag tag = DonutRegions.tag(column, row);
-         return tag != null ? tag.rgb : 9208982;
-      }
+   /** The player-passed tag of the old 50k square a world position lies in. */
+   static DonutRegions.Tag legacyTag(double x, double z) {
+      int column = DonutRegions.cell(x);
+      int row = DonutRegions.cell(z);
+      return DonutRegions.onMap(column, row) ? DonutRegions.tag(column, row) : null;
+   }
+
+   private static int tagColour(int tag) {
+      return tag < 0 ? UNTAGGED : DonutRegions.Tag.values()[tag].rgb;
    }
 
    private float onPixel(float cardPixelsFromOrigin) {
       return Math.round(cardPixelsFromOrigin * this.cardPixels) / this.cardPixels;
    }
 
-   private static int darken(int rgb) {
-      return shade(rgb, 0.75F);
+   private static int lighten(int rgb) {
+      int r = rgb >> 16 & 0xFF;
+      int g = rgb >> 8 & 0xFF;
+      int b = rgb & 0xFF;
+      return (r + Math.round((255 - r) * 0.25F)) << 16 | (g + Math.round((255 - g) * 0.25F)) << 8 | (b + Math.round((255 - b) * 0.25F));
    }
 
    private static int shade(int rgb, float factor) {
@@ -440,16 +442,51 @@ public class WhereAreYou extends Module {
       return String.format(Locale.ROOT, "%,d", value);
    }
 
-   private int rowWidth(Font tr, WhereAreYou.Row r) {
+   private int rowWidth(WhereAreYou.Row r) {
       return !r.coord()
-         ? CardText.width(r.label()) + 10 + r.valueWidth(tr)
-         : CardText.width(r.label()) + 10 + this.coordColumn + (this.otherColumn > 0 ? 8 + this.otherColumn : 0);
+         ? CardText.width(r.label()) + 10 + r.valueWidth()
+         : CardText.width(r.label()) + 10 + this.coordColumn + (this.otherColumn > 0 ? COLUMN_GAP + this.otherColumn : 0);
+   }
+
+   /** Region id of a grid cell, or -1 off the map / unassigned. */
+   private static int regionOf(int u, int v) {
+      int square = DonutGoliaths.square(u, v);
+      return square < 0 ? -1 : square / 1000;
+   }
+
+   private static void borderRuns(int line, boolean vertical) {
+      int start = -1;
+      for (int along = 0; along <= GRID; along++) {
+         boolean border = false;
+         if (along < GRID) {
+            int a = vertical ? regionOf(line - 1, along) : regionOf(along, line - 1);
+            int b = vertical ? regionOf(line, along) : regionOf(along, line);
+            border = a >= 0 && b >= 0 && a != b;
+         }
+
+         if (border && start < 0) {
+            start = along;
+         } else if (!border && start >= 0) {
+            BORDERS.add(new int[]{vertical ? 1 : 0, line, start, along});
+            start = -1;
+         }
+      }
    }
 
    static {
-      for (int row = 0; row < 9; row++) {
-         for (int column = 0; column < 9; column++) {
-            REGION_NUMBERS[row * 9 + column] = Integer.toString(DonutRegions.id(column, row));
+      for (int line = 1; line < GRID; line++) {
+         borderRuns(line, true);
+         borderRuns(line, false);
+      }
+
+      for (int region = 0; region < DonutGoliaths.CELLS.length; region++) {
+         int count = DonutGoliaths.CELLS[region].length;
+         GOLIATH_TAGS[region] = new int[count];
+         NUMBERS[region] = new String[count];
+         for (int index = 0; index < count; index++) {
+            DonutRegions.Tag tag = legacyTag(DonutGoliaths.centreX(region, index), DonutGoliaths.centreZ(region, index));
+            GOLIATH_TAGS[region][index] = tag == null ? -1 : tag.ordinal();
+            NUMBERS[region][index] = Integer.toString(index + 1);
          }
       }
    }
@@ -460,10 +497,10 @@ public class WhereAreYou extends Module {
       }
 
       static WhereAreYou.Row coord(String label, String value, String other) {
-         return new WhereAreYou.Row(label, value, -1, "", 0, other, true);
+         return new WhereAreYou.Row(label, value, PurpleCard.VALUE, "", 0, other, true);
       }
 
-      int valueWidth(Font tr) {
+      int valueWidth() {
          return CardText.width(this.value) + (this.extra.isEmpty() ? 0 : 4 + CardText.width(this.extra));
       }
    }
