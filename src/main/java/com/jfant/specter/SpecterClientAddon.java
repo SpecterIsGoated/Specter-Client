@@ -38,6 +38,7 @@ import com.jfant.specter.modules.FakeBanScreen;
 import com.jfant.specter.modules.GhostFreecam;
 import com.jfant.specter.modules.GhostFreelook;
 import com.jfant.specter.modules.HitEffects;
+import com.jfant.specter.modules.JetMech;
 import com.jfant.specter.modules.HoleEsp;
 import com.jfant.specter.modules.HomeMethod;
 import com.jfant.specter.modules.HotbarScale;
@@ -190,6 +191,7 @@ public final class SpecterClientAddon {
       Modules.get().add(new RedstoneOptimizer());
       Modules.get().add(new PingSystem());
       Modules.get().add(new RealisticRain());
+      Modules.get().add(new JetMech());
       NotificationOverlay.init();
       WorldFx.init();
       AutoModules.register();

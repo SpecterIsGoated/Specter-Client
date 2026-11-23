@@ -43,3 +43,7 @@ accessible method com/mojang/renderpearl/api/pipeline/RenderPipeline$Builder <in
 
 # ItemPhysics
 accessible field net/minecraft/client/renderer/item/ItemStackRenderState$LayerRenderState quads Lnet/minecraft/client/resources/model/geometry/ItemQuads;
+
+# JetMech: rocket attached to a player (afterburners) and the skin-settings byte (broadcast bit)
+accessible   field   net/minecraft/world/entity/projectile/FireworkRocketEntity DATA_ATTACHED_TO_TARGET Lnet/minecraft/network/syncher/EntityDataAccessor;
+accessible   field   net/minecraft/world/entity/Avatar DATA_PLAYER_MODE_CUSTOMISATION Lnet/minecraft/network/syncher/EntityDataAccessor;

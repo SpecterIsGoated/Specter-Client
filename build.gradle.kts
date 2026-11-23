@@ -134,7 +134,11 @@ tasks {
         options.compilerArgs.add("-Xlint:-options")
     }
 
-    test { useJUnitPlatform() }
+    test {
+        useJUnitPlatform()
+        // dev aid for the Jet Mech model: ./gradlew test -Dmech.obj=<dir> writes OBJ snapshots
+        systemProperty("mech.obj", System.getProperty("mech.obj") ?: "")
+    }
 
     jar {
         from("LICENSE") { rename { "LICENSE_specter" } }

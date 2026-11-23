@@ -1,0 +1,9 @@
+{
+  "mech.transform": {"sounds": [{"name": "specter:mech/transform", "attenuation_distance": 32}]},
+  "mech.transform_back": {"sounds": [{"name": "specter:mech/transform_back", "attenuation_distance": 32}]},
+  "mech.ignite": {"sounds": [{"name": "specter:mech/ignite", "attenuation_distance": 48}]},
+  "mech.afterburner": {"sounds": [{"name": "specter:mech/afterburner", "attenuation_distance": 64}]},
+  "mech.engine": {"sounds": [{"name": "specter:mech/engine", "attenuation_distance": 48}]},
+  "mech.step": {"sounds": [{"name": "specter:mech/step", "attenuation_distance": 16}]},
+  "mech.land": {"sounds": [{"name": "specter:mech/land", "attenuation_distance": 24}]}
+}
