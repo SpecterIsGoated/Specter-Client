@@ -21,7 +21,7 @@ Branch `expansion` in `~/rel263/specter-client` (local only, not pushed). Specte
 | Death animations | Ice Spike / Disintegrate / Water Dissolve / Random, built from the dying player's real skin; self/others/everyone, duration, density, colours. | `modules/DeathAnimations`, `cosmetic/SkinVoxels`, `CosmeticLivingRendererMixin` |
 | Items | Item Physics, Item ESP (presets: netherite, elytras, totems, diamonds, shulkers, armour, weapons, custom list; constant-width tracers; glow), Item Nametags. | `modules/Item*`, `render/ItemTargets` |
 | Gameplay | Elytra Saver, Legit Auto Tool, Spear Lunge, Auto Cliper. | `modules/*` |
-| Token Switcher | Account list + switch/remove/add token; tokens AES-GCM encrypted at rest (key in `~/.specter/vault.key`), legacy plaintext still loads; token accounts never display the token. 3 unit tests. | `gui/screen/TokenSwitcherScreen`, `core/systems/accounts/TokenVault` |
+| Accounts (top bar) | Account list + switch/remove/add token; tokens AES-GCM encrypted at rest (key in `~/.specter/vault.key`), legacy plaintext still loads; token accounts never display the token. 3 unit tests. | `gui/screen/TokenSwitcherScreen`, `core/systems/accounts/TokenVault` |
 | Optimisation | Reused per-frame matrix in the core render hook; Sus Finds caches list + merged outlines per change; idle early-outs. New renderers cost nothing when empty. | |
 
 ## Verification

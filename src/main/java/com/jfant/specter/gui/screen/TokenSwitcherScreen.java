@@ -40,8 +40,17 @@ public final class TokenSwitcherScreen extends Screen {
    private int scroll;
    private List<Account<?>> rows = new ArrayList<>();
 
-   public TokenSwitcherScreen() {
-      super(Component.literal("Token Switcher"));
+   /** Where Escape / Done goes back to (the Specter GUI when opened from its top bar). */
+   private final Screen parent;
+
+   public TokenSwitcherScreen(Screen parent) {
+      super(Component.literal("Accounts"));
+      this.parent = parent;
+   }
+
+   @Override
+   public void onClose() {
+      this.minecraft.gui.setScreen(this.parent);
    }
 
    private int left() {
@@ -174,7 +183,7 @@ public final class TokenSwitcherScreen extends Screen {
       int l = this.left(), t = this.top();
       int bottom = this.listTop() + this.visibleRows() * ROW + 8;
       PurpleCard.card(ctx, l, t, l + WIDTH, bottom + 72);
-      CardText.draw(ctx, "Token Switcher", l + 8, t + 7, PurpleCard.TITLE, true);
+      CardText.draw(ctx, "Accounts", l + 8, t + 7, PurpleCard.TITLE, true);
       String me = this.minecraft.getUser() == null ? "-" : this.minecraft.getUser().getName();
       String playing = "Playing as " + me;
       CardText.draw(ctx, playing, l + WIDTH - 8 - CardText.width(playing), t + 7, PurpleCard.LABEL, true);

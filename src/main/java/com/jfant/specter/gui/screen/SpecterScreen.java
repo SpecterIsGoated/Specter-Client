@@ -69,15 +69,17 @@ public class SpecterScreen extends Screen {
    private static final int MIN_W = 90;
    private static final int MAX_W = 260;
    private static final int EDGE = 3;
-   private static final String[] BUTTONS = new String[]{"Friends", "Profiles", "Client", "HUD Editor", "Specter+"};
+   private static final String[] BUTTONS = new String[]{"Friends", "Profiles", "Client", "Accounts", "HUD Editor", "Specter+"};
    private static final String[] BUTTON_HINTS = new String[]{
       "Your friends list.",
       "Profiles: save your modules and HUD and load them again later.",
       "Client settings (prefix, chat feedback, fonts) and the HUD's own settings.",
+      "Accounts: switch between your saved accounts, or add one from a session token.",
       "Opens the HUD editor, where HUD elements are placed.",
       "Specter+: the premium modules. Opens the Specter Discord."
    };
-   private static final int PLUS = 4;
+   private static final int ACCOUNTS = 3;
+   private static final int PLUS = 5;
    private static final int PLUS_MIN_W = 66;
    private static final boolean PLUS_INSTALLED = FabricLoader.getInstance().isModLoaded("specterplus");
    private static final String DISCORD_INVITE = "https://discord.gg/UVjHt4QJwN";
@@ -407,7 +409,7 @@ public class SpecterScreen extends Screen {
 
       for (int i = BUTTONS.length - 1; i >= 0; i--) {
          int w = Ui.width(BUTTONS[i]) + 14;
-         if (i == 4) {
+         if (i == PLUS) {
             w = Math.max(w, 66);
          }
 
@@ -415,7 +417,7 @@ public class SpecterScreen extends Screen {
          right -= w + 3;
       }
 
-      int[] slot = this.buttons[4];
+      int[] slot = this.buttons[PLUS];
       this.plusSlot
          .setRectangle(Math.round(slot[2] * this.scale), Math.round(slot[3] * this.scale), Math.round(slot[0] * this.scale), Math.round(slot[1] * this.scale));
       int plusX = 4 + this.panels.size() * 115;
@@ -453,7 +455,7 @@ public class SpecterScreen extends Screen {
       this.search.render(ctx, searchX, 7, searchW, 14);
 
       for (int i = 0; i < BUTTONS.length; i++) {
-         if (i != 4 || !PLUS_INSTALLED) {
+         if (i != PLUS || !PLUS_INSTALLED) {
             int[] b = this.buttons[i];
             boolean hover = Ui.in(mx, my, b[0], b[1], b[2], b[3]);
             Ui.button(ctx, BUTTONS[i], b[0], b[1], b[2], b[3], hover);
@@ -584,7 +586,7 @@ public class SpecterScreen extends Screen {
             for (int i = 0; i < BUTTONS.length; i++) {
                int[] b = this.buttons[i];
                if (Ui.in(mx, my, b[0], b[1], b[2], b[3])) {
-                  if (i == 4) {
+                  if (i == PLUS) {
                      if (!PLUS_INSTALLED) {
                         this.openDiscord();
                      }
@@ -595,6 +597,8 @@ public class SpecterScreen extends Screen {
                   Ui.press(BUTTONS[i]);
                   if (i < this.menus.length) {
                      this.menu = this.menu == this.menus[i] ? null : this.menus[i];
+                  } else if (i == ACCOUNTS) {
+                     SpecterCore.mc.gui.setScreen(new TokenSwitcherScreen(this));
                   } else {
                      SpecterCore.mc.gui.setScreen(new HudEditorScreen(GuiThemes.get()));
                   }
@@ -751,7 +755,7 @@ public class SpecterScreen extends Screen {
    }
 
    private void openDiscord() {
-      Ui.press(BUTTONS[4]);
+      Ui.press(BUTTONS[PLUS]);
       if ("https://discord.gg/UVjHt4QJwN".isEmpty()) {
          this.notice("Specter+ is coming soon - ask in the Specter Discord.");
       } else {
