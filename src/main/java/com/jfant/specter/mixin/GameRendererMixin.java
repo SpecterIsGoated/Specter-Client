@@ -19,6 +19,15 @@ public abstract class GameRendererMixin {
       Motion.frame();
    }
 
+   /** Donut Phone: one animation step per frame, before the GUI is extracted (the 3D phone and its interface must agree). */
+   @Inject(
+      method = {"extract"},
+      at = {@At("HEAD")}
+   )
+   private void specter$phoneFrame(CallbackInfo ci) {
+      if (com.jfant.specter.phone.PhoneOS.started()) com.jfant.specter.phone.PhoneOS.get().frameStart();
+   }
+
    @Inject(
       method = {"shouldRenderBlockOutline"},
       at = {@At("HEAD")},

@@ -66,14 +66,18 @@ public abstract class Account<T extends Account<?>> implements ISerializable<T> 
         return cache;
     }
 
-    public static void setSession(User session) {
+    /**
+     * Switches the game to another account. The caller passes the access token it just built the User from, so this
+     * never reads a session token back out of the game.
+     */
+    public static void setSession(User session, String accessToken) {
         MinecraftAccessor mca = (MinecraftAccessor) mc;
         mca.meteor$setUser(session);
 
         MinecraftServicesDiscoveryService yggdrasilAuthenticationService = MinecraftServicesDiscoveryService.create(mc.getProxy());
 
-        UserApiService apiService = yggdrasilAuthenticationService.createUserApiService(session.getAccessToken());
-        FriendsService friendsService = yggdrasilAuthenticationService.createFriendsService(session.getAccessToken());
+        UserApiService apiService = yggdrasilAuthenticationService.createUserApiService(accessToken);
+        FriendsService friendsService = yggdrasilAuthenticationService.createFriendsService(accessToken);
         RemoteFriendListUpdateHandler remoteFriendListUpdateHandler = new RemoteFriendListUpdateHandler(friendsService, mc);
         mca.meteor$setUserApiService(apiService);
         mca.meteor$setPlayerSocialManager(new PlayerSocialManager(mc, apiService, friendsService, remoteFriendListUpdateHandler));

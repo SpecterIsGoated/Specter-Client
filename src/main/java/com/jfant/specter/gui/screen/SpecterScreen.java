@@ -851,6 +851,9 @@ public class SpecterScreen extends Screen {
       }
    }
 
+   /** Identity of the Account page (kept stable so its open/closed state survives). */
+   private static final Object ACCOUNT_KEY = new Object();
+
    private final class ClientPanel extends SpecterScreen.Panel {
       ClientPanel() {
          super("Client");
@@ -888,6 +891,14 @@ public class SpecterScreen extends Screen {
                ),
                () -> Hud.get().active,
                () -> Hud.get().active = !Hud.get().active
+            ),
+            new SpecterScreen.ItemRow(
+               "Account",
+               "Your Minecraft account ID (UUID), hidden until you click it.",
+               ACCOUNT_KEY,
+               () -> new Page(ACCOUNT_KEY, "Account", "", new com.jfant.specter.core.settings.Settings(), null, null, List.of(new AccountIdCard())),
+               null,
+               null
             )
          );
       }

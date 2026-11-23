@@ -67,7 +67,7 @@ public class SessionAccount extends Account<SessionAccount> implements TokenAcco
 
         super.login();
 
-        setSession(new User(cache.username, UndashedUuid.fromStringLenient(cache.uuid), accessToken, Optional.empty(), Optional.empty()));
+        setSession(new User(cache.username, UndashedUuid.fromStringLenient(cache.uuid), accessToken, Optional.empty(), Optional.empty()), accessToken);
         return true;
     }
 

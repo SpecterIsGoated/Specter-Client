@@ -82,6 +82,9 @@ dependencies {
         exclude("com.google.errorprone")
     }
 
+    // WebP pictures for the Donut Phone wallpaper picker (TwelveMonkeys, BSD-3-Clause, pure Java)
+    jij("com.twelvemonkeys.imageio:imageio-webp:3.12.0")
+
     // Spotify API (only published on JitPack; the jar from the original release lives in libs/repo)
     jij("com.github.labystudio:java-spotify-api:1.4.7")
 

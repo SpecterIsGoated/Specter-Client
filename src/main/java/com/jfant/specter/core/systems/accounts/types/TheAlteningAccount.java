@@ -60,7 +60,7 @@ public class TheAlteningAccount extends Account<TheAlteningAccount> implements T
         applyLoginEnvironment(SERVICE);
 
         try {
-            setSession(new User(cache.username, UndashedUuid.fromStringLenient(cache.uuid), accessToken, Optional.empty(), Optional.empty()));
+            setSession(new User(cache.username, UndashedUuid.fromStringLenient(cache.uuid), accessToken, Optional.empty(), Optional.empty()), accessToken);
             return true;
         } catch (Exception _) {
             SpecterCore.LOG.error("Failed to login with TheAltening.");

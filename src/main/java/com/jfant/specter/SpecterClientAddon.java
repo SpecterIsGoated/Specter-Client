@@ -39,6 +39,8 @@ import com.jfant.specter.modules.GhostFreecam;
 import com.jfant.specter.modules.GhostFreelook;
 import com.jfant.specter.modules.HitEffects;
 import com.jfant.specter.modules.JetMech;
+import com.jfant.specter.modules.DonutPhone;
+import com.jfant.specter.phone.PhoneOS;
 import com.jfant.specter.modules.HoleEsp;
 import com.jfant.specter.modules.HomeMethod;
 import com.jfant.specter.modules.HotbarScale;
@@ -192,6 +194,8 @@ public final class SpecterClientAddon {
       Modules.get().add(new PingSystem());
       Modules.get().add(new RealisticRain());
       Modules.get().add(new JetMech());
+      Modules.get().add(new DonutPhone());
+      PhoneOS.init();
       NotificationOverlay.init();
       WorldFx.init();
       AutoModules.register();

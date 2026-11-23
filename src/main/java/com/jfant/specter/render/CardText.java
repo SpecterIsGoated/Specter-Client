@@ -162,7 +162,25 @@ public final class CardText {
       return smooth.has(first) && smooth.has(second) ? smooth.kern(first, second) : 0.0F;
    }
 
+   /** Depth of {@link #pushSmooth()} calls: while above zero every draw uses the smooth font, whatever the theme. */
+   private static int forcedSmooth;
+
+   /** Draws with the smooth (Plus Jakarta Sans) face until {@link #popSmooth()}, whatever the GUI theme. Used by Donut Phone. */
+   public static void pushSmooth() {
+      forcedSmooth++;
+   }
+
+   public static void popSmooth() {
+      if (forcedSmooth > 0) {
+         forcedSmooth--;
+      }
+   }
+
    private static CardText.Face face() {
+      if (forcedSmooth > 0 && SMOOTH.smooth() != null) {
+         return SMOOTH;
+      }
+
       if (config == null) {
          config = Config.get();
       }
