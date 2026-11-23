@@ -43,7 +43,9 @@ public final class GhostView {
       if (users <= 0) return false;
       if (GhostFreecam.on() != null) return true;
       GhostFreelook look = GhostFreelook.on();
-      return look != null && look.seeThroughWalls();
+      if (look != null && look.seeThroughWalls()) return true;
+      com.jfant.specter.modules.AutoCliper clip = com.jfant.specter.modules.AutoCliper.on();
+      return clip != null && clip.seesThroughBlocks();
    }
 
    public static void enter() {

@@ -1,6 +1,7 @@
 package com.jfant.specter.modules;
 
 import com.jfant.specter.SpecterClientAddon;
+import com.jfant.specter.camera.GhostView;
 import com.jfant.specter.core.events.meteor.MouseScrollEvent;
 import com.jfant.specter.core.settings.BoolSetting;
 import com.jfant.specter.core.settings.DoubleSetting;
@@ -31,19 +32,25 @@ public class AutoCliper extends Module {
    private final Setting<Double> spiral = this.sgGeneral
       .add(new DoubleSetting.Builder().name("spiral").description("How much it drifts in and out while it circles (0 = a perfect circle).").defaultValue(0.35).range(0.0, 1.0).sliderRange(0.0, 1.0).build());
    private final Setting<Double> height = this.sgGeneral
-      .add(new DoubleSetting.Builder().name("height").description("Camera height above your eyes.").defaultValue(1.0).range(-3.0, 8.0).sliderRange(-2.0, 6.0).build());
+      .add(new DoubleSetting.Builder().name("height").description("Camera height above your eyes, in blocks (up to 256 for a sky view).").defaultValue(1.0).range(-16.0, 256.0).sliderRange(-8.0, 128.0).build());
    private final Setting<Double> bob = this.sgGeneral
-      .add(new DoubleSetting.Builder().name("height-wave").description("How much the height rises and falls along the way.").defaultValue(0.6).range(0.0, 4.0).sliderRange(0.0, 3.0).build());
+      .add(new DoubleSetting.Builder().name("height-wave").description("How much the height rises and falls along the way.").defaultValue(0.6).range(0.0, 32.0).sliderRange(0.0, 16.0).build());
    private final Setting<Double> distance = this.sgGeneral
-      .add(new DoubleSetting.Builder().name("distance").description("Starting distance from you (scroll changes it).").defaultValue(5.0).range(1.0, 40.0).sliderRange(1.0, 20.0).build());
+      .add(new DoubleSetting.Builder().name("distance").description("Starting distance from you in blocks (scroll changes it).").defaultValue(5.0).range(1.0, 256.0).sliderRange(1.0, 128.0).build());
    private final Setting<Double> minDistance = this.sgGeneral
-      .add(new DoubleSetting.Builder().name("min-distance").description("Closest scrolling can bring it.").defaultValue(2.0).range(0.5, 20.0).sliderRange(0.5, 10.0).build());
+      .add(new DoubleSetting.Builder().name("min-distance").description("Closest scrolling can bring it.").defaultValue(2.0).range(0.5, 64.0).sliderRange(0.5, 32.0).build());
    private final Setting<Double> maxDistance = this.sgGeneral
-      .add(new DoubleSetting.Builder().name("max-distance").description("Furthest scrolling can take it.").defaultValue(16.0).range(2.0, 64.0).sliderRange(2.0, 40.0).build());
+      .add(new DoubleSetting.Builder().name("max-distance").description("Furthest scrolling can take it.").defaultValue(128.0).range(2.0, 256.0).sliderRange(2.0, 256.0).build());
    private final Setting<Boolean> scroll = this.sgGeneral
       .add(new BoolSetting.Builder().name("scroll-zoom").description("Scroll moves the camera closer/further (instead of changing the hotbar slot).").defaultValue(true).build());
-   private final Setting<Boolean> avoidWalls = this.sgGeneral
-      .add(new BoolSetting.Builder().name("avoid-walls").description("Pull the camera in front of walls instead of looking through them.").defaultValue(true).build());
+   private final Setting<Boolean> throughWalls = this.sgGeneral
+      .add(
+         new BoolSetting.Builder()
+            .name("through-walls")
+            .description("The camera goes straight through blocks and still shows caves and you. Off: it is pulled in front of walls instead.")
+            .defaultValue(true)
+            .build()
+      );
 
    public double x, y, z;
    public float yaw, pitch;
@@ -64,8 +71,26 @@ public class AutoCliper extends Module {
       return m != null && m.isActive() && m.mc.player != null && GhostFreecam.on() == null ? m : null;
    }
 
+   /** Whether the camera may be inside blocks right now (cave culling must be off then; see GhostView). */
+   public boolean seesThroughBlocks() {
+      return this.throughWalls.get();
+   }
+
+   /** The camera view you had before, given back when this turns off (third person hides the floating hand). */
+   private net.minecraft.client.CameraType viewBefore;
+
+   @Override
+   public void onDeactivate() {
+      GhostView.exit();
+      if (this.viewBefore != null) this.mc.options.setCameraType(this.viewBefore);
+      this.viewBefore = null;
+   }
+
    @Override
    public void onActivate() {
+      GhostView.enter();
+      this.viewBefore = this.mc.options.getCameraType();
+      this.mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
       this.wanted = Mth.clamp(this.distance.get(), this.minDistance.get(), this.maxDistance.get());
       this.shown = this.wanted;
       this.blend = 0.0F;
@@ -98,7 +123,7 @@ public class AutoCliper extends Module {
       double h = this.height.get() + this.bob.get() * Math.sin(this.time * 0.23);
       double a = Math.toRadians(this.angle);
       double tx = eye.x + Math.cos(a) * r, ty = eye.y + h, tz = eye.z + Math.sin(a) * r;
-      if (this.avoidWalls.get()) {
+      if (!this.throughWalls.get()) {
          BlockHitResult hit = this.mc.level.clip(new ClipContext(eye, new Vec3(tx, ty, tz), ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, this.mc.player));
          if (hit.getType() == HitResult.Type.BLOCK) {
             Vec3 at = hit.getLocation();
