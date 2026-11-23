@@ -48,16 +48,22 @@ public final class TokenSwitcherScreen extends Screen {
       return (this.width - WIDTH) / 2;
    }
 
+   /** Panel height for a number of rows: header 46 + rows + add section 80. */
+   private int panelHeight() {
+      return 46 + this.visibleRows() * ROW + 8 + 72;
+   }
+
    private int top() {
-      return Math.max(10, this.height / 2 - 130);
+      return Math.max(4, (this.height - this.panelHeight()) / 2);
    }
 
    private int listTop() {
       return this.top() + 46;
    }
 
+   /** As many rows as fit the window (2 to 7). */
    private int visibleRows() {
-      return 7;
+      return Math.max(2, Math.min(7, (this.height - 8 - 46 - 8 - 72) / ROW));
    }
 
    @Override

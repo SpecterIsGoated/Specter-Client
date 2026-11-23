@@ -186,11 +186,11 @@ public class AngelWings extends Module {
          amp = 0.0F;
          freq = 1.0F;
       } else if (Wearer.speed > 0.08F) {
-         targetOpen = 0.16F;
+         targetOpen = 0.3F;
          amp = 0.05F;
          freq = 4.0F;
       } else {
-         targetOpen = 0.08F;
+         targetOpen = 0.24F;
          amp = 0.035F;
          freq = 1.3F;
       }
@@ -250,9 +250,10 @@ public class AngelWings extends Module {
       double bz = Wearer.z + this.upZ * shoulderUp + this.bkZ * 0.17 + this.rtZ * 0.1 * side;
       float o = Fx.smooth(this.open);
       // joint positions in the body frame (x = out, y = up, z = back), folded -> spread
-      double ex = Mth.lerp(o, 0.1, 0.36), ey = Mth.lerp(o, 0.12, 0.2), ez = Mth.lerp(o, 0.2, 0.08);
-      double wx = Mth.lerp(o, 0.12, 0.78), wy = Mth.lerp(o, -0.28, 0.34), wz = Mth.lerp(o, 0.32, 0.12);
-      double tx = Mth.lerp(o, 0.06, 1.42), ty = Mth.lerp(o, -0.98, 0.22), tz = Mth.lerp(o, 0.42, 0.2);
+      // folded: the wrist peaks above the shoulder and the hand sweeps down behind the back (classic angel silhouette)
+      double ex = Mth.lerp(o, 0.2, 0.4), ey = Mth.lerp(o, 0.22, 0.25), ez = Mth.lerp(o, 0.12, 0.1);
+      double wx = Mth.lerp(o, 0.3, 0.86), wy = Mth.lerp(o, 0.52, 0.45), wz = Mth.lerp(o, 0.2, 0.15);
+      double tx = Mth.lerp(o, 0.16, 1.52), ty = Mth.lerp(o, -0.95, 0.3), tz = Mth.lerp(o, 0.28, 0.2);
       // flap: rotate the arm around the back axis at the shoulder; wrist trails the beat a little
       double beat = Math.sin(this.flap * Math.PI * 2.0) * this.flapAmp;
       double lag = Math.sin(this.flap * Math.PI * 2.0 - 0.7) * this.flapAmp;
@@ -263,12 +264,8 @@ public class AngelWings extends Module {
       this.toWorld(bx, by, bz, e1[0] * sx, e1[1] * s, ez * s, this.el);
       this.toWorld(bx, by, bz, w1[0] * sx, w1[1] * s, wz * s, this.wr);
       this.toWorld(bx, by, bz, t1[0] * sx, t1[1] * s, tz * s, this.tp);
-      // wing surface normal: blends from "out" (folded flat against the back) to "back" (spread)
-      double nX = Mth.lerp(o, this.rtX * side, this.bkX), nY = Mth.lerp(o, this.rtY * side, this.bkY), nZ = Mth.lerp(o, this.rtZ * side, this.bkZ);
-      double nl = Math.sqrt(nX * nX + nY * nY + nZ * nZ);
-      nX /= nl;
-      nY /= nl;
-      nZ /= nl;
+      // the wing surface faces backwards, folded or spread (the flap turns the arm around that same axis)
+      double nX = this.bkX, nY = this.bkY, nZ = this.bkZ;
 
       int feather = this.customColor.get() ? this.color.get().getPacked() | 0xFF000000 : (fallen ? 0xFF2B2731 : 0xFFFFFFFF);
       int featherEdge = fallen ? 0xFF121016 : Fx.lerp(feather, 0xFFC9CFDC, 0.35F);
@@ -279,13 +276,13 @@ public class AngelWings extends Module {
       for (int i = 0; i < PRIMARIES; i++) {
          double u = (i + 0.5) / PRIMARIES;
          double len = (0.5 + 0.3 * Math.sin(u * Math.PI * 0.9)) * s;
-         this.feather(e, this.wr, this.tp, u, nX, nY, nZ, len, 0.11 * s, 0.72 * u, -0.012, feather, featherEdge, light * 0.93F, fallen, idx + i, side);
+         this.feather(e, this.wr, this.tp, u, nX, nY, nZ, len, 0.15 * s, 0.72 * u, -0.012, feather, featherEdge, light * 0.93F, fallen, idx + i, side);
       }
       // secondaries on the forearm
       for (int i = 0; i < SECONDARIES; i++) {
          double u = (i + 0.5) / SECONDARIES;
          double len = (0.44 + 0.06 * Math.sin(u * Math.PI)) * s * Mth.lerp(o, 0.8F, 1.0F);
-         this.feather(e, this.el, this.wr, u, nX, nY, nZ, len, 0.12 * s, 0.05, 0.0, feather, featherEdge, light * 0.97F, fallen, idx + 12 + i, side);
+         this.feather(e, this.el, this.wr, u, nX, nY, nZ, len, 0.16 * s, 0.05, 0.0, feather, featherEdge, light * 0.97F, fallen, idx + 12 + i, side);
       }
       // coverts over the bones (two rows), short and bright
       for (int i = 0; i < COVERTS; i++) {
@@ -374,9 +371,10 @@ public class AngelWings extends Module {
       double tX = dY * nZ - dZ * nY, tY = dZ * nX - dX * nZ, tZ = dX * nY - dY * nX;
       // feathers trail down when spread and back when folded, whichever way the bone runs
       double o = this.openNow;
-      double wantX = -this.upX * (0.2 + 0.8 * o) + this.bkX * (1.0 - o) * 0.8;
-      double wantY = -this.upY * (0.2 + 0.8 * o) + this.bkY * (1.0 - o) * 0.8;
-      double wantZ = -this.upZ * (0.2 + 0.8 * o) + this.bkZ * (1.0 - o) * 0.8;
+      // spread: feathers hang down; folded: they lie across the back towards the spine
+      double wantX = -this.upX * (0.2 + 0.8 * o) - this.rtX * side * (1.0 - o);
+      double wantY = -this.upY * (0.2 + 0.8 * o) - this.rtY * side * (1.0 - o);
+      double wantZ = -this.upZ * (0.2 + 0.8 * o) - this.rtZ * side * (1.0 - o);
       if (tX * wantX + tY * wantY + tZ * wantZ < 0.0) {
          tX = -tX;
          tY = -tY;
@@ -395,6 +393,20 @@ public class AngelWings extends Module {
       fX /= fl;
       fY /= fl;
       fZ /= fl;
+      // folded wings hang as a layered curtain: feathers point down (a little in towards the spine), blending to the
+      // spread direction as the wing opens
+      double hX = -this.upX * 0.92 - this.rtX * side * 0.3, hY = -this.upY * 0.92 - this.rtY * side * 0.3, hZ = -this.upZ * 0.92 - this.rtZ * side * 0.3;
+      double hl = Math.sqrt(hX * hX + hY * hY + hZ * hZ);
+      fX = Mth.lerp(o, hX / hl, fX);
+      fY = Mth.lerp(o, hY / hl, fY);
+      fZ = Mth.lerp(o, hZ / hl, fZ);
+      fl = Math.sqrt(fX * fX + fY * fY + fZ * fZ);
+      if (fl < 1.0E-4) return;
+      fX /= fl;
+      fY /= fl;
+      fZ /= fl;
+      // folded, the hand already reaches the calves: keep its feathers off the ground
+      if (fan > 0.2) length *= Mth.lerp(o, 0.5, 1.0);
       // feather plane: along f, width across the wing surface
       double wX = nY * fZ - nZ * fY, wY = nZ * fX - nX * fZ, wZ = nX * fY - nY * fX;
       double cx = rootX + fX * length * 0.5 + nX * layer, cy = rootY + fY * length * 0.5 + nY * layer, cz = rootZ + fZ * length * 0.5 + nZ * layer;
