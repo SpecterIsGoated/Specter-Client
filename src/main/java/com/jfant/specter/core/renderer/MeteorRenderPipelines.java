@@ -76,6 +76,30 @@ public abstract class MeteorRenderPipelines {
         .build()
     );
 
+    /** Depth-tested AND depth-writing triangles: solid cosmetics (voxels, feathers, relic bodies) that must hide each other correctly. */
+    public static final RenderPipeline WORLD_COLORED_SOLID = add(new ExtendedRenderPipelineBuilder(MESH_UNIFORMS)
+        .withLocation(SpecterCore.identifier("pipeline/world_colored_solid"))
+        .withVertexBinding(0, DefaultVertexFormat.POSITION_COLOR).withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
+        .withVertexShader(SpecterCore.identifier("shaders/pos_color.vsh"))
+        .withFragmentShader(SpecterCore.identifier("shaders/pos_color.fsh"))
+        .withDepthStencilState(new DepthStencilState(DepthStencilState.DEFAULT.depthTest(), true))
+        .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+        .withCull(false)
+        .build()
+    );
+
+    /** Depth-tested additive triangles (no depth write): glows, sparks, light. Order never matters. */
+    public static final RenderPipeline WORLD_COLORED_GLOW = add(new ExtendedRenderPipelineBuilder(MESH_UNIFORMS)
+        .withLocation(SpecterCore.identifier("pipeline/world_colored_glow"))
+        .withVertexBinding(0, DefaultVertexFormat.POSITION_COLOR).withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
+        .withVertexShader(SpecterCore.identifier("shaders/pos_color.vsh"))
+        .withFragmentShader(SpecterCore.identifier("shaders/pos_color.fsh"))
+        .withDepthStencilState(new DepthStencilState(DepthStencilState.DEFAULT.depthTest(), false))
+        .withColorTargetState(new ColorTargetState(BlendFunction.LIGHTNING))
+        .withCull(false)
+        .build()
+    );
+
     public static final RenderPipeline WORLD_COLORED_LINES_DEPTH = add(new ExtendedRenderPipelineBuilder(MESH_UNIFORMS)
         .withLineSmooth()
         .withLocation(SpecterCore.identifier("pipeline/world_colored_lines_depth"))

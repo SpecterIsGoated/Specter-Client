@@ -61,6 +61,12 @@ public abstract class GameRendererMixin {
     private Renderer3D depthRenderer;
 
     @Unique
+    private Renderer3D solidRenderer;
+
+    @Unique
+    private Renderer3D glowRenderer;
+
+    @Unique
     private final PoseStack matrices = new PoseStack();
 
     @Shadow
@@ -97,6 +103,10 @@ public abstract class GameRendererMixin {
             renderer = new Renderer3D(MeteorRenderPipelines.WORLD_COLORED_LINES, MeteorRenderPipelines.WORLD_COLORED);
         if (depthRenderer == null)
             depthRenderer = new Renderer3D(MeteorRenderPipelines.WORLD_COLORED_LINES_DEPTH, MeteorRenderPipelines.WORLD_COLORED_DEPTH);
+        if (solidRenderer == null)
+            solidRenderer = new Renderer3D(MeteorRenderPipelines.WORLD_COLORED_LINES_DEPTH, MeteorRenderPipelines.WORLD_COLORED_SOLID);
+        if (glowRenderer == null)
+            glowRenderer = new Renderer3D(MeteorRenderPipelines.WORLD_COLORED_LINES_DEPTH, MeteorRenderPipelines.WORLD_COLORED_GLOW);
         Render3DEvent event = Render3DEvent.get(bobStack, renderer, depthRenderer, worldPartialTicks, mainCamera.position().x, mainCamera.position().y, mainCamera.position().z);
 
         // Update model view matrix
@@ -121,11 +131,17 @@ public abstract class GameRendererMixin {
 
         // Render
 
+        event.solidRenderer = solidRenderer;
+        event.glowRenderer = glowRenderer;
         renderer.begin();
         depthRenderer.begin();
+        solidRenderer.begin();
+        glowRenderer.begin();
         SpecterCore.EVENT_BUS.post(event);
+        solidRenderer.render(bobStack);
         renderer.render(bobStack);
         depthRenderer.render(bobStack);
+        glowRenderer.render(bobStack);
 
         // Revert model view matrix
 

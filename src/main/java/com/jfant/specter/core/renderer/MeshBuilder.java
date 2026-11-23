@@ -124,6 +124,21 @@ public class MeshBuilder {
         return this;
     }
 
+    /** Packed 0xAARRGGBB colour, without a Color object. */
+    public MeshBuilder color(int argb) {
+        debugVertexBufferCapacity();
+
+        long p = verticesPointer;
+
+        memPutByte(p, (byte) (argb >> 16));
+        memPutByte(p + 1, (byte) (argb >> 8));
+        memPutByte(p + 2, (byte) argb);
+        memPutByte(p + 3, (byte) ((argb >>> 24) * (float) alpha));
+
+        verticesPointer += 4;
+        return this;
+    }
+
     public int next() {
         return vertexI++;
     }

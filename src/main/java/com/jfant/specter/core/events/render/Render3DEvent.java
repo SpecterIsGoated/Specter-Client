@@ -15,6 +15,10 @@ public class Render3DEvent {
     public PoseStack matrices;
     public Renderer3D renderer;
     public Renderer3D depthRenderer;
+    /** Depth tested and depth writing: opaque cosmetics. Drawn first. */
+    public Renderer3D solidRenderer;
+    /** Depth tested, additive, no depth write: glows. Drawn after the solid and depth renderers. */
+    public Renderer3D glowRenderer;
     public double frameTime;
     public float tickDelta;
     public double offsetX, offsetY, offsetZ;
