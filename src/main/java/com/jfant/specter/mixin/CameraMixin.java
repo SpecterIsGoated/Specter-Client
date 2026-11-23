@@ -5,6 +5,7 @@ import com.jfant.specter.modules.CustomFov;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.jfant.specter.modules.AutoCliper;
 import com.jfant.specter.modules.GhostFreecam;
 import com.jfant.specter.modules.GhostFreelook;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -36,6 +37,9 @@ public abstract class CameraMixin {
       GhostFreecam cam = GhostFreecam.on();
       if (cam != null) {
          cam.stepFrame();
+      } else {
+         AutoCliper clip = AutoCliper.on();
+         if (clip != null) clip.stepFrame(partialTicks);
       }
    }
 
@@ -52,8 +56,11 @@ public abstract class CameraMixin {
          original.call(new Object[]{camera, cam.yaw, cam.pitch});
       } else {
          GhostFreelook look = GhostFreelook.on();
+         AutoCliper clip = look == null ? AutoCliper.on() : null;
          if (look != null) {
             original.call(new Object[]{camera, look.yaw, look.pitch});
+         } else if (clip != null) {
+            original.call(new Object[]{camera, clip.yaw, clip.pitch});
          } else {
             original.call(new Object[]{camera, yaw, pitch});
          }
@@ -69,6 +76,12 @@ public abstract class CameraMixin {
       if (cam != null) {
          this.setPosition(cam.x, cam.y, cam.z);
          this.detached = true;
+      } else if (GhostFreelook.on() == null) {
+         AutoCliper clip = AutoCliper.on();
+         if (clip != null) {
+            this.setPosition(clip.x, clip.y, clip.z);
+            this.detached = true;
+         }
       }
    }
 
