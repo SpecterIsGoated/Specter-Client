@@ -81,7 +81,7 @@ public class RealisticRain extends Module {
          new DoubleSetting.Builder()
             .name("reflections")
             .description("How strongly wet ground and puddles mirror things. 0 = no reflections (fastest).")
-            .defaultValue(0.25)
+            .defaultValue(0.5)
             .range(0.0, 1.0)
             .sliderRange(0.0, 1.0)
             .visible(this.wetGround::get)
