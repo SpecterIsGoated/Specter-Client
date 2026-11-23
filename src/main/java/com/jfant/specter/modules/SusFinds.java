@@ -26,6 +26,10 @@ import com.jfant.specter.core.utils.render.color.Color;
 import com.jfant.specter.sus.SusFind;
 import com.jfant.specter.sus.SusFindStore;
 import com.jfant.specter.sus.SusMapScreen;
+import com.jfant.specter.render.ChunkOutline;
+import com.jfant.specter.render.ChunkRects;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -134,6 +138,38 @@ public class SusFinds extends Module {
    private final Color dim = new Color(200, 200, 215, 255);
    private String scope;
    private int ticks;
+   /** The finds as last copied out of the store; refreshed only when the store changes (not every frame). */
+   private List<SusFind> view = List.of();
+   private int viewVersion = -1;
+
+   private List<SusFind> view() {
+      int v = this.store.version();
+      if (v != this.viewVersion) {
+         this.view = this.store.snapshot();
+         this.viewVersion = v;
+         this.shapes.clear();
+      }
+      return this.view;
+   }
+
+   /** Merged rectangles [0] and outer edges [1] of a find, built once per list change (ChunkRects/ChunkOutline). */
+   private final Int2ObjectOpenHashMap<IntArrayList[]> shapes = new Int2ObjectOpenHashMap<>();
+   private final ChunkOutline outlineBuilder = new ChunkOutline();
+   private final LongArrayList cells = new LongArrayList();
+
+   private IntArrayList[] shape(SusFind f) {
+      IntArrayList[] shape = this.shapes.get(f.id);
+      if (shape != null) return shape;
+      long[] keys = new long[f.size()];
+      int i = 0;
+      for (long key : f.chunks) keys[i++] = ScoreStore.key(ChunkPos.getX(key), ChunkPos.getZ(key));
+      IntArrayList rects = new IntArrayList(), edges = new IntArrayList();
+      ChunkRects.rebuild(keys, f.blockX() >> 4, f.blockZ() >> 4, Integer.MAX_VALUE / 4, SusFind.MAX_CHUNKS, true, this.cells, rects);
+      this.outlineBuilder.rebuild(this.cells, edges);
+      shape = new IntArrayList[]{rects, edges};
+      this.shapes.put(f.id, shape);
+      return shape;
+   }
 
    public SusFinds() {
       super(
@@ -271,17 +307,14 @@ public class SusFinds extends Module {
    private void onRender3D(Render3DEvent event) {
       if (this.mc.player == null || this.store.size() == 0) return;
       double y = this.outlineY.get();
-      for (SusFind f : this.store.snapshot()) {
+      for (SusFind f : this.view()) {
          if (!this.shown(f) || !this.inRange(f)) continue;
          int rgb = f.confidence().rgb;
          this.fill.set(rgb >> 16 & 255, rgb >> 8 & 255, rgb & 255, 38);
          this.line.set(rgb >> 16 & 255, rgb >> 8 & 255, rgb & 255, 220);
          if (this.outlines.get()) {
-            for (long key : f.chunks) {
-               double x1 = ChunkPos.getX(key) * 16.0;
-               double z1 = ChunkPos.getZ(key) * 16.0;
-               event.depthRenderer.sideHorizontal(x1, y, z1, x1 + 16.0, z1 + 16.0, this.fill, this.line, ShapeMode.Both);
-            }
+            IntArrayList[] shape = this.shape(f);
+            ChunkOutline.draw(event.depthRenderer, shape[0], shape[1], y, this.fill, this.line, ShapeMode.Both);
          }
 
          if (this.beams.get()) {
@@ -298,7 +331,7 @@ public class SusFinds extends Module {
    private void onRender2D(Render2DEvent event) {
       if (this.mc.player == null || !this.labels.get() || this.store.size() == 0) return;
       TextRenderer text = TextRenderer.get();
-      for (SusFind f : this.store.snapshot()) {
+      for (SusFind f : this.view()) {
          if (!this.shown(f) || !this.inRange(f)) continue;
          double dx = f.blockX() - this.mc.player.getX();
          double dz = f.blockZ() - this.mc.player.getZ();
@@ -307,7 +340,7 @@ public class SusFinds extends Module {
          if (!NametagUtils.to2D(this.labelPos, 1.2, false)) continue;
          SusFind.Confidence c = f.confidence();
          String title = "#" + f.id + "  " + c.title;
-         String detail = String.format(Locale.ROOT, "%d chunk%s  %s  %s", f.size(), f.size() == 1 ? "" : "s", metres(distance), f.sourceText());
+         String detail = f.size() + (f.size() == 1 ? " chunk  " : " chunks  ") + metres(distance) + "  " + f.sourceText();
          NametagUtils.begin(this.labelPos, event.graphics);
          text.begin(event.graphics);
          double h = text.getHeight(true);

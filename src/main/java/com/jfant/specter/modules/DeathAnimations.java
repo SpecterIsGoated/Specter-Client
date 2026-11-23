@@ -365,7 +365,7 @@ public class DeathAnimations extends Module {
 
    @EventHandler
    private void onRender3D(Render3DEvent event) {
-      if (this.mc.level == null) return;
+      if (this.mc.level == null || (this.active.isEmpty() && this.fx.count() == 0)) return;
       Fx.camera();
       float pt = event.tickDelta;
       for (Death d : this.active) {

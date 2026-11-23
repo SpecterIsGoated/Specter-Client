@@ -69,6 +69,10 @@ public abstract class GameRendererMixin {
     @Unique
     private final PoseStack matrices = new PoseStack();
 
+    /** Reused every frame (was a new Matrix4f per frame). */
+    @Unique
+    private final Matrix4f specter$inverseBob = new Matrix4f();
+
     @Shadow
     protected abstract void bobView(final CameraRenderState cameraState, final PoseStack poseStack);
 
@@ -119,7 +123,7 @@ public abstract class GameRendererMixin {
             bobView(this.gameRenderState.levelRenderState.cameraRenderState, matrices);
         }
 
-        Matrix4f inverseBob = new Matrix4f(matrices.last().pose()).invert();
+        Matrix4f inverseBob = this.specter$inverseBob.set(matrices.last().pose()).invert();
         RenderSystem.getModelViewStack().mul(inverseBob);
         matrices.popPose();
 
