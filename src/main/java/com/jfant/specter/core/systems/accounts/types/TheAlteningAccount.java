@@ -10,7 +10,6 @@ import com.mojang.authlib.services.MinecraftServicesDiscoveryService;
 import com.mojang.util.UndashedUuid;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.systems.accounts.Account;
-import com.jfant.specter.core.systems.accounts.TokenVault;
 import com.jfant.specter.core.systems.accounts.AccountType;
 import com.jfant.specter.core.systems.accounts.TokenAccount;
 import com.jfant.specter.core.utils.misc.NbtException;
@@ -86,7 +85,7 @@ public class TheAlteningAccount extends Account<TheAlteningAccount> implements T
 
         tag.putString("type", type.name());
         tag.putString("name", name);
-        tag.putString("token", TokenVault.protect(token));
+        tag.putString("token", token);
         tag.put("cache", cache.toTag());
 
         return tag;
@@ -98,7 +97,7 @@ public class TheAlteningAccount extends Account<TheAlteningAccount> implements T
             throw new NbtException();
 
         name = tag.getString("name").get();
-        token = TokenVault.reveal(tag.getString("token").get());
+        token = tag.getString("token").get();
         cache.fromTag(tag.getCompound("cache").get());
 
         return this;

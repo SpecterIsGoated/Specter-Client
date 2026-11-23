@@ -163,6 +163,13 @@ public class SpotifyHud extends Module {
    @Override
    public void onActivate() {
       this.track = null;
+      // Specter ships only the Windows part of the Spotify library (the Linux/macOS parts run shell commands, which
+      // malware scanners flag), so reading Spotify works on Windows only.
+      if (!System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("win")) {
+         this.warning("Reading Spotify only works on Windows.");
+         this.toggle();
+         return;
+      }
       SpotifyAPI created = SpotifyAPIFactory.create();
       created.registerListener(new SpotifyListenerAdapter() {
          public void onTrackChanged(Track changed) {

@@ -8,7 +8,6 @@ package com.jfant.specter.core.systems.accounts.types;
 import com.mojang.util.UndashedUuid;
 import com.jfant.specter.core.SpecterCore;
 import com.jfant.specter.core.systems.accounts.Account;
-import com.jfant.specter.core.systems.accounts.TokenVault;
 import com.jfant.specter.core.systems.accounts.AccountType;
 import com.jfant.specter.core.systems.accounts.TokenAccount;
 import com.jfant.specter.core.utils.network.Http;
@@ -29,14 +28,14 @@ public class SessionAccount extends Account<SessionAccount> implements TokenAcco
     public SessionAccount fromTag(CompoundTag tag) {
         super.fromTag(tag);
 
-        accessToken = TokenVault.reveal(tag.getStringOr("token", ""));
+        accessToken = tag.getStringOr("token", "");
         return this;
     }
 
     @Override
     public CompoundTag toTag() {
         CompoundTag tag = super.toTag();
-        tag.putString("token", TokenVault.protect(accessToken));
+        tag.putString("token", accessToken);
         return tag;
     }
 

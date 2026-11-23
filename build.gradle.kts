@@ -38,7 +38,11 @@ repositories {
                 url = uri("libs/repo")
             }
         }
-        filter { includeGroup("com.github.labystudio") }
+        filter {
+            includeGroup("com.github.labystudio")
+            // copies of bundled libraries with the files malware scanners flag taken out (see libs/repo/specter/README.md)
+            includeGroup("specter.stripped")
+        }
     }
 }
 
@@ -83,10 +87,18 @@ dependencies {
     }
 
     // WebP pictures for the Donut Phone wallpaper picker (TwelveMonkeys, BSD-3-Clause, pure Java)
-    jij("com.twelvemonkeys.imageio:imageio-webp:3.12.0")
+    jij("com.twelvemonkeys.imageio:imageio-webp:3.12.0") {
+        exclude(group = "com.twelvemonkeys.common", module = "common-io")
+        exclude(group = "com.twelvemonkeys.imageio", module = "imageio-core")
+    }
+    // the same versions, minus the common-io FileSystem classes (they run df/dir for free disk space, never used for
+    // pictures) and the imageio-core list of Windows colour-profile paths
+    jij("specter.stripped:common-io:3.12.0")
+    jij("specter.stripped:imageio-core:3.12.0")
 
     // Spotify API (only published on JitPack; the jar from the original release lives in libs/repo)
-    jij("com.github.labystudio:java-spotify-api:1.4.7")
+    // Windows part only: the Linux/macOS parts start dbus-send / osascript processes (see SkyLyrics, SpotifyHud)
+    jij("specter.stripped:java-spotify-api:1.4.7")
 
     // Unit tests for the pure helpers (perf/SectionThrottle, ping/PingMath)
     testImplementation(platform("org.junit:junit-bom:5.11.4"))

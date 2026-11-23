@@ -106,7 +106,7 @@ public abstract class Account<T extends Account<?>> implements ISerializable<T> 
         CompoundTag tag = new CompoundTag();
 
         tag.putString("type", type.name());
-        tag.putString("name", holdsSecretName() ? TokenVault.protect(name) : name);
+        tag.putString("name", name);
         tag.put("cache", cache.toTag());
 
         return tag;
@@ -117,7 +117,7 @@ public abstract class Account<T extends Account<?>> implements ISerializable<T> 
     public T fromTag(CompoundTag tag) {
         if (tag.getString("name").isEmpty() || tag.getCompound("cache").isEmpty()) throw new NbtException();
 
-        name = TokenVault.reveal(tag.getString("name").get());
+        name = tag.getString("name").get();
         cache.fromTag(tag.getCompound("cache").get());
 
         return (T) this;

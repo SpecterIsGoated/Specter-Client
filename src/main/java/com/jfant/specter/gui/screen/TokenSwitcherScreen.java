@@ -26,7 +26,7 @@ import net.minecraft.util.FormattedCharSequence;
  * and a field to add an account from a session token.
  *
  * <p>Tokens are never shown: the field displays dots while you paste, accounts are listed by their verified Minecraft
- * name, nothing is logged, and they are saved encrypted ({@code TokenVault}). Checking a token and switching run off
+ * name and nothing is logged. Checking a token and switching run off
  * the game thread; a rejected or expired token is reported, never crashes, and leaves your current session as it was.
  * Switching changes who you are for the NEXT server you join - the current connection keeps its account.
  */

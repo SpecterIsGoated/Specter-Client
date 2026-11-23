@@ -8,7 +8,6 @@ package com.jfant.specter.core.gui;
 import com.jfant.specter.core.gui.renderer.packer.GuiTexture;
 import com.jfant.specter.core.gui.screens.ModuleScreen;
 import com.jfant.specter.core.gui.screens.ModulesScreen;
-import com.jfant.specter.core.gui.screens.ProxiesScreen;
 import com.jfant.specter.core.gui.screens.accounts.AccountsScreen;
 import com.jfant.specter.core.gui.tabs.TabScreen;
 import com.jfant.specter.core.gui.utils.CharFilter;
@@ -268,10 +267,6 @@ public abstract class GuiTheme implements ISerializable<GuiTheme> {
 
     public WidgetScreen accountsScreen() {
         return new AccountsScreen(this);
-    }
-
-    public WidgetScreen proxiesScreen() {
-        return new ProxiesScreen(this);
     }
 
     // Colors

@@ -135,51 +135,6 @@ public class Proxies extends System<Proxies> implements Iterable<Proxy> {
         save();
     }
 
-    public void checkProxies(boolean all) {
-        if (refreshing || isEmpty()) return;
-        refreshing = true;
-
-        MeteorExecutor.execute(() -> {
-            BlockingQueue<Proxy> toCheck = new ArrayBlockingQueue<>(proxies.size());
-            proxies.forEach(proxy -> {
-                if (all || proxy.status == Proxy.Status.UNCHECKED) toCheck.add(proxy);
-            });
-
-            ConcurrentHashMap<Proxy, Integer> checked = new ConcurrentHashMap<>(proxies.size(), 1);
-            proxies.forEach(proxy -> checked.put(proxy, 0));
-
-            try (ExecutorService executor = Executors.newFixedThreadPool(threads.get())) {
-                for (int i = 0; i < threads.get(); i++) {
-                    executor.execute(() -> {
-                        try {
-                            check(toCheck, checked);
-                        } catch (InterruptedException _) {
-                        }
-                    });
-                }
-
-                try {
-                    executor.shutdown();
-                    //noinspection ResultOfMethodCallIgnored
-                    executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-                } catch (InterruptedException _) {
-                }
-
-                refreshing = false;
-            }
-        });
-    }
-
-    private void check(BlockingQueue<Proxy> queue, ConcurrentHashMap<Proxy, Integer> checks) throws InterruptedException {
-        while (!queue.isEmpty()) {
-            Proxy proxy = queue.take();
-            if (proxy.checkStatus() == 3 && checks.get(proxy) <= tries.get()) {
-                checks.put(proxy, checks.get(proxy) + 1);
-                queue.put(proxy);
-            }
-        }
-    }
-
     public void clean() {
         if (refreshing) return;
 
