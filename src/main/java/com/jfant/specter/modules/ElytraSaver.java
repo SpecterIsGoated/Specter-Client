@@ -101,6 +101,8 @@ public class ElytraSaver extends Module {
 
    private boolean warned;
    private boolean swapped;
+   /** Ticks since this glide started. */
+   private int glideTicks;
    private int cooldown;
    private int groundTicks;
    private String lastAction = "";
@@ -149,6 +151,7 @@ public class ElytraSaver extends Module {
       }
 
       if (!this.crashGuard.get()) return;
+      this.glideTicks = this.mc.player.isFallFlying() ? this.glideTicks + 1 : 0;
       if (this.mc.player.isFallFlying() && !this.swapped && this.cooldown == 0 && this.aboutToCrash()) {
          this.equipChestplate();
       }
@@ -160,11 +163,17 @@ public class ElytraSaver extends Module {
    }
 
    /** Rays along the velocity from the eyes, the feet and both shoulders. */
+   /**
+    * Only walls count: elytra "kinetic" damage comes from hitting something sideways, so the rays follow the
+    * HORIZONTAL velocity and a hit on the top of a block (the ground) is ignored. Never in the first second and a half
+    * of a glide - at take-off the ground is right there, and swapping then would stop you from ever getting up.
+    */
    private boolean aboutToCrash() {
+      if (this.glideTicks < 30) return false;
       Vec3 v = this.mc.player.getDeltaMovement();
-      double speed = v.length();
+      double speed = Math.sqrt(v.x * v.x + v.z * v.z);
       if (speed * 20.0 < this.minSpeed.get() || speed < 1.0E-4) return false;
-      Vec3 dir = v.scale(1.0 / speed);
+      Vec3 dir = new Vec3(v.x / speed, 0.0, v.z / speed);
       double reach = this.distance.get() + speed * 2.0; // two ticks of travel for the swap to land
       Vec3 eye = this.mc.player.getEyePosition();
       Vec3 feet = this.mc.player.position().add(0.0, 0.3, 0.0);
@@ -175,7 +184,8 @@ public class ElytraSaver extends Module {
       for (Vec3 from : origins) {
          Vec3 to = from.add(dir.scale(reach));
          BlockHitResult hit = this.mc.level.clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this.mc.player));
-         if (hit.getType() == HitResult.Type.BLOCK && hit.getLocation().distanceTo(from) <= this.distance.get() + speed) return true;
+         if (hit.getType() != HitResult.Type.BLOCK || hit.getDirection() == net.minecraft.core.Direction.UP) continue;
+         if (hit.getLocation().distanceTo(from) <= this.distance.get() + speed) return true;
       }
       return false;
    }
