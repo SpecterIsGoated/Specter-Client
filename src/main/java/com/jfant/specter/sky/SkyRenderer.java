@@ -32,9 +32,12 @@ import com.mojang.renderpearl.api.textures.FilterMode;
 import com.mojang.renderpearl.api.textures.GpuSampler;
 import com.mojang.renderpearl.api.textures.GpuTexture;
 import com.mojang.renderpearl.api.textures.GpuTextureView;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import javax.imageio.ImageIO;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -56,8 +59,8 @@ public final class SkyRenderer {
    private static final Logger LOG = LoggerFactory.getLogger("Specter Sky");
    private static final String NS = "specter-client";
    private static final Identifier NOISE = Identifier.fromNamespaceAndPath("specter-client", "textures/sky/noise.png");
-   private static final Identifier MILKY_WAY = Identifier.fromNamespaceAndPath("specter-client", "textures/sky/milkyway.png");
-   private static final Identifier NEBULA = Identifier.fromNamespaceAndPath("specter-client", "textures/sky/nebula.png");
+   private static final Identifier MILKY_WAY = Identifier.fromNamespaceAndPath("specter-client", "textures/sky/milkyway.jpg");
+   private static final Identifier NEBULA = Identifier.fromNamespaceAndPath("specter-client", "textures/sky/nebula.jpg");
    public static final double WRAP = 10240.0;
    // 26.x: uniforms are declared through bind-group layouts, depth state through DepthStencilState (reversed Z,
    // so "nearer or equal" is GREATER_THAN_OR_EQUAL), and no depth state at all means no depth test or write.
@@ -422,7 +425,7 @@ public final class SkyRenderer {
          try {
             NativeImage var4;
             try (InputStream in = resource.get().open()) {
-               var4 = NativeImage.read(in);
+               var4 = id.getPath().endsWith(".jpg") ? readJpeg(in) : NativeImage.read(in);
             }
 
             return var4;
@@ -430,6 +433,23 @@ public final class SkyRenderer {
             throw new IllegalStateException("Could not read " + id, var8);
          }
       }
+   }
+
+   /** NativeImage only reads PNG, so the JPEG sky photos (a fraction of the PNG size) are decoded with the JDK and copied pixel by pixel. */
+   private static NativeImage readJpeg(InputStream in) throws IOException {
+      BufferedImage decoded = ImageIO.read(in);
+      if (decoded == null) {
+         throw new IOException("Not a readable JPEG");
+      }
+
+      NativeImage image = new NativeImage(decoded.getWidth(), decoded.getHeight(), false);
+      for (int y = 0; y < decoded.getHeight(); y++) {
+         for (int x = 0; x < decoded.getWidth(); x++) {
+            image.setPixel(x, y, 0xFF000000 | decoded.getRGB(x, y) & 0xFFFFFF);
+         }
+      }
+
+      return image;
    }
 
    private static GpuTexture load(Minecraft mc, Identifier id, String label) {
