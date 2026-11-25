@@ -18,6 +18,7 @@ import com.jfant.specter.core.systems.friends.Friends;
 import com.jfant.specter.core.systems.modules.Module;
 import com.jfant.specter.core.utils.entity.fakeplayer.FakePlayerEntity;
 import com.jfant.specter.core.utils.player.PlayerUtils;
+import com.jfant.specter.core.utils.render.RenderUtils;
 import com.jfant.specter.core.utils.render.WireframeEntityRenderer;
 import com.jfant.specter.core.utils.render.color.Color;
 import com.jfant.specter.core.utils.render.color.SettingColor;
@@ -139,6 +140,29 @@ public class PlayerDetection extends Module {
       );
    private final Setting<Boolean> legs = this.sgSkeleton
       .add(new BoolSetting.Builder().name("legs").description("Include the hips and legs.").defaultValue(true).visible(this.skeleton::get).build());
+   private final SettingGroup sgTracer = this.settings.createGroup("Tracer");
+   private final Setting<Boolean> tracer = this.sgTracer
+      .add(new BoolSetting.Builder().name("tracer").description("Draw a big line from your crosshair to each player the module has detected.").defaultValue(true).build());
+   private final Setting<SettingColor> tracerColor = this.sgTracer
+      .add(
+         new ColorSetting.Builder()
+            .name("tracer-color")
+            .description("Color of the tracer.")
+            .defaultValue(new SettingColor(0, 110, 255, 255))
+            .visible(this.tracer::get)
+            .build()
+      );
+   private final Setting<Integer> tracerWidth = this.sgTracer
+      .add(
+         new IntSetting.Builder()
+            .name("tracer-width")
+            .description("How thick the tracer looks on screen, in pixels. It gets wider with distance so it stays about the same size near or far.")
+            .defaultValue(6)
+            .min(1)
+            .sliderRange(1, 20)
+            .visible(this.tracer::get)
+            .build()
+      );
    private final Setting<PlayerDetection.Notify> notify = this.sgDetection
       .add(
          ((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)new EnumSetting.Builder().name("notification-mode"))
@@ -185,6 +209,9 @@ public class PlayerDetection extends Module {
    private final Color lineColor = new Color();
    private final Color sideColor = new Color();
    private final Color distanceColor = new Color();
+   private final Color tracerLine = new Color();
+   private final double[] tracerSideA = new double[3];
+   private final double[] tracerSideB = new double[3];
    private final Matrix4f bodyMatrix = new Matrix4f();
    private final Matrix4f partMatrix = new Matrix4f();
    private final Quaternionf partRotation = new Quaternionf();
@@ -350,10 +377,75 @@ public class PlayerDetection extends Module {
                if (this.skeleton.get()) {
                   this.drawSkeleton(event, player);
                }
+
+               if (this.tracer.get() && this.present.contains(player.getGameProfile().name().toLowerCase(Locale.ROOT))) {
+                  this.drawTracer(event, player);
+               }
             }
          }
       }
    }
+
+   /**
+    * A big line from the crosshair to the player's chest: a thin line plus a flat ribbon turned to face the camera
+    * (drawn from both sides), whose half-width grows with the distance from the camera so it keeps about the same
+    * size on screen near or far.
+    */
+   private void drawTracer(Render3DEvent event, Player player) {
+      Vec3 from = RenderUtils.center;
+      if (from == null) {
+         return;
+      }
+
+      double px = Mth.lerp((double)event.tickDelta, player.xOld, player.getX());
+      double py = Mth.lerp((double)event.tickDelta, player.yOld, player.getY()) + player.getBbHeight() * 0.7;
+      double pz = Mth.lerp((double)event.tickDelta, player.zOld, player.getZ());
+      SettingColor set = this.tracerColor.get();
+      this.tracerLine.set(set.r, set.g, set.b, set.a);
+      event.renderer.line(from.x, from.y, from.z, px, py, pz, this.tracerLine);
+      Vec3 cam = this.mc.gameRenderer.mainCamera().position();
+      double dx = px - from.x;
+      double dy = py - from.y;
+      double dz = pz - from.z;
+      double perUnit = this.tracerWidth.get() * 5.5E-4;
+      double[] sideA = this.tracerSideA;
+      double[] sideB = this.tracerSideB;
+      if (this.ribbonSide(dx, dy, dz, from.x - cam.x, from.y - cam.y, from.z - cam.z, perUnit, sideA)
+         && this.ribbonSide(dx, dy, dz, px - cam.x, py - cam.y, pz - cam.z, perUnit, sideB)) {
+         double ax1 = from.x - sideA[0];
+         double ay1 = from.y - sideA[1];
+         double az1 = from.z - sideA[2];
+         double ax2 = from.x + sideA[0];
+         double ay2 = from.y + sideA[1];
+         double az2 = from.z + sideA[2];
+         double bx1 = px + sideB[0];
+         double by1 = py + sideB[1];
+         double bz1 = pz + sideB[2];
+         double bx2 = px - sideB[0];
+         double by2 = py - sideB[1];
+         double bz2 = pz - sideB[2];
+         event.renderer.quad(ax1, ay1, az1, ax2, ay2, az2, bx1, by1, bz1, bx2, by2, bz2, this.tracerLine);
+         event.renderer.quad(bx2, by2, bz2, bx1, by1, bz1, ax2, ay2, az2, ax1, ay1, az1, this.tracerLine);
+      }
+   }
+
+   /** The ribbon's sideways half-step at a point: across both the line and the view ray, {@code perUnit * distance} long. False if the two are parallel. */
+   private boolean ribbonSide(double dx, double dy, double dz, double vx, double vy, double vz, double perUnit, double[] out) {
+      double sx = dy * vz - dz * vy;
+      double sy = dz * vx - dx * vz;
+      double sz = dx * vy - dy * vx;
+      double len = Math.sqrt(sx * sx + sy * sy + sz * sz);
+      if (len < 1.0E-9) {
+         return false;
+      }
+
+      double width = perUnit * Math.max(0.05, Math.sqrt(vx * vx + vy * vy + vz * vz));
+      out[0] = sx / len * width;
+      out[1] = sy / len * width;
+      out[2] = sz / len * width;
+      return true;
+   }
+
 
    private void drawPlayer(Render3DEvent event, Player player, boolean invis) {
       double alpha = this.fadeAlpha(player);
