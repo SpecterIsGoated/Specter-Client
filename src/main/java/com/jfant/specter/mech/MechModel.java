@@ -74,8 +74,12 @@ public final class MechModel {
    public static final int GEAR_R = 36;
    public static final int COUNT = 37;
 
-   /** Nozzle exit in the nozzle part's frame; the exhaust leaves along -Y. */
+   /** Nozzle exit in the nozzle part's frame; the exhaust leaves along -Y. Set from the F-22 nozzle when it loads. */
    public static final Vector3f NOZZLE_EXIT = new Vector3f(0.0F, -0.125F, -0.005F);
+   /** Half width (local X) and half height (local Z) of the nozzle exit. */
+   public static final Vector3f NOZZLE_HALF = new Vector3f(0.082F, 0, 0.066F);
+   /** True when the real F-22 airframe is in use (false: the older blocky jet, if the model failed to load). */
+   public static boolean f22;
    /** Wing tip (trailing corner) in the wing part's frame, for vapour trails. */
    public static final Vector3f WING_TIP = new Vector3f(0.72F, 0.0F, -0.70F);
 
@@ -91,8 +95,13 @@ public final class MechModel {
    public static final class Part {
       public final int index;
       public final String name;
-      public final MechMesh mesh;
-      public final int glowQuads;
+      /** The part's own geometry (for the airframe pieces: the F-22 piece itself). */
+      public MechMesh mesh;
+      public int glowQuads;
+      /** F-22 skin carried by a robot part: unfolds out of it during the transformation (null: none). */
+      public MechMesh shell;
+      /** The part's own geometry tucks away inside the airframe in jet mode. */
+      public boolean coreHide;
       /** Robot hierarchy: parent and the rest transform relative to it. */
       public int robotParent = -1;
       public final Vector3f robotPos = new Vector3f();
@@ -118,6 +127,10 @@ public final class MechModel {
          this.glowQuads = mesh.glowQuads();
       }
 
+      void recount() {
+         this.glowQuads = this.mesh.glowQuads() + (this.shell == null ? 0 : this.shell.glowQuads());
+      }
+
       public boolean sharedParent() {
          return this.robotParent >= 0 && this.robotParent == this.jetParent;
       }
@@ -139,6 +152,126 @@ public final class MechModel {
       for (int i = 0; i < COUNT; i++) {
          if (this.parts[i] == null) throw new IllegalStateException("mech part " + i + " missing");
       }
+      MechF22 airframe = MechF22.get();
+      if (airframe != null) {
+         this.applyF22(airframe);
+         f22 = true;
+      }
+   }
+
+   // ======================================================================================================== F-22
+
+   /** Airframe pieces that ARE the part (shown on the robot too: wings on the back, fins as hip blades...). */
+   private static final int[] AIRFRAME = {
+      WING_L, WING_R, FLAPERON_L, FLAPERON_R, AILERON_L, AILERON_R, FIN_L, FIN_R, RUDDER_L, RUDDER_R, STAB_L, STAB_R,
+      NOZZLE_L, NOZZLE_R, NOSE_TIP, NOSE_BASE
+   };
+   /** Robot parts that carry a piece of F-22 skin which unfolds out of them. */
+   private static final int[] SKIN = {CHEST, BACKPACK, UPPER_ARM_L, UPPER_ARM_R, THIGH_L, THIGH_R, SHIN_L, SHIN_R, KEEL};
+   /** Robot-only parts that tuck away inside the airframe. */
+   private static final int[] TUCK = {
+      PELVIS, WAIST, CHEST, HEAD, BACKPACK, UPPER_ARM_L, UPPER_ARM_R, FOREARM_L, FOREARM_R, HAND_L, HAND_R, THIGH_L, THIGH_R,
+      SHIN_L, SHIN_R, TOE_L, TOE_R, KEEL
+   };
+
+   /**
+    * Swaps the blocky jet for the real F-22: moving surfaces are re-hinged on the airframe's own hinge lines, then
+    * every segment is moved into its part's jet frame - so at the end of the transformation each piece sits exactly
+    * where it belongs on the aircraft, whatever the robot did with it before.
+    */
+   private void applyF22(MechF22 f) {
+      for (int side = 0; side < 2; side++) {
+         String sfx = side == 0 ? "-l" : "-r";
+         int wing = side == 0 ? WING_L : WING_R, fin = side == 0 ? FIN_L : FIN_R, shin = side == 0 ? SHIN_L : SHIN_R;
+         this.hinge(side == 0 ? FLAPERON_L : FLAPERON_R, wing, f.hinges.get("flaperon" + sfx));
+         this.hinge(side == 0 ? AILERON_L : AILERON_R, wing, f.hinges.get("aileron" + sfx));
+         this.hinge(side == 0 ? RUDDER_L : RUDDER_R, fin, f.hinges.get("rudder" + sfx));
+         // all-moving stabiliser: turns about its spindle near the root
+         Vector3f[] spindle = f.hinges.get("stab" + sfx);
+         int stab = side == 0 ? STAB_L : STAB_R;
+         if (spindle != null) this.jetAbs(stab, -1, spindle[0], this.jetAbsRot[stab]);
+         // two-dimensional thrust-vectoring nozzle: pitches about its front edge
+         Vector3f[] nz = f.hinges.get("nozzle" + sfx);
+         int nozzle = side == 0 ? NOZZLE_L : NOZZLE_R;
+         if (nz != null) {
+            this.jetAbs(nozzle, shin, nz[0], this.jetAbsRot[nozzle]);
+            if (side == 0) {
+               Quaternionf inv = new Quaternionf(this.jetAbsRot[nozzle]).conjugate();
+               inv.transform(NOZZLE_EXIT.set(nz[1]).sub(nz[0]));
+               NOZZLE_EXIT.x = 0;
+               Vector3f[] size = f.hinges.get("nozzle-size" + sfx);
+               if (size != null) NOZZLE_HALF.set(size[0].x, 0, size[0].y);
+            }
+         }
+      }
+      for (int i : AIRFRAME) {
+         MechF22.Segment seg = f.segments.get(this.parts[i].name);
+         if (seg == null) continue;
+         boolean open = i == NOZZLE_L || i == NOZZLE_R || i == NOSE_BASE;
+         this.parts[i].mesh = this.segmentMesh(seg, i, open);
+      }
+      for (int i : SKIN) {
+         MechF22.Segment seg = f.segments.get(this.parts[i].name);
+         if (seg != null) this.parts[i].shell = this.segmentMesh(seg, i, true);
+      }
+      for (int i : TUCK) this.parts[i].coreHide = true;
+      for (Part p : this.parts) p.recount();
+      // the F-22's pieces are bigger than the old blocky ones: sit the heel nozzles a little higher so they clear the
+      // ground, and carry the wings and tail surfaces a bit smaller on the robot (full size again in the jet)
+      for (int side = 0; side < 2; side++) {
+         boolean m = side == 1;
+         this.robotLocal(m ? NOZZLE_R : NOZZLE_L, m ? SHIN_R : SHIN_L, new Vector3f(0, -0.35F, -0.03F), new Quaternionf());
+         this.parts[m ? WING_R : WING_L].robotScale = 0.82F;
+         this.parts[m ? FIN_R : FIN_L].robotScale = 0.72F;
+         this.parts[m ? STAB_R : STAB_L].robotScale = 0.8F;
+      }
+   }
+
+   /** Re-hinges a control surface on the airframe's hinge line; it stays fixed to its parent in robot mode. */
+   private void hinge(int part, int parent, Vector3f[] line) {
+      if (line == null) return;
+      Vector3f x = new Vector3f(line[1]).sub(line[0]).normalize();
+      Vector3f parentX = this.jetAbsRot[parent].transform(new Vector3f(1, 0, 0));
+      Vector3f parentY = this.jetAbsRot[parent].transform(new Vector3f(0, 1, 0));
+      if (x.dot(parentX) < 0) x.negate();
+      Vector3f y = new Vector3f(parentY).fma(-x.dot(parentY), x).normalize();
+      Vector3f z = new Vector3f(x).cross(y).normalize();
+      Quaternionf rot = new Quaternionf().setFromNormalized(new Matrix3f(x, y, z));
+      Vector3f origin = new Vector3f(line[0]).add(line[1]).mul(0.5F);
+      this.jetAbs(part, parent, origin, rot);
+      // the same place on the parent in robot mode
+      Quaternionf inv = new Quaternionf(this.jetAbsRot[parent]).conjugate();
+      Vector3f relPos = inv.transform(new Vector3f(origin).sub(this.jetAbsPos[parent]));
+      Quaternionf relRot = new Quaternionf(inv).mul(rot);
+      this.robotLocal(part, parent, relPos, relRot);
+   }
+
+   private float jetAbsScale(int i) {
+      float s = 1;
+      for (int p = i; p >= 0; p = this.parts[p].jetParent) s *= this.parts[p].jetScale;
+      return s;
+   }
+
+   /** A segment moved from jet space into the part's own jet frame. */
+   private MechMesh segmentMesh(MechF22.Segment seg, int part, boolean backface) {
+      Quaternionf inv = new Quaternionf(this.jetAbsRot[part]).conjugate();
+      Vector3f origin = this.jetAbsPos[part];
+      float scale = this.jetAbsScale(part);
+      float[] p = new float[seg.pos.length], n = new float[seg.normal.length];
+      Vector3f v = new Vector3f();
+      for (int k = 0; k < seg.pos.length; k += 3) {
+         inv.transform(v.set(seg.pos[k], seg.pos[k + 1], seg.pos[k + 2]).sub(origin)).div(scale);
+         p[k] = v.x;
+         p[k + 1] = v.y;
+         p[k + 2] = v.z;
+         inv.transform(v.set(seg.normal[k], seg.normal[k + 1], seg.normal[k + 2]));
+         n[k] = v.x;
+         n[k + 1] = v.y;
+         n[k + 2] = v.z;
+      }
+      MechMesh.Builder b = MechMesh.builder();
+      for (int t = 0; t < seg.tris; t++) b.tri(seg.material[t], p, n, t * 9, backface);
+      return b.build();
    }
 
    /** Quaternion from rotations in degrees, applied X then Y then Z in the part's own frame. */

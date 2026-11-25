@@ -47,7 +47,7 @@ public final class MechPalette {
    public final int[] rgb = new int[COUNT];
 
    public MechPalette() {
-      this.set(Paint.Specter, 0, 0, 0);
+      this.set(Paint.Raptor, 0, 0, 0);
    }
 
    /**
@@ -57,13 +57,15 @@ public final class MechPalette {
     */
    public void set(Paint paint, int customArmor, int customAccent, int customGlow) {
       switch (paint) {
-         case Raptor -> this.fill(0x7C8590, 0x5A626D, 0xAEB4BC, 0x2A2E34, 0x8C949F, 0x5B4A2C, 0xC9CED4, 0x9EE8FF);
+         // F-22 two-tone grey (the darker blotches are the accent), gold-tinted canopy, pale blue visor
+         case Raptor -> this.fill(0x80868E, 0x666C74, 0xA8ADB4, 0x2B2F34, 0x747A82, 0x5E4E2C, 0x8E949C, 0xBFE6FF);
          case Arctic -> this.fill(0xD9DEE4, 0x3C7FD6, 0x9AA2AD, 0x2B3038, 0xF0F2F5, 0x1F2C3E, 0x3C7FD6, 0x9FD8FF);
          case Midnight -> this.fill(0x24262B, 0x3A3F48, 0x8D939C, 0x111214, 0x30333A, 0x161B26, 0x5C626C, 0xFF5A3C);
          case Custom -> this.fill(
                customArmor, customAccent, 0xB8BEC8, 0x22252B, lighten(customArmor, 0.18F), 0x241A33, lighten(customAccent, 0.35F), customGlow
             );
-         default -> this.fill(0x4A4F58, 0x8A4FE0, 0xB8BEC8, 0x1E2026, 0x6B717C, 0x2A1F3D, 0xC9A0FF, 0xC9A0FF);
+         // the same F-22 greys, with Specter's violet visor and chest light
+         default -> this.fill(0x80868E, 0x666C74, 0xA8ADB4, 0x2B2F34, 0x747A82, 0x5E4E2C, 0x8E949C, 0xC9A0FF);
       }
    }
 

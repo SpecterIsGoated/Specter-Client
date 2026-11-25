@@ -168,7 +168,7 @@ public class JetMech extends Module implements MechAnim.Config {
       .add(
          ((EnumSetting.Builder)((EnumSetting.Builder)((EnumSetting.Builder)new EnumSetting.Builder().name("paint"))
                   .description("Colour scheme. Custom uses the three colours below."))
-               .defaultValue(MechPalette.Paint.Specter))
+               .defaultValue(MechPalette.Paint.Raptor))
             .build()
       );
    private final Setting<SettingColor> armorColor = this.sgLook
@@ -241,7 +241,7 @@ public class JetMech extends Module implements MechAnim.Config {
       super(
          SpecterClientAddon.VISUALS,
          "jet-mech",
-         "Become a transforming robot that folds into a stealth fighter jet when you fly with an elytra. Fireworks light the afterburners. Visual only.",
+         "Become a transforming robot that folds into an F-22 Raptor when you fly with an elytra. Fireworks light the afterburners. Visual only. F-22 model: \"Lockheed Martin F-22 Raptor\" by andertan (CC BY 4.0).",
          "mech",
          "transformer",
          "jet"

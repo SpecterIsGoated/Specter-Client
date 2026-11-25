@@ -1,0 +1,9 @@
+Jet Mech aircraft model
+
+The Jet Mech's jet form uses "Lockheed Martin F-22 Raptor" by andertan
+https://sketchfab.com/3d-models/lockheed-martin-f-22-raptor-7e7b3c372e374dda98e70208d09cfdcf
+licensed under Creative Commons Attribution 4.0 (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
+
+Changes: the cockpit interior and painted exhaust plumes were removed; the airframe was cut into separate
+moving parts (wings, flaperons, ailerons, stabilisers, fins, rudders, nozzles, fuselage sections), rescaled,
+converted to the mod's own format (f22.bin, built by tools/mech/f22build.py) and recoloured by the mod.

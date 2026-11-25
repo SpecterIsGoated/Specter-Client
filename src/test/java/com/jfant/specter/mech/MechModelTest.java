@@ -73,10 +73,12 @@ class MechModelTest {
       Vector3f v = new Vector3f();
       MechModel model = MechModel.get();
       for (int p = 0; p < MechModel.COUNT; p++) {
-         MechMesh m = model.parts[p].mesh;
-         if (pose.scale[p] < 0.5F) continue; // stowed bits
+         for (int layer = 0; layer < 2; layer++) {
+         MechMesh m = layer == 0 ? model.parts[p].mesh : model.parts[p].shell;
+         float drawScale = pose.scale[p] * (layer == 0 ? pose.coreScale[p] : pose.shellScale[p]);
+         if (m == null || pose.scale[p] < 0.5F || drawScale < 0.5F) continue; // stowed bits
          for (int k = 0; k < m.quads * 4; k++) {
-            v.set(m.pos[k * 3], m.pos[k * 3 + 1], m.pos[k * 3 + 2]).mul(pose.scale[p]);
+            v.set(m.pos[k * 3], m.pos[k * 3 + 1], m.pos[k * 3 + 2]).mul(drawScale);
             pose.rot[p].transform(v).add(pose.pos[p]);
             b[0] = Math.min(b[0], v.x);
             b[1] = Math.min(b[1], v.y);
@@ -84,6 +86,7 @@ class MechModelTest {
             b[3] = Math.max(b[3], v.x);
             b[4] = Math.max(b[4], v.y);
             b[5] = Math.max(b[5], v.z);
+         }
          }
       }
       return b;
@@ -132,12 +135,16 @@ class MechModelTest {
          w.println("mtllib mech.mtl");
          int base = 1;
          Vector3f v = new Vector3f();
+         for (int layer = 0; layer < 2; layer++)
          for (int p = 0; p < MechModel.COUNT; p++) {
-            MechMesh m = model.parts[p].mesh;
+            MechMesh m = layer == 0 ? model.parts[p].mesh : model.parts[p].shell;
+            if (m == null) continue;
+            float drawScale = pose.scale[p] * (layer == 0 ? pose.coreScale[p] : pose.shellScale[p]);
+            if (drawScale < 0.02F) continue;
             Quaternionf r = pose.rot[p];
-            w.println("o " + model.parts[p].name);
+            w.println("o " + model.parts[p].name + (layer == 0 ? "" : "-skin"));
             for (int k = 0; k < m.quads * 4; k++) {
-               v.set(m.pos[k * 3], m.pos[k * 3 + 1], m.pos[k * 3 + 2]).mul(pose.scale[p]);
+               v.set(m.pos[k * 3], m.pos[k * 3 + 1], m.pos[k * 3 + 2]).mul(drawScale);
                r.transform(v).add(pose.pos[p]);
                w.printf("v %.5f %.5f %.5f%n", v.x, v.y, v.z);
             }

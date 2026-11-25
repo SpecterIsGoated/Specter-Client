@@ -21,6 +21,9 @@ public final class MechPose {
    public final Vector3f[] pos = vectors();
    public final Quaternionf[] rot = quats();
    public final float[] scale = new float[N];
+   /** Draw-only size of each part's own geometry (tucking away in jet mode) and of the F-22 skin it carries. */
+   public final float[] coreScale = new float[N];
+   public final float[] shellScale = new float[N];
 
    // per-part animated local transforms
    private final Vector3f[] robotLocalPos = vectors();
@@ -128,6 +131,9 @@ public final class MechPose {
          MechModel.Part p = this.model.parts[i];
          float w = t <= 0 ? 0 : t >= 1 ? 1 : partWeight(p, t);
          this.weight[i] = w;
+         // the robot's own armour folds into the airframe while the F-22 skin unfolds out of it
+         this.coreScale[i] = p.coreHide ? 1.0F - 0.72F * smooth((w - 0.40F) / 0.60F) : 1.0F;
+         this.shellScale[i] = p.shell == null ? 0.0F : smooth((w - 0.05F) / 0.80F);
          float arcAmt = (float)Math.sin(Math.PI * clamp01(w));
          if (p.sharedParent()) {
             // blend the local transform, then hang it off the (already blended) parent
@@ -241,12 +247,21 @@ public final class MechPose {
       int twitchKind = (int)(Math.floor(time / 5.0F) * 7.0F) & 3;
 
       // --- legs
-      float swingAmp = 30.0F + 16.0F * run / Math.max(walk, 0.001F) * walk;
+      // A heavy machine: the swinging leg folds at the knee and reaches forward, the planted leg stays straight and
+      // pushes back (the knee used to bend on the planted leg, which read as walking backwards). Each heel strike
+      // drops the hips and jolts the upper body; the weight rolls over onto the planted foot.
+      float runShare = walk > 0 ? run / walk : 0;
+      float swingAmp = 30.0F + 14.0F * runShare;
       float thighL = c * swingAmp * walk;
       float thighR = -c * swingAmp * walk;
-      float bend = 38.0F + 32.0F * (walk > 0 ? run / walk : 0);
-      float kneeL = (bend * Math.max(0, -s) + 6.0F) * walk;
-      float kneeR = (bend * Math.max(0, s) + 6.0F) * walk;
+      float bend = 42.0F + 34.0F * runShare;
+      // the left thigh swings forward while sin(phase) > 0, the right one while it is < 0
+      float liftL = Math.max(0, s), liftR = Math.max(0, -s);
+      float kneeL = (bend * liftL * liftL * (3 - 2 * liftL) + 5.0F) * walk;
+      float kneeR = (bend * liftR * liftR * (3 - 2 * liftR) + 5.0F) * walk;
+      // a slight kick-out just before the heel comes down (straightening, then the strike)
+      thighL -= 4.0F * walk * Math.max(0, s) * Math.max(0, -c);
+      thighR -= 4.0F * walk * Math.max(0, -s) * Math.max(0, c);
       // turning in place: small lifting steps
       if (in.turnStep > 0.001F) {
          float ts = (float)Math.sin(in.turnPhase);
@@ -262,27 +277,36 @@ public final class MechPose {
       thighR += -18.0F * air + 2.0F * rising - 34.0F * land - 30.0F * crouch - 82.0F * sit;
       kneeL += 38.0F * air + 62.0F * land + 56.0F * crouch + 80.0F * sit;
       kneeR += 30.0F * air + 62.0F * land + 56.0F * crouch + 80.0F * sit;
-      float pelvisDrop = -0.02F * walk * (1 - (float)Math.cos(2 * phase)) / 2 - 0.11F * land - 0.13F * crouch - 0.06F * run;
-      this.rp(MechModel.PELVIS, 0, pelvisDrop + 0.004F * breath * k, -0.05F * crouch);
-      float pelvisTwist = 6.0F * s * walk;
-      this.rr(MechModel.PELVIS, 0, pelvisTwist, 0);
-      this.rr(MechModel.THIGH_L, thighL, -pelvisTwist * 0.5F, -2.0F * air - 3.0F * crouch);
-      this.rr(MechModel.THIGH_R, thighR, -pelvisTwist * 0.5F, 2.0F * air + 3.0F * crouch);
+      // heel strikes at phase 0 (right) and pi (left); the load arrives a moment later and is soaked up by the hips
+      float impact = (float)Math.pow(Math.max(0, Math.cos(2 * phase - 0.45F)), 3) * walk;
+      float settle = (float)Math.pow(Math.max(0, Math.cos(2 * phase - 1.3F)), 2) * walk;
+      float stanceL = Math.max(0, -s), stanceR = Math.max(0, s);
+      float sway = (stanceL - stanceR) * walk;   // + : weight over the left foot
+      float pelvisDrop = -(0.035F + 0.03F * runShare) * impact + 0.012F * (1 - settle) * walk - 0.11F * land - 0.13F * crouch - 0.07F * run;
+      this.rp(MechModel.PELVIS, 0.032F * sway * (1 - 0.5F * runShare), pelvisDrop + 0.004F * breath * k, -0.05F * crouch);
+      float pelvisTwist = 7.0F * s * walk;
+      // the hip of the swinging leg drops (the planted side carries the weight)
+      float hipRoll = 5.0F * sway;
+      this.rr(MechModel.PELVIS, 0, pelvisTwist, hipRoll);
+      this.rr(MechModel.THIGH_L, thighL, -pelvisTwist * 0.5F, -2.0F * air - 3.0F * crouch - hipRoll);
+      this.rr(MechModel.THIGH_R, thighR, -pelvisTwist * 0.5F, 2.0F * air + 3.0F * crouch - hipRoll);
       this.rr(MechModel.SHIN_L, kneeL, 0, 0);
       this.rr(MechModel.SHIN_R, kneeR, 0, 0);
-      // feet stay roughly level, with a little toe-off at the back of each step
-      float toeL = -(thighL + kneeL) * 0.85F + (c < 0 ? 0 : 14.0F * s * walk);
-      float toeR = -(thighR + kneeR) * 0.85F + (c > 0 ? 0 : -14.0F * s * walk);
+      // feet: flat while planted, toes down as they leave the ground, toes up as they reach for the next step
+      float toeL = -(thighL + kneeL) * 0.9F + walk * liftL * (22.0F * Math.max(0, c) - 12.0F * Math.max(0, -c));
+      float toeR = -(thighR + kneeR) * 0.9F + walk * liftR * (22.0F * Math.max(0, -c) - 12.0F * Math.max(0, c));
       this.rr(MechModel.TOE_L, toeL + 20.0F * air, 0, 0);
       this.rr(MechModel.TOE_R, toeR + 20.0F * air, 0, 0);
       this.rr(MechModel.NOZZLE_L, toeL * 0.6F, 0, 0);
       this.rr(MechModel.NOZZLE_R, toeR * 0.6F, 0, 0);
 
-      // --- torso
-      float lean = 4.0F * walk + 10.0F * run + 14.0F * land + 22.0F * crouch - 4.0F * air;
+      // --- torso: leans into the walk, counter-twists against the hips, rolls back over the planted foot and takes
+      // a small jolt at every heel strike
+      float lean = 5.0F * walk + 13.0F * run + 14.0F * land + 22.0F * crouch - 4.0F * air + 3.0F * impact;
       float turnLead = Math.max(-12.0F, Math.min(12.0F, in.turnRate * 0.05F)) * k;
-      this.rr(MechModel.WAIST, lean * 0.4F + 0.6F * breath * k, -pelvisTwist * 0.8F + turnLead * 0.4F, 0);
-      this.rr(MechModel.CHEST, lean * 0.6F + 0.8F * breath * k, -pelvisTwist * 0.6F + turnLead * 0.6F, 0);
+      this.rr(MechModel.WAIST, lean * 0.4F + 0.6F * breath * k, -pelvisTwist * 0.9F + turnLead * 0.4F, -hipRoll * 0.6F);
+      this.rr(MechModel.CHEST, lean * 0.6F + 0.8F * breath * k, -pelvisTwist * 0.8F + turnLead * 0.6F, -hipRoll * 0.5F);
+      this.rp(MechModel.CHEST, 0, -0.012F * impact, 0);
 
       // --- head: follows the look direction, with a slow idle scan and the odd tilt
       float scan = (float)Math.sin(time * 0.37F) * 5.0F * k * (1 - walk);
@@ -295,11 +319,14 @@ public final class MechPose {
       boolean right = in.rightHanded;
       float sw = in.swing;
       float swingArm = sw > 0 ? (float)(-Math.sin(Math.sqrt(sw) * Math.PI) * 72.0F - Math.sin(sw * Math.PI) * 18.0F) : 0;
-      float armL = -thighL * 0.75F - 26.0F * land * 0 + (-14.0F) * air;
-      float armR = -thighR * 0.75F + (-14.0F) * air;
-      float elbowRest = -10.0F - 14.0F * walk - 58.0F * run;
-      float elbowL = elbowRest - 30.0F * land - 20.0F * crouch;
-      float elbowR = elbowRest - 30.0F * land - 20.0F * crouch;
+      float armPhase = phase - 0.35F;
+      float armSwing = (float)Math.cos(armPhase) * (24.0F + 26.0F * runShare) * walk;
+      float armL = -armSwing - 14.0F * air;
+      float armR = armSwing - 14.0F * air;
+      float elbowRest = -10.0F - 14.0F * walk - 56.0F * run;
+      // the arm swinging forward bends more; a heel strike makes both dip for a moment
+      float elbowL = elbowRest - 12.0F * Math.max(0, armSwing / 30.0F) * walk - 6.0F * impact - 30.0F * land - 20.0F * crouch;
+      float elbowR = elbowRest - 12.0F * Math.max(0, -armSwing / 30.0F) * walk - 6.0F * impact - 30.0F * land - 20.0F * crouch;
       if (in.holdingLeft) elbowL -= 22.0F;
       if (in.holdingRight) elbowR -= 22.0F;
       float outL = 4.0F + 2.0F * breath + 22.0F * air + 10.0F * land;
@@ -341,7 +368,7 @@ public final class MechPose {
       // --- wings: slow flutter, flare when airborne or landing, spread open as the transformation starts
       float spread = (1 - k);
       float flutter = (float)Math.sin(time * 0.8F) * 2.5F + (twitchKind == 0 ? 8.0F * twitch : 0);
-      float flare = 14.0F * air + 10.0F * land - 6.0F * run + flutter + 30.0F * spread;
+      float flare = 14.0F * air + 10.0F * land - 6.0F * run + flutter + 30.0F * spread - 4.0F * impact;
       float sweep = -10.0F * spread;
       // wing local frame: rotate about the chord (Z) to open, about the normal (Y) to sweep
       this.robotLocalRot[MechModel.WING_L].rotateZ(rad(flare)).rotateY(rad(sweep));
@@ -401,8 +428,10 @@ public final class MechPose {
       // rudders
       this.jetLocalRot[MechModel.RUDDER_L].rotateX(rad(rud * 18.0F + hunt * 0.5F));
       this.jetLocalRot[MechModel.RUDDER_R].rotateX(rad(rud * 18.0F + hunt * 0.5F));
-      // thrust vectoring follows pitch commands
-      this.jetLocalRot[MechModel.NOZZLE_L].rotateX(rad(ele * 9.0F));
-      this.jetLocalRot[MechModel.NOZZLE_R].rotateX(rad(ele * 9.0F));
+      // F-22 style two-dimensional thrust vectoring: the nozzles pitch up to 20 degrees with the stabilisers (exhaust
+      // up = nose up), split a little in a roll, and never sit perfectly still while the engines run
+      float vec = clamp(ele * 20.0F + (float)Math.sin(time * 1.7F) * 1.5F, -20.0F, 20.0F);
+      this.jetLocalRot[MechModel.NOZZLE_L].rotateX(rad(clamp(vec + ail * 7.0F, -20.0F, 20.0F)));
+      this.jetLocalRot[MechModel.NOZZLE_R].rotateX(rad(clamp(vec - ail * 7.0F, -20.0F, 20.0F)));
    }
 }

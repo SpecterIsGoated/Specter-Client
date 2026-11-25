@@ -18,15 +18,18 @@ public final class MechMesh {
    public final float[] shade;
    /** One normal (x, y, z) per quad. */
    public final float[] normal;
+   /** 4 vertices x normal (x, y, z): smooth shading for imported surfaces, the face normal everywhere else. */
+   public final float[] vnormal;
    /** One material id per quad, see {@link MechPalette}. */
    public final byte[] material;
    public final int quads;
 
-   private MechMesh(float[] pos, float[] uv, float[] shade, float[] normal, byte[] material, int quads) {
+   private MechMesh(float[] pos, float[] uv, float[] shade, float[] normal, float[] vnormal, byte[] material, int quads) {
       this.pos = pos;
       this.uv = uv;
       this.shade = shade;
       this.normal = normal;
+      this.vnormal = vnormal;
       this.material = material;
       this.quads = quads;
    }
@@ -51,6 +54,7 @@ public final class MechMesh {
       private float[] uv = new float[4 * 2 * 64];
       private float[] shade = new float[4 * 64];
       private float[] normal = new float[3 * 64];
+      private float[] vnormal = new float[4 * 3 * 64];
       private byte[] material = new byte[64];
       private int quads;
       private boolean mirror;
@@ -270,6 +274,68 @@ public final class MechMesh {
          return this;
       }
 
+      /**
+       * One imported triangle (drawn as a quad with its last corner doubled), with a smooth normal per corner. Points
+       * and normals are read from {@code p}/{@code n} at offset {@code o} (3 corners x 3 floats), already in the
+       * part's frame. {@code backface} also adds the inside, darker, so a cut-open shell does not look hollow.
+       */
+      public Builder tri(int mat, float[] p, float[] n, int o, boolean backface) {
+         float ax = p[o], ay = p[o + 1], az = p[o + 2];
+         float bx = p[o + 3], by = p[o + 4], bz = p[o + 5];
+         float cx = p[o + 6], cy = p[o + 7], cz = p[o + 8];
+         float fx = (by - ay) * (cz - az) - (bz - az) * (cy - ay);
+         float fy = (bz - az) * (cx - ax) - (bx - ax) * (cz - az);
+         float fz = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+         float len = (float)Math.sqrt(fx * fx + fy * fy + fz * fz);
+         if (len < 1.0E-10F) return this;
+         fx /= len;
+         fy /= len;
+         fz /= len;
+         // the source winding should agree with its normals; if not, turn the triangle round
+         float avg = fx * (n[o] + n[o + 3] + n[o + 6]) + fy * (n[o + 1] + n[o + 4] + n[o + 7]) + fz * (n[o + 2] + n[o + 5] + n[o + 8]);
+         boolean flip = avg < 0;
+         this.addTri(mat, p, n, o, flip, flip ? -fx : fx, flip ? -fy : fy, flip ? -fz : fz, false);
+         if (backface) this.addTri(mat, p, n, o, !flip, flip ? fx : -fx, flip ? fy : -fy, flip ? fz : -fz, true);
+         return this;
+      }
+
+      private void addTri(int mat, float[] p, float[] n, int o, boolean reverse, float fx, float fy, float fz, boolean inside) {
+         this.ensure();
+         int q = this.quads++;
+         int[] order = reverse ? new int[]{0, 2, 1, 1} : new int[]{0, 1, 2, 2};
+         float anx = Math.abs(fx), any = Math.abs(fy), anz = Math.abs(fz);
+         for (int i = 0; i < 4; i++) {
+            int c = o + order[i] * 3;
+            float x = p[c], y = p[c + 1], z = p[c + 2];
+            this.pos[q * 12 + i * 3] = x;
+            this.pos[q * 12 + i * 3 + 1] = y;
+            this.pos[q * 12 + i * 3 + 2] = z;
+            float sgn = inside ? -1 : 1;
+            float nx = n[c] * sgn, ny = n[c + 1] * sgn, nz = n[c + 2] * sgn;
+            this.vnormal[q * 12 + i * 3] = nx;
+            this.vnormal[q * 12 + i * 3 + 1] = ny;
+            this.vnormal[q * 12 + i * 3 + 2] = nz;
+            float u, w;
+            if (anx >= any && anx >= anz) {
+               u = z;
+               w = y;
+            } else if (any >= anz) {
+               u = x;
+               w = z;
+            } else {
+               u = x;
+               w = y;
+            }
+            this.uv[q * 8 + i * 2] = u * UV_SCALE;
+            this.uv[q * 8 + i * 2 + 1] = -w * UV_SCALE;
+            this.shade[q * 4 + i] = inside ? 0.45F : Math.min(1.0F, 0.93F + 0.07F * ny);
+         }
+         this.normal[q * 3] = fx;
+         this.normal[q * 3 + 1] = fy;
+         this.normal[q * 3 + 2] = fz;
+         this.material[q] = (byte)mat;
+      }
+
       // ------------------------------------------------------------------------------------------------ internals
 
       private void quadFixed(int mat, float[] p, int a, int b, int c, int d, float cx, float cy, float cz) {
@@ -312,6 +378,11 @@ public final class MechMesh {
          this.normal[q * 3] = nx;
          this.normal[q * 3 + 1] = ny;
          this.normal[q * 3 + 2] = nz;
+         for (int i = 0; i < 4; i++) {
+            this.vnormal[q * 12 + i * 3] = nx;
+            this.vnormal[q * 12 + i * 3 + 1] = ny;
+            this.vnormal[q * 12 + i * 3 + 2] = nz;
+         }
          this.material[q] = (byte)mat;
          // planar UVs on the two axes the face is most spread along
          float anx = Math.abs(nx), any = Math.abs(ny), anz = Math.abs(nz);
@@ -351,6 +422,7 @@ public final class MechMesh {
          this.uv = Arrays.copyOf(this.uv, n * 8);
          this.shade = Arrays.copyOf(this.shade, n * 4);
          this.normal = Arrays.copyOf(this.normal, n * 3);
+         this.vnormal = Arrays.copyOf(this.vnormal, n * 12);
          this.material = Arrays.copyOf(this.material, n);
       }
 
@@ -361,6 +433,7 @@ public final class MechMesh {
             Arrays.copyOf(this.uv, n * 8),
             Arrays.copyOf(this.shade, n * 4),
             Arrays.copyOf(this.normal, n * 3),
+            Arrays.copyOf(this.vnormal, n * 12),
             Arrays.copyOf(this.material, n),
             n
          );

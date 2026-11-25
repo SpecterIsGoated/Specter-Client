@@ -195,11 +195,13 @@ public final class MechRender {
          poseStack.rotate(pose.rot[hand]);
          float s = pose.scale[hand];
          poseStack.scale(s, s, s);
-         // into the vanilla model convention (y down), then the same hold transform vanilla uses
-         poseStack.scale(-1.0F, -1.0F, 1.0F);
+         // into the vanilla arm convention: robot space has +Y up and +Z in front, vanilla model space has +Y down and
+         // -Z in front (same +X), which is a half turn about X - not a mirror, which turned held items round
+         poseStack.rotate(Q.identity().rotateX((float)Math.PI));
+         // then the same hold transform vanilla's ItemInHandLayer uses
          poseStack.rotate(Q.identity().rotateX((float)Math.toRadians(-90.0)));
          poseStack.rotate(Q.identity().rotateY((float)Math.PI));
-         poseStack.translate((leftArm ? 1 : -1) * 0.02F, 0.03F, -0.11F);
+         poseStack.translate((leftArm ? -1 : 1) * 0.02F, 0.03F, -0.11F);
          item.submit(poseStack, collector, anim.light, OverlayTexture.NO_OVERLAY, state.outlineColor);
          poseStack.popPose();
       }
@@ -218,30 +220,37 @@ public final class MechRender {
    static void emitSolid(MechAnim anim, PoseStack.Pose pose, VertexConsumer buf) {
       MechModel model = MechModel.get();
       MechPose mp = anim.pose;
-      int[] pal = anim.palette.rgb;
-      int light = anim.light, overlay = anim.overlay;
       for (int i = 0; i < MechModel.COUNT; i++) {
          float s = mp.scale[i];
          if (s < 0.02F) continue;
-         MechMesh mesh = model.parts[i].mesh;
-         Quaternionf rot = mp.rot[i];
-         Vector3f p = mp.pos[i];
-         M.set(pose.pose()).translate(p.x, p.y, p.z).rotate(rot).scale(s);
-         float[] pos = mesh.pos, uv = mesh.uv, shade = mesh.shade, nrm = mesh.normal;
-         for (int q = 0; q < mesh.quads; q++) {
-            int mat = mesh.material[q];
-            if (MechPalette.glows(mat)) continue;
-            rot.transform(N.set(nrm[q * 3], nrm[q * 3 + 1], nrm[q * 3 + 2]));
-            int rgb = pal[mat];
-            for (int k = 0; k < 4; k++) {
-               int vi = q * 4 + k;
-               buf.addVertex(M, pos[vi * 3], pos[vi * 3 + 1], pos[vi * 3 + 2])
-                  .setColor(argb(rgb, shade[vi], 255))
-                  .setUv(uv[vi * 2], uv[vi * 2 + 1])
-                  .setOverlay(overlay)
-                  .setLight(light)
-                  .setNormal(pose, N.x, N.y, N.z);
-            }
+         MechModel.Part part = model.parts[i];
+         solidMesh(anim, pose, buf, part.mesh, i, s * mp.coreScale[i]);
+         if (part.shell != null) solidMesh(anim, pose, buf, part.shell, i, s * mp.shellScale[i]);
+      }
+   }
+
+   private static void solidMesh(MechAnim anim, PoseStack.Pose pose, VertexConsumer buf, MechMesh mesh, int part, float s) {
+      if (s < 0.02F) return;
+      MechPose mp = anim.pose;
+      int[] pal = anim.palette.rgb;
+      int light = anim.light, overlay = anim.overlay;
+      Quaternionf rot = mp.rot[part];
+      Vector3f p = mp.pos[part];
+      M.set(pose.pose()).translate(p.x, p.y, p.z).rotate(rot).scale(s);
+      float[] pos = mesh.pos, uv = mesh.uv, shade = mesh.shade, nrm = mesh.vnormal;
+      for (int q = 0; q < mesh.quads; q++) {
+         int mat = mesh.material[q];
+         if (MechPalette.glows(mat)) continue;
+         int rgb = pal[mat];
+         for (int k = 0; k < 4; k++) {
+            int vi = q * 4 + k;
+            rot.transform(N.set(nrm[vi * 3], nrm[vi * 3 + 1], nrm[vi * 3 + 2]));
+            buf.addVertex(M, pos[vi * 3], pos[vi * 3 + 1], pos[vi * 3 + 2])
+               .setColor(argb(rgb, shade[vi], 255))
+               .setUv(uv[vi * 2], uv[vi * 2 + 1])
+               .setOverlay(overlay)
+               .setLight(light)
+               .setNormal(pose, N.x, N.y, N.z);
          }
       }
    }
@@ -256,9 +265,11 @@ public final class MechRender {
       for (int i = 0; i < MechModel.COUNT; i++) {
          MechModel.Part part = model.parts[i];
          if (part.glowQuads == 0) continue;
-         float s = mp.scale[i];
+         for (int layer = 0; layer < 2; layer++) {
+         MechMesh mesh = layer == 0 ? part.mesh : part.shell;
+         if (mesh == null) continue;
+         float s = mp.scale[i] * (layer == 0 ? mp.coreScale[i] : mp.shellScale[i]);
          if (s < 0.02F) continue;
-         MechMesh mesh = part.mesh;
          Quaternionf rot = mp.rot[i];
          Vector3f p = mp.pos[i];
          M.set(pose.pose()).translate(p.x, p.y, p.z).rotate(rot).scale(s);
@@ -277,6 +288,7 @@ public final class MechRender {
                   .setNormal(pose, N.x, N.y, N.z);
             }
          }
+         }
       }
    }
 
@@ -294,11 +306,11 @@ public final class MechRender {
          float len = anim.flameLength, power = anim.flamePower, ab = anim.afterburner;
          if (len < 0.02F || power < 0.02F) continue;
          Vector3f p = mp.pos[nz];
-         M.set(pose.pose()).translate(p.x, p.y, p.z).rotate(mp.rot[nz]).scale(s);
+         M.set(pose.pose()).translate(p.x, p.y, p.z).rotate(mp.rot[nz]).scale(s).translate(MechModel.NOZZLE_EXIT.x, 0, MechModel.NOZZLE_EXIT.z);
          // flicker: two incommensurate sines + a per-side phase
          float fl = 1.0F + 0.08F * (float)Math.sin(time * 37.0F + side * 1.7F) + 0.06F * (float)Math.sin(time * 61.0F + side * 0.4F);
          float l = len * fl;
-         float ex = 0.082F, ez = 0.066F, y0 = MechModel.NOZZLE_EXIT.y;
+         float ex = MechModel.NOZZLE_HALF.x * 0.92F, ez = MechModel.NOZZLE_HALF.z * 0.92F, y0 = MechModel.NOZZLE_EXIT.y;
          // body
          int bodyR = (int)lerp(110, 255, ab), bodyG = (int)lerp(130, 135, ab), bodyB = (int)lerp(255, 60, ab);
          cone(buf, y0, l, ex * 0.95F, ez * 0.95F, 0.35F, bodyR, bodyG, bodyB, power * 0.75F, 0.0F, 6);
@@ -408,7 +420,7 @@ public final class MechRender {
             int nz = side == 0 ? MechModel.NOZZLE_L : MechModel.NOZZLE_R;
             float s = mp.scale[nz];
             Vector3f p = mp.pos[nz];
-            M.set(pose.pose()).translate(p.x, p.y, p.z).rotate(mp.rot[nz]).scale(s);
+            M.set(pose.pose()).translate(p.x, p.y, p.z).rotate(mp.rot[nz]).scale(s).translate(MechModel.NOZZLE_EXIT.x, 0, MechModel.NOZZLE_EXIT.z);
             float l = anim.flameLength * 1.25F;
             for (int sgm = 0; sgm < 5; sgm++) {
                float t0 = sgm / 5.0F, t1 = (sgm + 1) / 5.0F;
