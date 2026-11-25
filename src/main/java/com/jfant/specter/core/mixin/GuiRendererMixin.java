@@ -82,7 +82,13 @@ public abstract class GuiRendererMixin {
             var graphics = new GuiGraphicsExtractor(mc, renderState, mouseX, mouseY);
             var tickDelta = mc.getDeltaTracker().getGameTimeDeltaPartialTick(true);
 
-            SpecterCore.EVENT_BUS.post(Render2DEvent.get(graphics, graphics.guiWidth(), graphics.guiHeight(), tickDelta));
+            // Specter's HUD shapes and text merge into few GUI elements (vanilla's layering is O(n^2) in elements)
+            com.jfant.specter.render.QuadBatch.beginGroup();
+            try {
+                SpecterCore.EVENT_BUS.post(Render2DEvent.get(graphics, graphics.guiWidth(), graphics.guiHeight(), tickDelta));
+            } finally {
+                com.jfant.specter.render.QuadBatch.endGroup();
+            }
             guiRenderer.render();
 
             Utils.scaledProjection();
@@ -93,7 +99,12 @@ public abstract class GuiRendererMixin {
             var graphics = new GuiGraphicsExtractor(mc, renderState, mouseX, mouseY);
             var guiDelta = mc.getDeltaTracker().getGameTimeDeltaTicks();
 
-            widgetScreen.renderCustom(graphics, mouseX, mouseY, guiDelta);
+            com.jfant.specter.render.QuadBatch.beginGroup();
+            try {
+                widgetScreen.renderCustom(graphics, mouseX, mouseY, guiDelta);
+            } finally {
+                com.jfant.specter.render.QuadBatch.endGroup();
+            }
             guiRenderer.render();
         }
     }

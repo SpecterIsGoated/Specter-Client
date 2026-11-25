@@ -18,6 +18,7 @@ public abstract class SkyRenderingMixin {
       at = {@At("HEAD")}
    )
    private void specter$prepareSky(GpuBufferSlice skyFog, SkyRenderState state, CallbackInfo ci) {
+      com.jfant.specter.sky.SkyboxRenderer.frame();
       com.jfant.specter.sky.SkyRenderer.prepareSky();
    }
 

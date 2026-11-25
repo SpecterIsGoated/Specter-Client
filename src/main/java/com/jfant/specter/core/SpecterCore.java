@@ -127,6 +127,16 @@ public class SpecterCore implements ClientModInitializer {
         // Load configs
         Systems.load();
 
+        // Dev runs only: -Dspecter.devOn=atmosphere,skybox switches modules on at start (never set in a real launch)
+        String devOn = System.getProperty("specter.devOn");
+        if (devOn != null) {
+            for (String name : devOn.split(",")) {
+                com.jfant.specter.core.systems.modules.Module m = Modules.get().get(name.trim());
+                if (m != null && !m.isActive()) m.toggle();
+                LOG.info("Dev start: {} is {}", name, m == null ? "not a module" : m.isActive() ? "on" : "off");
+            }
+        }
+
         // Post init
         ReflectInit.init(PostInit.class);
 

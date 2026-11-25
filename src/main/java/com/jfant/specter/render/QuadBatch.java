@@ -31,6 +31,13 @@ public final class QuadBatch {
    private float maxX = -3.4028235E38F;
    private float maxY = -3.4028235E38F;
    private static float alpha = 1.0F;
+   // Grouping (see beginGroup): the merged batch waiting to be handed to the GUI, and what it may still take.
+   private static int groupDepth;
+   @Nullable
+   private static QuadBatch pending;
+   @Nullable
+   private static GuiGraphicsExtractor pendingCtx;
+   private static boolean flushing;
    private static final float[] alphaStack = new float[16];
    private static int alphaDepth;
 
@@ -128,7 +135,91 @@ public final class QuadBatch {
       }
    }
 
+   /**
+    * Starts a stretch of drawing where Specter shapes and text drawn back to back become ONE GUI element instead of
+    * one each. Vanilla places every new GUI element by walking all earlier ones it might overlap, so a HUD made of a
+    * few hundred little shapes costs O(n^2) per frame (Where Are You's map alone was a quarter of the frame). Layering
+    * does not change: anything else added to the GUI (vanilla text, items, fills) first flushes what is waiting, see
+    * {@code GuiRenderStateMixin}. Always pair with {@link #endGroup()} in a finally.
+    */
+   public static void beginGroup() {
+      groupDepth++;
+   }
+
+   public static void endGroup() {
+      if (groupDepth > 0 && --groupDepth == 0) {
+         flushGroup();
+      }
+   }
+
+   /** Hands the waiting merged batch to the GUI now (called before any other GUI element is added). */
+   public static void flushGroup() {
+      QuadBatch p = pending;
+      GuiGraphicsExtractor c = pendingCtx;
+      if (p != null && !flushing) {
+         pending = null;
+         pendingCtx = null;
+         flushing = true;
+         try {
+            p.submitNow(c);
+         } finally {
+            flushing = false;
+         }
+      }
+   }
+
+   private boolean sameKind(QuadBatch o) {
+      return this.pipeline == o.pipeline && this.textured == o.textured && this.textures.equals(o.textures) && java.util.Objects.equals(this.scissor, o.scissor);
+   }
+
    public void submit(GuiGraphicsExtractor ctx) {
+      if (this.count == 0) return;
+      Matrix3x2f p = this.pose;
+      // merge only plain translate/scale poses (every Specter card), so corners can be moved into screen space exactly
+      if (groupDepth > 0 && !flushing && p.m01 == 0.0F && p.m10 == 0.0F && p.m00 > 0.0F && p.m11 > 0.0F) {
+         if (pending != null && (pendingCtx != ctx || !pending.sameKind(this))) flushGroup();
+         if (pending == null) {
+            pending = new QuadBatch(this.pipeline, this.textures, this.textured, new Matrix3x2f(), this.scissor);
+            pendingCtx = ctx;
+         }
+         QuadBatch to = pending;
+         for (int q = 0; q < this.count; q++) {
+            int i = q * 8;
+            to.append(
+               p.m00 * this.data[i] + p.m20, p.m11 * this.data[i + 1] + p.m21, p.m00 * this.data[i + 2] + p.m20, p.m11 * this.data[i + 3] + p.m21,
+               this.data[i + 4], this.data[i + 5], this.data[i + 6], this.data[i + 7], this.colors[2 * q], this.colors[2 * q + 1]
+            );
+         }
+         return;
+      }
+      if (pending != null) flushGroup();
+      this.submitNow(ctx);
+   }
+
+   /** Adds a quad exactly as given (alpha already applied when it was first added). */
+   private void append(float x0, float y0, float x1, float y1, float u0, float v0, float u1, float v1, int top, int bottom) {
+      if ((this.count + 1) * 8 > this.data.length) {
+         this.data = Arrays.copyOf(this.data, this.data.length * 2);
+         this.colors = Arrays.copyOf(this.colors, this.colors.length * 2);
+      }
+      this.colors[2 * this.count] = top;
+      this.colors[2 * this.count + 1] = bottom;
+      int i = this.count++ * 8;
+      this.data[i] = x0;
+      this.data[i + 1] = y0;
+      this.data[i + 2] = x1;
+      this.data[i + 3] = y1;
+      this.data[i + 4] = u0;
+      this.data[i + 5] = v0;
+      this.data[i + 6] = u1;
+      this.data[i + 7] = v1;
+      this.minX = Math.min(this.minX, x0);
+      this.minY = Math.min(this.minY, y0);
+      this.maxX = Math.max(this.maxX, x1);
+      this.maxY = Math.max(this.maxY, y1);
+   }
+
+   private void submitNow(GuiGraphicsExtractor ctx) {
       if (this.count != 0) {
          int left = (int)Math.floor(this.minX);
          int top = (int)Math.floor(this.minY);

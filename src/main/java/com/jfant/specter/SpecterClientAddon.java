@@ -81,6 +81,7 @@ import com.jfant.specter.modules.RedstoneOptimizer;
 import com.jfant.specter.modules.RenderReset;
 import com.jfant.specter.modules.ShieldBreaker;
 import com.jfant.specter.modules.SkyLyrics;
+import com.jfant.specter.modules.Skyboxes;
 import com.jfant.specter.modules.Snowfall;
 import com.jfant.specter.modules.SoundDetector;
 import com.jfant.specter.modules.SpawnerNotifier;
@@ -203,6 +204,7 @@ public final class SpecterClientAddon {
       Modules.get().add(new ColorGrading());
       Modules.get().add(new CustomFov());
       Modules.get().add(new Snowfall());
+      Modules.get().add(new Skyboxes());
       Modules.get().add(new VisualPresets());
       Modules.get().add(new RedstoneOptimizer());
       Modules.get().add(new PingSystem());

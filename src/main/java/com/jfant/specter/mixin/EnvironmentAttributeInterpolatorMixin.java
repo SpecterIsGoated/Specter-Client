@@ -19,5 +19,9 @@ public abstract class EnvironmentAttributeInterpolatorMixin {
       if (Atmosphere.on()) {
          cir.setReturnValue(Atmosphere.override(attribute, (V)cir.getReturnValue()));
       }
+      // Skybox: far terrain fades into the picture's own horizon colour instead of a sky that is not there
+      if (attribute == net.minecraft.world.attribute.EnvironmentAttributes.FOG_COLOR && com.jfant.specter.modules.Skyboxes.active()) {
+         cir.setReturnValue((V)new org.joml.Vector3f(com.jfant.specter.sky.SkyboxRenderer.horizon()));
+      }
    }
 }

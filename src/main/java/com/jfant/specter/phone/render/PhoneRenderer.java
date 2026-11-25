@@ -36,7 +36,6 @@ public final class PhoneRenderer {
    private static final int FULL_BRIGHT = 0xF000F0;
 
    private static RenderType body;
-   private static RenderType sheen;
    private static boolean ready;
 
    /** Where the glass is in GUI coordinates this frame. */
@@ -68,7 +67,6 @@ public final class PhoneRenderer {
       }
       Minecraft.getInstance().getTextureManager().register(WHITE, new DynamicTexture(() -> "specter-phone-white", white));
       body = RenderTypes.entitySolid(WHITE);
-      sheen = RenderTypes.entityTranslucent(WHITE);
       ready = true;
    }
 
@@ -143,8 +141,6 @@ public final class PhoneRenderer {
       int screenTint = screenTexture != null ? tint : Colors.lerp(0xFF050508, screenColor | 0xFF000000, on);
       collector.submitCustomGeometry(poseStack, screen, (pose, buf) -> emitScreen(pose, buf, screenTint));
       collector.submitCustomGeometry(poseStack, body, (pose, buf) -> emitHole(pose, buf));
-      float glare = 0.10F * (1.0F - 0.75F * on);
-      collector.submitCustomGeometry(poseStack, sheen, (pose, buf) -> emitSheen(pose, buf, glare));
       poseStack.popPose();
       poseStack.popPose();
    }
@@ -198,19 +194,6 @@ public final class PhoneRenderer {
             .setLight(FULL_BRIGHT)
             .setNormal(pose, 0, 0, 1);
       }
-   }
-
-   /** A faint diagonal reflection across the glass (strongest while the screen is dark). */
-   private static void emitSheen(PoseStack.Pose pose, VertexConsumer buf, float strength) {
-      if (strength <= 0.005F) return;
-      Matrix4f m = pose.pose();
-      float hw = PhoneAnimationController.SCREEN_W / 2 - 2, hh = PhoneAnimationController.SCREEN_H / 2 - 2, z = PhoneMesh.FRONT_Z + 0.08F;
-      int a0 = Math.round(255 * strength), a1 = 0;
-      // a band from the upper left
-      buf.addVertex(m, -hw, hh, z).setColor(255, 255, 255, a0).setUv(0.5F, 0.5F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(FULL_BRIGHT).setNormal(pose, 0, 0, 1);
-      buf.addVertex(m, -hw, hh * 0.15F, z).setColor(255, 255, 255, a1).setUv(0.5F, 0.5F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(FULL_BRIGHT).setNormal(pose, 0, 0, 1);
-      buf.addVertex(m, hw * 0.1F, hh, z).setColor(255, 255, 255, a1).setUv(0.5F, 0.5F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(FULL_BRIGHT).setNormal(pose, 0, 0, 1);
-      buf.addVertex(m, hw * 0.1F, hh, z).setColor(255, 255, 255, a1).setUv(0.5F, 0.5F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(FULL_BRIGHT).setNormal(pose, 0, 0, 1);
    }
 
    /**

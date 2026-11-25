@@ -25,6 +25,16 @@ public class BaseEspCommand extends Command {
          this.stats();
          return 1;
       }));
+      builder.then(literal("maps").executes(context -> {
+         java.util.List<String> lines = this.module().mapTargetLines();
+         if (lines.isEmpty()) {
+            this.info("No maps with a place on them seen yet - go near item frames holding maps.", new Object[0]);
+         } else {
+            this.info("Maps in item frames and where they were made (%d):", new Object[]{lines.size()});
+            for (String line : lines) this.info("  %s", new Object[]{line});
+         }
+         return 1;
+      }));
       builder.then(literal("clear").executes(context -> {
          this.module().reset();
          this.info("Cleared the base map for this session.", new Object[0]);

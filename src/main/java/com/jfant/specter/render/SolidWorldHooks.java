@@ -16,11 +16,12 @@ import com.jfant.specter.sky.SkyRenderer;
 public final class SolidWorldHooks {
    /** Whether anything needs the boundary this frame (if not, vanilla's single main pass is left alone). */
    public static boolean wanted() {
-      return SkyLyrics.wantsSolidDepth() || SkyRenderer.wantsAfterSolid() || Bioluminescence.on();
+      return com.jfant.specter.sky.SkyboxRenderer.ready() || SkyLyrics.wantsSolidDepth() || SkyRenderer.wantsAfterSolid() || Bioluminescence.on();
    }
 
    public static void run() {
       SkyLyrics.captureSolidDepth();
+      com.jfant.specter.sky.SkyboxRenderer.draw();
       SkyRenderer.afterSolidTerrain();
       WorldFx.captureSolidDepth();
    }

@@ -206,7 +206,8 @@ public final class PhoneSystemUi {
       float k = this.shadeAnim;
       this.shadeUi.begin(c, mx, my, dt);
       c.alpha(k);
-      c.rect(0, 0, c.width, c.height, 0xE60B0910);
+      // solid: at 90% the lock screen's big clock and date showed through behind the toggles and "Notifications"
+      c.rect(0, 0, c.width, c.height, 0xFF0B0910);
       c.push(0, (1 - k) * -40);
       float y = PhoneCanvas.SAFE_TOP + 4;
       // quick toggles

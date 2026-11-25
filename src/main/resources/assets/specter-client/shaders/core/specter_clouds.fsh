@@ -68,7 +68,7 @@ void main() {
             // At grazing angles the slab is long: cap the stretch marched, the far part is lost in the haze anyway.
             t1 = min(t1, t0 + thick * 5.0);
             // Long, grazing paths near the horizon get more steps (up to double) so they do not stipple.
-            int steps = int(Cloud2.w * clamp((t1 - t0) / (thick * 2.0), 1.0, 2.0) + 0.5);
+            int steps = int(Cloud2.w * clamp((t1 - t0) / (thick * 1.8), 1.0, 2.5) + 0.5);
             vec2 origin = CamPos.xz + Wind.xy;
             if (steps <= 1) {
                 // Cheapest: one look at the coverage at mid-height, shaded by how thick the cloud is there.
@@ -84,7 +84,7 @@ void main() {
                 int lightSteps = quality >= 3.0 ? 3 : (quality >= 2.0 ? 2 : 1);
                 bool detail = quality >= 1.0;
                 float dt = (t1 - t0) / float(steps);
-                float jitter = 0.2 + 0.6 * interleavedGradient(gl_FragCoord.xy);
+                float jitter = 0.25 + 0.5 * pixelHash(gl_FragCoord.xy);
                 vec2 toLight = L.xz / max(L.y, 0.10);
                 for (int i = 0; i < 128; i++) {
                     if (i >= steps) break;
@@ -101,7 +101,7 @@ void main() {
                         float s = (float(j) + 0.5) / float(lightSteps);
                         float lh = h01 + (1.0 - h01) * s;
                         vec2 q = xz + toLight * thick * (lh - h01);
-                        toward += cloudDensity(vec3(q.x, 0.0, q.y), lh, coverage, false);
+                        toward += cloudDensityFast(vec3(q.x, 0.0, q.y), lh, coverage);
                     }
                     toward *= thick * (1.0 - h01) / float(lightSteps);
                     float sigma = dens * 0.052 * (1.0 + storm * 0.9);
@@ -142,7 +142,8 @@ void main() {
             vec2 warp = (texture(Sampler0, q * (1.0 / 7680.0)).ag - 0.5) * 0.06;
             float fibres = texture(Sampler0, vec2(q.x * (1.0 / 2560.0), q.y * (1.0 / 7680.0)) + warp).b;
             fibres = fibres * 0.7 + texture(Sampler0, vec2(q.x * (1.0 / 1280.0), q.y * (1.0 / 3840.0)) + warp * 2.0).r * 0.3;
-            float wisp = patches * smoothstep(0.38, 0.85, fibres) * Cloud2.x * (1.0 - smoothstep(25000.0, 60000.0, tc));
+            // Fibres seen edge-on near the horizon alias into hatching: they fade out well before they get that flat.
+            float wisp = patches * smoothstep(0.38, 0.85, fibres) * Cloud2.x * (1.0 - smoothstep(12000.0, 30000.0, tc)) * smoothstep(0.04, 0.16, d.y);
             // Thin high cloud barely shows at night: a faint veil, not dark streaks across the stars.
             highAlpha = wisp * 0.6 * (1.0 - storm * 0.6) * mix(0.25, 1.0, smoothstep(-0.25, 0.05, sun.y));
             highLight = (lightColor * (0.55 + hgPhase(c, 0.75) * 4.0) * 1.3 + ambient * 1.3) * highAlpha;

@@ -174,6 +174,9 @@ public final class PhoneOS {
 
    // ============================================================================================== open / close
 
+   /** When the phone screen was last replaced by another one (-1 = it wasn't). */
+   private double leftAt = -1;
+
    public boolean isOut() {
       return this.animation.visible();
    }
@@ -196,6 +199,39 @@ public final class PhoneOS {
       if (mc.gui.screen() instanceof PhoneScreen) {
          mc.gui.setScreen(null);
       } else {
+         this.screenGone();
+      }
+   }
+
+   /**
+    * The phone screen was replaced. A server menu that shows up over it (Auto RTP's /rtp menu, which Specter+ puts
+    * back under the phone straight away) gets a moment before the phone goes away, so the phone doesn't drop and come
+    * back up on every RTP; anything else puts it away on the next frame.
+    */
+   void screenLeft() {
+      this.leftAt = now();
+      this.input.reset();
+   }
+
+   /** The phone screen is shown again (also after Specter+ put it back over a menu). */
+   void screenBack() {
+      this.leftAt = -1;
+      Minecraft mc = Minecraft.getInstance();
+      if (mc.player != null && this.animation.state() != PhoneAnimationController.State.OPEN
+         && this.animation.state() != PhoneAnimationController.State.OPENING) {
+         PhoneRenderer.ensureResources();
+         this.animation.open(now());
+         this.navigation.resume();
+      }
+   }
+
+   private void checkScreenLeft() {
+      if (this.leftAt < 0) return;
+      net.minecraft.client.gui.screens.Screen s = Minecraft.getInstance().gui.screen();
+      if (s instanceof PhoneScreen) {
+         this.leftAt = -1;
+      } else if (!(s instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) || now() - this.leftAt > 1.5) {
+         this.leftAt = -1;
          this.screenGone();
       }
    }
@@ -382,6 +418,8 @@ public final class PhoneOS {
 
    /** Start of every frame, before the GUI is extracted: advance the animation once for GUI and hand alike. */
    public void frameStart() {
+      this.drawnUnderHud = false;
+      this.checkScreenLeft();
       DonutPhone m = module();
       if (m != null) {
          boolean left = Minecraft.getInstance().options.mainHand().get() == net.minecraft.world.entity.HumanoidArm.LEFT;
@@ -470,13 +508,14 @@ public final class PhoneOS {
             this.notifications.post("settings", "Welcome to Donut Phone", "Press your chat key to take out your phone. Press it again for regular chat.", null);
          }
       }
-      if (this.animation.visible() && !(mc.gui.screen() instanceof PhoneScreen) && this.animation.interactive()) this.screenGone();
+      if (this.leftAt < 0 && this.animation.visible() && !(mc.gui.screen() instanceof PhoneScreen) && this.animation.interactive()) this.screenGone();
    }
 
    @EventHandler
    private void onLeave(GameLeftEvent event) {
       if (this.captureDone != null) this.endCapture();
       if (Minecraft.getInstance().gui.screen() instanceof PhoneScreen) Minecraft.getInstance().gui.setScreen(null);
+      this.leftAt = -1;
       this.animation.snapClosed();
       this.navigation.suspend();
       this.navigation.home(now());
@@ -511,6 +550,9 @@ public final class PhoneOS {
          } else {
             c.alpha(alpha);
          }
+         // Nothing may leave the glass: an app sliding up, the shade sliding down or a page moving sideways would
+         // otherwise poke its (dark) background out past the screen's edge onto the bezel and the world.
+         c.clip(0, 0, c.width, c.height);
          float mx = this.input.toPhoneX(mouseGuiX), my = this.input.toPhoneY(mouseGuiY);
          if (!this.animation.interactive()) {
             mx = -1000;
@@ -619,8 +661,53 @@ public final class PhoneOS {
       c.end();
    }
 
+   /** Set when {@link #hudPass} drew the interface this frame, so the phone screen does not draw it a second time. */
+   private boolean drawnUnderHud;
+
+   public boolean drawnUnderHud() {
+      return this.drawnUnderHud;
+   }
+
+   /**
+    * Called by the HUD just before the hotbar, hearts and the rest: the phone's interface (and the dim behind it) is
+    * drawn here, under the HUD, exactly like the 3D phone under it. Drawn from the phone screen instead (on top of
+    * everything) the hearts went over the phone's frame but under its glass, and the glass's square black corners
+    * cut notches out of them (2026-11-25 screenshot). Also covers the phone going down and the moment a server menu
+    * sits over it.
+    */
+   public void hudPass(GuiGraphicsExtractor ctx) {
+      Minecraft mc = Minecraft.getInstance();
+      boolean phoneScreen = mc.gui.screen() instanceof PhoneScreen;
+      boolean closing = this.animation.state() == PhoneAnimationController.State.CLOSING && this.animation.uiAlpha() > 0.001F;
+      if (!phoneScreen && !closing && this.leftAt < 0) return;
+      if (this.captureDone != null) return;
+      double mx = -10000, my = -10000;
+      if (phoneScreen) {
+         this.drawDim(ctx);
+         double scale = mc.getWindow().getGuiScale();
+         mx = mc.mouseHandler.xpos() / scale;
+         my = mc.mouseHandler.ypos() / scale;
+      }
+      this.renderInterface(ctx, mx, my);
+      // the hotbar and everything after it go on top
+      ctx.nextStratum();
+      this.drawnUnderHud = true;
+   }
+
+   /** The soft darkening at the top and bottom of the screen while the phone is up (module setting). */
+   public void drawDim(GuiGraphicsExtractor ctx) {
+      DonutPhone m = module();
+      if (m == null || !m.dimBackground() || this.capturing()) return;
+      int a = Math.round(70 * this.animation.progress());
+      if (a <= 0) return;
+      int w = ctx.guiWidth(), h = ctx.guiHeight();
+      ctx.fillGradient(0, 0, w, h / 3, a << 24, 0);
+      ctx.fillGradient(0, h * 2 / 3, w, h, 0, a << 24);
+   }
+
    /** HUD hook: while the phone goes down after its screen closed, let the interface fade instead of vanishing. */
    public void renderClosingFade(GuiGraphicsExtractor ctx) {
+      if (this.drawnUnderHud) return;
       if (this.animation.state() == PhoneAnimationController.State.CLOSING && this.animation.uiAlpha() > 0.001F
          && !(Minecraft.getInstance().gui.screen() instanceof PhoneScreen)) {
          this.renderInterface(ctx, -10000, -10000);

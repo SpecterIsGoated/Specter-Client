@@ -438,8 +438,17 @@ public class WhereAreYou extends Module {
       return Math.round(r * factor) << 16 | Math.round(g * factor) << 8 | Math.round(b * factor);
    }
 
+   /** 12,345 style (same as %,d in Locale.ROOT) without String.format, which was a tenth of this card's frame time. */
    private static String format(int value) {
-      return String.format(Locale.ROOT, "%,d", value);
+      if (value == Integer.MIN_VALUE) return String.format(Locale.ROOT, "%,d", value);
+      String digits = Integer.toString(Math.abs(value));
+      StringBuilder out = new StringBuilder(digits.length() + 5);
+      if (value < 0) out.append('-');
+      int lead = digits.length() % 3;
+      if (lead == 0) lead = 3;
+      out.append(digits, 0, lead);
+      for (int i = lead; i < digits.length(); i += 3) out.append(',').append(digits, i, i + 3);
+      return out.toString();
    }
 
    private int rowWidth(WhereAreYou.Row r) {

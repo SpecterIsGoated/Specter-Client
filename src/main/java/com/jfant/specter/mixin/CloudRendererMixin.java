@@ -18,7 +18,7 @@ public abstract class CloudRendererMixin {
       cancellable = true
    )
    private void specter$hide(CallbackInfo ci) {
-      if (Atmosphere.hidesVanillaClouds()) {
+      if (Atmosphere.hidesVanillaClouds() || com.jfant.specter.modules.Skyboxes.active()) {
          ci.cancel();
       }
    }

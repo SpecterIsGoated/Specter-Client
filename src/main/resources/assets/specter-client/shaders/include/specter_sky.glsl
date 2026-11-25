@@ -78,6 +78,46 @@ float interleavedGradient(vec2 pixel) {
     return fract(52.9829189 * fract(dot(pixel, vec2(0.06711056, 0.00583715))));
 }
 
+// Per-pixel noise without a pattern (interleaved gradient noise draws diagonal hatching when nothing averages it
+// over frames, and nothing does here).
+float pixelHash(vec2 pixel) {
+    vec3 p = fract(vec3(pixel.xyx) * 0.1031);
+    p += dot(p, p.yzx + 33.33);
+    return fract((p.x + p.y) * p.z);
+}
+
+// Cubic B-spline weights for the four texels around a sample.
+vec4 cubicWeights(float v) {
+    vec4 n = vec4(1.0, 2.0, 3.0, 4.0) - v;
+    vec4 s = n * n * n;
+    float x = s.x;
+    float y = s.y - 4.0 * s.x;
+    float z = s.z - 4.0 * s.y + 6.0 * s.x;
+    return vec4(x, y, z, 6.0 - x - y - z) * (1.0 / 6.0);
+}
+
+// The noise texture filtered with a smooth (bicubic B-spline) curve instead of straight lines between texels, from
+// four bilinear taps. Big cloud shapes come from texels many blocks wide: filtered bilinearly their edges show the
+// texel grid as diamonds and steps ("pixels"); this keeps them round.
+vec4 smoothNoise(vec2 uv) {
+    vec2 size = vec2(textureSize(Sampler0, 0));
+    vec2 st = uv * size - 0.5;
+    vec2 f = fract(st);
+    st -= f;
+    vec4 xc = cubicWeights(f.x);
+    vec4 yc = cubicWeights(f.y);
+    vec4 c = st.xxyy + vec2(-0.5, 1.5).xyxy;
+    vec4 w = vec4(xc.xz + xc.yw, yc.xz + yc.yw);
+    vec4 o = (c + vec4(xc.yw, yc.yw) / w) / size.xxyy;
+    vec4 s0 = texture(Sampler0, o.xz);
+    vec4 s1 = texture(Sampler0, o.yz);
+    vec4 s2 = texture(Sampler0, o.xw);
+    vec4 s3 = texture(Sampler0, o.yw);
+    float sx = w.x / (w.x + w.y);
+    float sy = w.z / (w.z + w.w);
+    return mix(mix(s3, s2, sx), mix(s1, s0, sx), sy);
+}
+
 // ---- atmosphere ----
 // Single scattering, done cheaply: Rayleigh (blue sky), Mie (haze and the bright ring round the sun) and ozone (the
 // violet-blue left in the sky after sunset), with Kasten-Young air mass for the light's path. Tuned for looks.
@@ -155,21 +195,33 @@ float remap(float v, float a, float b, float c, float d) {
 // Coverage map only (big shapes): for shadows and the cheapest clouds. The ramp from "no cloud" to "solid cloud"
 // is narrow, so clouds have full, solid cores rather than being thin all the way through; CloudLook.x widens it
 // for soft-edged sheets.
-float cloudMap(vec2 xz, float coverage) {
+float cloudShape(vec2 xz, float coverage, bool smoothed) {
     xz *= CloudLook.z;
-    float big = texture(Sampler0, xz * (1.0 / 5120.0)).r;
-    float mid = texture(Sampler0, xz * (1.0 / 1280.0) + vec2(0.37, 0.71)).g;
-    float shape = big * 0.66 + mid * 0.34;
+    vec2 bigUv = xz * (1.0 / 5120.0);
+    vec2 midUv = xz * (1.0 / 1280.0) + vec2(0.37, 0.71);
     float edge = 1.0 - coverage;
-    float ramp = mix(0.16, 0.50, CloudLook.x);
-    return clamp((shape - edge) / ramp, 0.0, 1.0);
+    float big = texture(Sampler0, bigUv).r;
+    // Clear sky can be told from one plain sample (even the most mid-scale lift would not reach the edge): most of
+    // the sky never pays for the smooth filtering.
+    if (big * 0.66 + 0.34 < edge - 0.04) return 0.0;
+    if (smoothed) big = smoothNoise(bigUv).r;
+    float mid = smoothed ? smoothNoise(midUv).g : texture(Sampler0, midUv).g;
+    float shape = big * 0.66 + mid * 0.34;
+    float ramp = mix(0.20, 0.50, CloudLook.x);
+    float v = clamp((shape - edge) / ramp, 0.0, 1.0);
+    // A soft shoulder where the cloud starts rather than a hard cut.
+    return v * v * (3.0 - 2.0 * v);
+}
+
+float cloudMap(vec2 xz, float coverage) {
+    return cloudShape(xz, coverage, true);
 }
 
 // Density at a point `h01` of the way up the slab. Flat bottoms; the top stands as high as the cloud is thick
 // there, so thin edges are low and thick cores tower. With `detail`, billows are carved out of the sides and tops
 // (never the core), and they slowly churn so a cloud changes shape as it drifts rather than sliding past frozen.
-float cloudDensity(vec3 p, float h01, float coverage, bool detail) {
-    float base = cloudMap(p.xz, coverage);
+float cloudDensityAt(vec3 p, float h01, float coverage, bool detail, bool smoothed) {
+    float base = cloudShape(p.xz, coverage, smoothed);
     if (base <= 0.0) return 0.0;
     float top = mix(0.30, 1.0, pow(base, mix(1.0, 0.40, CloudLook.w)));
     float d = base * smoothstep(0.0, 0.09, h01) * (1.0 - smoothstep(top * 0.50, top, h01));
@@ -185,4 +237,13 @@ float cloudDensity(vec3 p, float h01, float coverage, bool detail) {
         d *= 1.3;
     }
     return clamp(d, 0.0, 1.0);
+}
+
+float cloudDensity(vec3 p, float h01, float coverage, bool detail) {
+    return cloudDensityAt(p, h01, coverage, detail, true);
+}
+
+// With plain filtering: for the light marched toward the sun, where only how much cloud is in the way matters.
+float cloudDensityFast(vec3 p, float h01, float coverage) {
+    return cloudDensityAt(p, h01, coverage, false, false);
 }

@@ -52,6 +52,18 @@ public abstract class InGameHudMixin {
       }
    }
 
+   /** The Donut Phone's screen goes under the hotbar and the rest of the HUD, like the 3D phone it sits on. */
+   @Inject(
+      method = {"extractRenderState"},
+      at = {@At(
+         value = "INVOKE",
+         target = "Lnet/minecraft/client/gui/Hud;extractHotbarAndDecorations(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/DeltaTracker;)V"
+      )}
+   )
+   private void specter$phoneUnderHud(GuiGraphicsExtractor context, DeltaTracker tickCounter, CallbackInfo ci) {
+      if (com.jfant.specter.phone.PhoneOS.started()) com.jfant.specter.phone.PhoneOS.get().hudPass(context);
+   }
+
    @Inject(
       method = {"extractCrosshair"},
       at = {@At("HEAD")},

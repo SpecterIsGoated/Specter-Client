@@ -22,12 +22,13 @@ public final class PhoneScreen extends Screen {
    protected void init() {
       // SDL3 only delivers typed characters while text input is on
       this.minecraft.textInputManager().startTextInput(this);
+      PhoneOS.get().screenBack();
    }
 
    @Override
    public void removed() {
       this.minecraft.textInputManager().stopTextInput(this);
-      PhoneOS.get().screenGone();
+      PhoneOS.get().screenLeft();
    }
 
    @Override
@@ -47,17 +48,13 @@ public final class PhoneScreen extends Screen {
 
    @Override
    public void extractBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
-      DonutPhone m = PhoneOS.module();
-      if (m != null && m.dimBackground() && !PhoneOS.get().capturing()) {
-         float k = PhoneOS.get().animation().progress();
-         int a = Math.round(70 * k);
-         ctx.fillGradient(0, 0, this.width, this.height / 3, a << 24, 0);
-         ctx.fillGradient(0, this.height * 2 / 3, this.width, this.height, 0, a << 24);
-      }
+      // normally drawn under the HUD by PhoneOS.hudPass; only here when the HUD is hidden
+      if (!PhoneOS.get().drawnUnderHud()) PhoneOS.get().drawDim(ctx);
    }
 
    @Override
    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+      if (PhoneOS.get().drawnUnderHud()) return;
       double scale = this.minecraft.getWindow().getGuiScale();
       double mx = this.minecraft.mouseHandler.xpos() / scale, my = this.minecraft.mouseHandler.ypos() / scale;
       PhoneOS.get().renderInterface(ctx, mx, my);

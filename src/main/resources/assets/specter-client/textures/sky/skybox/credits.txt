@@ -1,0 +1,11 @@
+Specter Skybox pictures (360 degree equirectangular panoramas)
+
+tropical.jpg  - "Spiaggia di Mondello" by Poly Haven (polyhaven.com), CC0
+cyberpunk.jpg - "Shanghai Bund" by Poly Haven (polyhaven.com), CC0
+sunset.jpg    - "Umhlanga Sunrise" by Poly Haven (polyhaven.com), CC0
+arctic.jpg    - "Stierberg Sunrise" by Poly Haven (polyhaven.com), CC0
+desert.jpg    - "Goegap" by Poly Haven (polyhaven.com), CC0
+forest.jpg    - "Sunset Forest" by Poly Haven (polyhaven.com), CC0
+tokyo.jpg     - cherry blossom trees rendered by Specter in Blender over "Golden Bay" by Poly Haven (polyhaven.com), CC0
+space.jpg     - rendered by Specter in Blender; Saturn, ring, moon and star textures by Solar System Scope
+                (solarsystemscope.com/textures), CC BY 4.0

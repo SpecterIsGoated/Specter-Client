@@ -3,6 +3,8 @@ package com.jfant.specter.modules;
 import com.jfant.specter.Scope;
 import com.jfant.specter.SpecterClientAddon;
 import com.jfant.specter.core.SpecterCore;
+import com.jfant.specter.names.OwnerNames;
+import com.jfant.specter.util.Zstd;
 import com.jfant.specter.core.events.game.GameLeftEvent;
 import com.jfant.specter.core.events.packets.PacketEvent;
 import com.jfant.specter.core.events.render.Render2DEvent;
@@ -182,9 +184,18 @@ public class BaseEsp extends Module {
       .add(
          new BoolSetting.Builder()
             .name("frame-labels")
-            .description("Write over each item frame what it holds and the owner id DonutSMP stamps on items. Kept after the frame leaves range.")
+            .description("Write over each item frame what it holds and who put it there - the player's name, not the id DonutSMP stamps on items. Kept after the frame leaves range.")
             .defaultValue(true)
             .visible(this.itemFrames::get)
+            .build()
+      );
+   private final Setting<Boolean> mapTargets = this.sgEntities
+      .add(
+         new BoolSetting.Builder()
+            .name("map-targets")
+            .description("A map in a frame carries the place it was made - DonutSMP writes the exact coordinates and the dimension onto it. Write that under the frame as well, and list it with .base-esp maps.")
+            .defaultValue(true)
+            .visible(() -> this.itemFrames.get() && this.frameLabels.get())
             .build()
       );
    private final Setting<Integer> frameLabelDistance = this.sgEntities
@@ -407,6 +418,7 @@ public class BaseEsp extends Module {
    private final Vector3d labelPos = new Vector3d();
    private static final Color LABEL_TITLE = new Color(255, 255, 255, 255);
    private static final Color LABEL_OWNER = new Color(255, 200, 90, 255);
+   private static final Color LABEL_TARGET = new Color(120, 220, 255, 255);
    private int[] drawX = new int[0];
    private int[] drawY = new int[0];
    private int[] drawZ = new int[0];
@@ -738,31 +750,101 @@ public class BaseEsp extends Module {
       });
    }
 
+   /**
+    * Remembers what a loaded item frame holds and who put it there, out of what the server wrote onto the item itself
+    * (its {@code PublicBukkitValues}).
+    *
+    * <p>DonutSMP writes two different things, and only one of them is any use. {@code minecraft:gownerctid} is an id of
+    * its own making - Mojang has no player for it, so it can never become a name - while {@code minecraft:mapcreator}
+    * is the player's name in plain text, no lookup needed. A name is taken wherever one is written; an id is only kept
+    * when that is all there is, and then {@link OwnerNames} tries to turn it into a name.
+    */
    private void noteFrame(ItemFrame frame) {
       long pos = frame.blockPosition().asLong();
       ItemStack stack = frame.getItem();
       if (stack.isEmpty()) {
          this.frameInfo.remove(pos);
-      } else {
-         String owner = null;
-         CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-         if (data != null && !data.isEmpty()) {
-            CompoundTag bukkit = data.copyTag().getCompoundOrEmpty("PublicBukkitValues");
-            owner = bukkit.getString("minecraft:gownerctid").orElse(null);
-            if (owner == null) {
-               for (String key : bukkit.keySet()) {
-                  if (key.toLowerCase(Locale.ROOT).contains("owner")) {
-                     owner = bukkit.getString(key).orElse(null);
-                     if (owner != null) {
-                        break;
-                     }
-                  }
-               }
+         return;
+      }
+      String name = null, id = null;
+      CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+      CompoundTag bukkit = data == null || data.isEmpty() ? null : data.copyTag().getCompoundOrEmpty("PublicBukkitValues");
+      if (bukkit != null) {
+         for (String key : bukkit.keySet()) {
+            String plain = key.toLowerCase(Locale.ROOT);
+            if (!plain.contains("creator") && !plain.contains("owner") && !plain.contains("author") && !plain.contains("placer")) continue;
+            String value = bukkit.getString(key).orElse(null);
+            if (value == null || value.isBlank()) continue;
+            // An id is no use to read; a name is the thing itself.
+            if (OwnerNames.parse(value) != null) {
+               if (id == null) id = value;
+            } else if (name == null) {
+               name = value;
             }
          }
-
-         this.frameInfo.put(pos, new BaseEsp.FrameInfo(stack.getHoverName().getString(), owner));
       }
+      // Start naming an id now, not when the label is first drawn. A name needs none of that.
+      if (name == null && id != null) OwnerNames.prefetch(id);
+
+      BaseEsp.MapTarget target = mapTarget(bukkit);
+      BaseEsp.FrameInfo was = this.frameInfo.put(pos, new BaseEsp.FrameInfo(stack.getHoverName().getString(), name != null ? name : id, target));
+      // Worth a line in the log the first time: a frame goes out of range and chat scrolls, but the log keeps it.
+      if (target != null && (was == null || was.target() == null)) {
+         SpecterCore.LOG.info("Base Esp: a map at {} was made at {}, {}, {} in {}{}", BlockPos.of(pos).toShortString(),
+            target.x(), target.y(), target.z(), target.world(), name != null ? " by " + name : "");
+      }
+   }
+
+   /**
+    * Where a map in a frame was made, out of what the server wrote onto it. DonutSMP puts it in
+    * {@code minecraft:mapdlocats}: a Zstandard frame holding the text {@code "<x> <y> <z> <world>"}. Null when the item
+    * has nothing like that on it.
+    */
+   private static BaseEsp.MapTarget mapTarget(CompoundTag bukkit) {
+      if (bukkit == null) return null;
+      for (String key : bukkit.keySet()) {
+         if (!key.toLowerCase(Locale.ROOT).contains("locat")) continue;
+         String text = Zstd.text(bukkit.getByteArray(key).orElse(null));
+         if (text == null) continue;
+         // "<x> <y> <z> <world>"; a world name with spaces in it keeps them.
+         String[] parts = text.trim().split("\\s+");
+         if (parts.length < 4) continue;
+         try {
+            int x = (int)Math.floor(Double.parseDouble(parts[0]));
+            int y = (int)Math.floor(Double.parseDouble(parts[1]));
+            int z = (int)Math.floor(Double.parseDouble(parts[2]));
+            String world = String.join(" ", java.util.Arrays.copyOfRange(parts, 3, parts.length));
+            return new BaseEsp.MapTarget(x, y, z, world, "map of " + x + ", " + y + ", " + z + " " + shortWorld(world));
+         } catch (NumberFormatException e) {
+            // not coordinates after all - some other server writing something else under a key like this
+         }
+      }
+      return null;
+   }
+
+   /** {@code world_the_end} and friends, as they are written on a label. */
+   private static String shortWorld(String world) {
+      return switch (world.toLowerCase(Locale.ROOT)) {
+         case "world", "overworld" -> "overworld";
+         case "world_the_end", "the_end" -> "the end";
+         case "world_nether", "world_the_nether", "the_nether" -> "nether";
+         default -> world;
+      };
+   }
+
+   /** Every map target seen this session, for {@code .base-esp maps}: the place, the dimension and who made it. */
+   public List<String> mapTargetLines() {
+      List<String> out = new java.util.ArrayList<>();
+      for (Entry<Long, BaseEsp.FrameInfo> e : this.frameInfo.entrySet()) {
+         BaseEsp.MapTarget target = e.getValue().target();
+         if (target == null) continue;
+         String owner = e.getValue().owner();
+         String by = owner == null ? "" : " - by " + OwnerNames.label(owner);
+         out.add(String.format(Locale.ROOT, "%d, %d, %d in %s%s (frame at %s)", target.x(), target.y(), target.z(),
+            shortWorld(target.world()), by, BlockPos.of(e.getKey()).toShortString()));
+      }
+      out.sort(String::compareTo);
+      return out;
    }
 
    @EventHandler
@@ -780,13 +862,20 @@ public class BaseEsp extends Module {
                this.labelPos.set(x, y, z);
                if (NametagUtils.to2D(this.labelPos, 1.0)) {
                   BaseEsp.FrameInfo info = e.getValue();
+                  BaseEsp.MapTarget target = this.mapTargets.get() ? info.target() : null;
                   NametagUtils.begin(this.labelPos, event.graphics);
                   text.begin(event.graphics);
                   double h = text.getHeight(true);
-                  text.render(info.item(), -text.getWidth(info.item(), true) / 2.0, info.owner() == null ? -h : -h * 2.0, LABEL_TITLE, true);
+                  // the bottom line sits just above the frame and the rest stack up from it
+                  int row = 1 + (info.owner() != null ? 1 : 0) + (target != null ? 1 : 0);
+                  text.render(info.item(), -text.getWidth(info.item(), true) / 2.0, -h * row--, LABEL_TITLE, true);
                   if (info.owner() != null) {
-                     String owner = "owner " + info.owner();
-                     text.render(owner, -text.getWidth(owner, true) / 2.0, -h, LABEL_OWNER, true);
+                     // the player's name, not the id the server stamped on the item (see OwnerNames)
+                     String owner = "owner " + OwnerNames.label(info.owner());
+                     text.render(owner, -text.getWidth(owner, true) / 2.0, -h * row--, LABEL_OWNER, true);
+                  }
+                  if (target != null) {
+                     text.render(target.line(), -text.getWidth(target.line(), true) / 2.0, -h * row--, LABEL_TARGET, true);
                   }
 
                   text.end();
@@ -1070,7 +1159,11 @@ public class BaseEsp extends Module {
       return this.scope;
    }
 
-   private record FrameInfo(String item, String owner) {
+   private record FrameInfo(String item, String owner, BaseEsp.MapTarget target) {
+   }
+
+   /** Where a map in a frame was made: the place the server wrote onto it, and the line drawn for it. */
+   public record MapTarget(int x, int y, int z, String world, String line) {
    }
 
    private static enum Tint {

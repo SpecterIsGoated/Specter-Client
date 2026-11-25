@@ -179,7 +179,8 @@ public final class SkyRenderer {
                Atmosphere.fill(params);
                NebulaNight.fill(params);
                boolean skyWanted = params.atmosphereSky || params.nebula && params.night > 0.001F;
-               boolean afterWanted = params.lowClouds || params.cirrus > 0.0F;
+               // a skybox picture has its own clouds: ours would only be painted over
+               boolean afterWanted = (params.lowClouds || params.cirrus > 0.0F) && !com.jfant.specter.modules.Skyboxes.active();
                if (!skyWanted && !afterWanted) {
                   return;
                }
